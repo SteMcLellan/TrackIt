@@ -1,1 +1,7 @@
-
+node_modules
+npm-debug.log*
+dist
+authconfig.json
+**/.funcignore
+**/.vscode
+.DS_Store

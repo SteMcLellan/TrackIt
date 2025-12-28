@@ -1,0 +1,31 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #0c4a6e;
+  color: #f8fafc;
+}
+
+.app-header nav a,
+.app-header nav button {
+  margin-left: 1rem;
+  color: #f8fafc;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+main {
+  flex: 1;
+  padding: 1.5rem;
+}

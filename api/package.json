@@ -1,0 +1,19 @@
+{
+  "name": "trackit-api",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "func start --javascript"
+  },
+  "dependencies": {
+    "@azure/cosmos": "^4.2.0",
+    "@azure/functions": "^4.4.0",
+    "jose": "^5.2.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.5",
+    "typescript": "^5.4.0"
+  }
+}
