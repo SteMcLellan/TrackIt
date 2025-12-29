@@ -24,29 +24,6 @@ jobs:
             frontend/package-lock.json
             api/package-lock.json
 
-      - name: Install Chrome dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libnss3 \
-            libatk1.0-0 \
-            libatk-bridge2.0-0 \
-            libdrm2 \
-            libgbm1 \
-            libxcomposite1 \
-            libxdamage1 \
-            libxrandr2 \
-            libasound2 \
-            libatspi2.0-0 \
-            libwayland-client0 \
-            libnspr4 \
-            fonts-liberation \
-            libpango-1.0-0 \
-            libpangocairo-1.0-0 \
-            libxss1 \
-            libcups2 \
-            libxkbcommon0
-
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
