@@ -1,8 +1,33 @@
-node_modules
+﻿# Node / TS
+node_modules/
 npm-debug.log*
-dist
-.angular
-authconfig.json
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+tsconfig.tsbuildinfo
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Azure Functions local artifacts
+api/bin/
+api/obj/
+api/.azure/
 **/.funcignore
-**/.vscode
+
+# Frontend caches
+.next/
+.vite/
+.angular/
+
+# Local env files
+.env
+.env.*
+authconfig.json
+api/local.settings.json
+
+# Editor/OS
+**/.vscode/
 .DS_Store
