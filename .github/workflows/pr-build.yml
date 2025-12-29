@@ -54,7 +54,9 @@ jobs:
 
       - name: Run frontend tests
         working-directory: frontend
-        run: npm test -- --watch=false --browsers=ChromeHeadless
+        env:
+          CHROME_BIN: google-chrome-stable
+        run: npm test -- --watch=false --browsers=ChromeHeadlessCI
 
       - name: Install API dependencies
         working-directory: api

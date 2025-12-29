@@ -1,7 +1,35 @@
 // Karma configuration file, see link for more information
 // https://karma-runner.github.io/6.4/config/configuration-file.html
 
-process.env.CHROME_BIN = process.env.CHROME_BIN || require('puppeteer').executablePath();
+const { execSync } = require('child_process');
+
+function resolveChromeBinary() {
+  if (process.env.CHROME_BIN) {
+    return process.env.CHROME_BIN;
+  }
+
+  const candidates = ['google-chrome-stable', 'google-chrome', 'chromium-browser', 'chromium'];
+
+  for (const binary of candidates) {
+    try {
+      const location = execSync(`command -v ${binary}`, {
+        stdio: ['ignore', 'pipe', 'ignore']
+      })
+        .toString()
+        .trim();
+
+      if (location) {
+        return location;
+      }
+    } catch (error) {
+      // Ignore and move to the next candidate.
+    }
+  }
+
+  return require('puppeteer').executablePath();
+}
+
+process.env.CHROME_BIN = resolveChromeBinary();
 
 module.exports = function (config) {
   config.set({
