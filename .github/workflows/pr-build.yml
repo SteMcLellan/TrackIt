@@ -1,0 +1,65 @@
+name: PR Build Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  NODE_VERSION: 20
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install Chrome dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnss3 \
+            libatk1.0-0 \
+            libatk-bridge2.0-0 \
+            libdrm2 \
+            libgbm1 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libasound2 \
+            libatspi2.0-0 \
+            libwayland-client0 \
+            libnspr4 \
+            fonts-liberation \
+            libpango-1.0-0 \
+            libpangocairo-1.0-0 \
+            libxss1 \
+            libcups2 \
+            libxkbcommon0
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build -- --configuration production
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Install API dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Build Azure Functions
+        working-directory: api
+        run: npm run build
