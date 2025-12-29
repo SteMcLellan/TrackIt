@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "trackit-api",
   "version": "0.0.1",
   "private": true,
@@ -13,7 +13,6 @@
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.5",
-    "typescript": "^5.4.0"
+    "@types/jsonwebtoken": "^9.0.5"
   }
 }

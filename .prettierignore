@@ -1,0 +1,6 @@
+﻿node_modules
+coverage
+dist
+api/dist
+frontend/dist
+frontend/.angular
