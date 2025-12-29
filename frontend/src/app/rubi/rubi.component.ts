@@ -1,18 +1,17 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
-  selector: 'app-rubi',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-rubi',
+    imports: [],
+    template: `
     <section class="panel">
       <h2>RUBI Interventions</h2>
       <p>Track intervention plans and adherence notes. Replace with form/list components backed by API calls.</p>
     </section>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .panel {
         background: #fff;
         padding: 1.5rem;
@@ -21,6 +20,6 @@ import { CommonModule } from '@angular/common';
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
       }
     `
-  ]
+    ]
 })
 export class RubiComponent {}

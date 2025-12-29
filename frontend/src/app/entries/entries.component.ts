@@ -1,18 +1,17 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
-  selector: 'app-entries',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-entries',
+    imports: [],
+    template: `
     <section class="panel">
       <h2>Meds & Symptoms</h2>
       <p>Stubbed view for medication schedules and symptom logging. Wire this to protected API routes.</p>
     </section>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .panel {
         background: #fff;
         padding: 1.5rem;
@@ -21,6 +20,6 @@ import { CommonModule } from '@angular/common';
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
       }
     `
-  ]
+    ]
 })
 export class EntriesComponent {}

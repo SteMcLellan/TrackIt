@@ -1,12 +1,11 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { AuthService } from '../core/services/auth.service';
 
 @Component({
-  selector: 'app-dashboard',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-dashboard',
+    imports: [],
+    template: `
     <section class="panel">
       <h2>Welcome back, {{ auth.appUserSnapshot?.name || 'friend' }}!</h2>
       <p>Use the navigation above to manage meds, symptoms, and RUBI interventions.</p>
@@ -16,8 +15,8 @@ import { AuthService } from '../core/services/auth.service';
       </ul>
     </section>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .panel {
         background: #fff;
         padding: 1.5rem;
@@ -26,7 +25,7 @@ import { AuthService } from '../core/services/auth.service';
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
       }
     `
-  ]
+    ]
 })
 export class DashboardComponent {
   constructor(public auth: AuthService) {}

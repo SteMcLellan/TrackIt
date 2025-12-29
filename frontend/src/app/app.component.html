@@ -5,7 +5,9 @@
     <a routerLink="/entries">Entries</a>
     <a routerLink="/rubi">RUBI</a>
     <a routerLink="/login">Login</a>
-    <button *ngIf="auth.isAuthenticated()" (click)="logout()">Logout</button>
+    @if (auth.isAuthenticated()) {
+      <button (click)="logout()">Logout</button>
+    }
   </nav>
 </header>
 <main>

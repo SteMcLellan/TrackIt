@@ -1,22 +1,23 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 
 @Component({
-  selector: 'app-login',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-login',
+    imports: [],
+    template: `
     <section class="card">
       <h1>Sign in with Google</h1>
       <p>Authenticate to access your protected TrackIt data.</p>
       <div id="g_id_signin"></div>
-      <p *ngIf="error" class="error">{{ error }}</p>
+      @if (error) {
+        <p class="error">{{ error }}</p>
+      }
     </section>
-  `,
-  styles: [
-    `
+    `,
+    styles: [
+        `
       .card {
         max-width: 420px;
         margin: 2rem auto;
@@ -31,7 +32,7 @@ import { AuthService } from '../core/services/auth.service';
         font-weight: 600;
       }
     `
-  ]
+    ]
 })
 export class LoginComponent implements OnInit, OnDestroy {
   private buttonRendered = false;
