@@ -1,10 +1,18 @@
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "node",
-    "GOOGLE_CLIENT_ID": "REPLACE_WITH_GOOGLE_CLIENT_ID",
-    "JWT_SECRET": "local-secret",
-    "JWT_AUDIENCE": "trackit-app"
-  }
+﻿{
+    "IsEncrypted":  false,
+    "Values":  {
+                   "AzureWebJobsStorage":  "UseDevelopmentStorage=true",
+                   "FUNCTIONS_WORKER_RUNTIME":  "node",
+                   "GOOGLE_CLIENT_ID":  "REPLACE_WITH_GOOGLE_CLIENT_ID",
+                   "JWT_SECRET":  "local-secret",
+                   "JWT_AUDIENCE":  "trackit-app",
+                   "COSMOS_ENDPOINT":  "REPLACE_WITH_COSMOS_ENDPOINT",
+                   "COSMOS_KEY":  "REPLACE_WITH_COSMOS_KEY",
+                   "COSMOS_DATABASE":  "trackit",
+                   "COSMOS_USERS_CONTAINER":  "users",
+                   "COSMOS_MEDS_CONTAINER":  "meds",
+                   "COSMOS_SYMPTOMS_CONTAINER":  "symptoms",
+                   "COSMOS_RUBI_CONTAINER":  "rubi",
+                   "JWT_EXPIRY_SECONDS":  "3600"
+               }
 }
