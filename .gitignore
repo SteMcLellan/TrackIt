@@ -15,6 +15,7 @@ coverage/
 api/bin/
 api/obj/
 api/.azure/
+api/functions/
 **/.funcignore
 
 # Frontend caches

@@ -25,36 +25,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - name: Install frontend dependencies
-        working-directory: frontend
+      - name: Install dependencies (workspaces)
         run: npm ci
 
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build -- --configuration production
-
-      - name: Install API dependencies
-        working-directory: api
-        run: npm ci
-
-      - name: Build Azure Functions
-        working-directory: api
+      - name: Build workspaces
         run: npm run build
 
-      - name: Package Azure Functions output
+      - name: Stage Azure Functions output
         working-directory: api
         run: |
-          mkdir -p dist/functions
-          cp host.json dist/
-          cp src/functions/*.json dist/functions/
-          shopt -s nullglob
-          for file in dist/functions/*.js; do
-            name=$(basename "$file" .js)
-            mkdir -p "dist/functions/$name"
-            mv "$file" "dist/functions/$name/index.js"
-            mv "dist/functions/$name.json" "dist/functions/$name/function.json"
-          done
-          cp -r node_modules dist/
+          mkdir -p ../dist/api
+          cp host.json ../dist/api/
+          cp package.json ../dist/api/
+          cp -r node_modules ../dist/api/
 
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
@@ -62,6 +45,6 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: frontend
-          api_location: api/dist
-          output_location: dist/trackit
+          app_location: .
+          api_location: dist/api
+          output_location: dist/frontend

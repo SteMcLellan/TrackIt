@@ -1,4 +1,4 @@
-import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authorize } from '../shared/authorize';
 import { withErrorHandling } from '../shared/auth';
 
@@ -11,4 +11,11 @@ const symptoms = withErrorHandling(async (req: HttpRequest, context: InvocationC
   return { status: 201, jsonBody: { message: 'Stubbed symptoms endpoint', sub: user.sub } };
 });
 
-export default symptoms;
+app.http('symptoms', {
+  methods: ['GET', 'POST'],
+  authLevel: 'anonymous',
+  route: 'symptoms',
+  handler: symptoms
+});
+
+export { symptoms };

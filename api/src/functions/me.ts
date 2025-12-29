@@ -1,8 +1,8 @@
-import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import jwt from 'jsonwebtoken';
 import { AppJwtPayload, buildConfig, withErrorHandling } from '../shared/auth';
 
-const httpTrigger = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+const me = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
   const token = req.headers.get('authorization')?.replace('Bearer ', '') || '';
   if (!token) {
     return { status: 401, jsonBody: { message: 'Missing app token' } };
@@ -13,4 +13,11 @@ const httpTrigger = withErrorHandling(async (req: HttpRequest, context: Invocati
   return { status: 200, jsonBody: payload };
 });
 
-export default httpTrigger;
+app.http('me', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'me',
+  handler: me
+});
+
+export { me };

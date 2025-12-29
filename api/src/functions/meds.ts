@@ -1,4 +1,4 @@
-import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authorize } from '../shared/authorize';
 import { withErrorHandling } from '../shared/auth';
 
@@ -11,4 +11,11 @@ const meds = withErrorHandling(async (req: HttpRequest, context: InvocationConte
   return { status: 201, jsonBody: { message: 'Stubbed create/replace meds route', sub: user.sub } };
 });
 
-export default meds;
+app.http('meds', {
+  methods: ['GET', 'POST'],
+  authLevel: 'anonymous',
+  route: 'meds',
+  handler: meds
+});
+
+export { meds };

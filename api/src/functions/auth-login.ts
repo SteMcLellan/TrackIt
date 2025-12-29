@@ -1,9 +1,9 @@
-import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { buildConfig, signAppJwt, verifyGoogleIdToken, withErrorHandling } from '../shared/auth';
 import { buildCosmos, upsertUser } from '../shared/cosmos';
 import { UserDocument } from '../models/user';
 
-const httpTrigger = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+const authLogin = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
   const idToken = req.headers.get('authorization')?.replace('Bearer ', '') || '';
   if (!idToken) {
     return { status: 401, jsonBody: { message: 'Missing Google ID token' } };
@@ -44,4 +44,11 @@ const httpTrigger = withErrorHandling(async (req: HttpRequest, context: Invocati
   };
 });
 
-export default httpTrigger;
+app.http('auth-login', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/login',
+  handler: authLogin
+});
+
+export { authLogin };

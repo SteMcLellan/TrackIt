@@ -1,10 +1,13 @@
-﻿{
+{
   "name": "trackit-api",
   "version": "0.0.1",
   "private": true,
+  "main": "functions/**/*.js",
   "scripts": {
-    "build": "tsc -p .",
-    "start": "func start --javascript"
+    "build": "tsc -p tsconfig.build.json && npm run copy:meta",
+    "build:local": "tsc -p tsconfig.json",
+    "copy:meta": "node scripts/copy-api-meta.js",
+    "start": "npm run build:local && func start --javascript"
   },
   "dependencies": {
     "@azure/cosmos": "^4.2.0",

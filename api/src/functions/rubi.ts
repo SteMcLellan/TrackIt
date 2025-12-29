@@ -1,4 +1,4 @@
-import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authorize } from '../shared/authorize';
 import { withErrorHandling } from '../shared/auth';
 
@@ -11,4 +11,11 @@ const rubi = withErrorHandling(async (req: HttpRequest, context: InvocationConte
   return { status: 201, jsonBody: { message: 'Stubbed RUBI endpoint', sub: user.sub } };
 });
 
-export default rubi;
+app.http('rubi', {
+  methods: ['GET', 'POST'],
+  authLevel: 'anonymous',
+  route: 'rubi',
+  handler: rubi
+});
+
+export { rubi };

@@ -1,7 +1,7 @@
-import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { buildConfig, signAppJwt, verifyGoogleIdToken, withErrorHandling } from '../shared/auth';
 
-const httpTrigger = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+const authRefresh = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
   const idToken = req.headers.get('authorization')?.replace('Bearer ', '') || '';
   if (!idToken) {
     return { status: 401, jsonBody: { message: 'Missing Google ID token' } };
@@ -23,4 +23,11 @@ const httpTrigger = withErrorHandling(async (req: HttpRequest, context: Invocati
   return { status: 200, jsonBody: { token } };
 });
 
-export default httpTrigger;
+app.http('auth-refresh', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'auth/refresh',
+  handler: authRefresh
+});
+
+export { authRefresh };
