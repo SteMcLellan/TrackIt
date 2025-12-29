@@ -1,13 +1,12 @@
-import { AzureFunction, Context, HttpRequest } from '@azure/functions';
+import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { buildConfig, signAppJwt, verifyGoogleIdToken, withErrorHandling } from '../shared/auth';
 import { buildCosmos, upsertUser } from '../shared/cosmos';
 import { UserDocument } from '../models/user';
 
-const httpTrigger: AzureFunction = withErrorHandling(async (context: Context, req: HttpRequest) => {
-  const idToken = req.headers['authorization']?.replace('Bearer ', '') || '';
+const httpTrigger = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+  const idToken = req.headers.get('authorization')?.replace('Bearer ', '') || '';
   if (!idToken) {
-    context.res = { status: 401, body: { message: 'Missing Google ID token' } };
-    return;
+    return { status: 401, jsonBody: { message: 'Missing Google ID token' } };
   }
 
   const config = buildConfig();
@@ -32,9 +31,9 @@ const httpTrigger: AzureFunction = withErrorHandling(async (context: Context, re
     role: stored.roles?.[0]
   }, config);
 
-  context.res = {
+  return {
     status: 200,
-    body: {
+    jsonBody: {
       sub: stored.sub,
       email: stored.email,
       name: stored.name,

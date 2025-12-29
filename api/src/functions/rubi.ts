@@ -1,15 +1,14 @@
-import { AzureFunction, Context, HttpRequest } from '@azure/functions';
+import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authorize } from '../shared/authorize';
 import { withErrorHandling } from '../shared/auth';
 
-const rubi: AzureFunction = withErrorHandling(async (context: Context, req: HttpRequest) => {
+const rubi = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
   const user = authorize(context, req);
   if (req.method === 'GET') {
-    context.res = { status: 200, body: { items: [], sub: user.sub } };
-    return;
+    return { status: 200, jsonBody: { items: [], sub: user.sub } };
   }
 
-  context.res = { status: 201, body: { message: 'Stubbed RUBI endpoint', sub: user.sub } };
+  return { status: 201, jsonBody: { message: 'Stubbed RUBI endpoint', sub: user.sub } };
 });
 
 export default rubi;

@@ -1,9 +1,9 @@
-import { Context, HttpRequest } from '@azure/functions';
+import { HttpRequest, InvocationContext } from '@azure/functions';
 import jwt from 'jsonwebtoken';
 import { AppJwtPayload, buildConfig } from './auth';
 
-export function authorize(context: Context, req: HttpRequest): AppJwtPayload {
-  const token = req.headers['authorization']?.replace('Bearer ', '') || '';
+export function authorize(context: InvocationContext, req: HttpRequest): AppJwtPayload {
+  const token = req.headers.get('authorization')?.replace('Bearer ', '') || '';
   if (!token) {
     const error: any = new Error('Missing app token');
     error.status = 401;

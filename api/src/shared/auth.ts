@@ -1,6 +1,6 @@
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
 import jwt from 'jsonwebtoken';
-import { Context } from '@azure/functions';
+import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 
 const GOOGLE_JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
 
@@ -55,16 +55,18 @@ export function buildConfig(): AuthConfig {
   };
 }
 
-export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(handler: T) {
-  return async (context: Context, req: any) => {
+export function withErrorHandling(
+  handler: (req: HttpRequest, context: InvocationContext) => Promise<HttpResponseInit>
+) {
+  return async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
     try {
-      return await handler(context, req);
+      return await handler(req, context);
     } catch (err: any) {
-      context.log.error('Error', err);
+      context.error('Error', err);
       const status = err.status || 500;
-      context.res = {
+      return {
         status,
-        body: { message: err.message || 'Internal error' }
+        jsonBody: { message: err.message || 'Internal error' }
       };
     }
   };

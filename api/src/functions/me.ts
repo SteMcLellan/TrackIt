@@ -1,17 +1,16 @@
-import { AzureFunction, Context, HttpRequest } from '@azure/functions';
+import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import jwt from 'jsonwebtoken';
 import { AppJwtPayload, buildConfig, withErrorHandling } from '../shared/auth';
 
-const httpTrigger: AzureFunction = withErrorHandling(async (context: Context, req: HttpRequest) => {
-  const token = req.headers['authorization']?.replace('Bearer ', '') || '';
+const httpTrigger = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+  const token = req.headers.get('authorization')?.replace('Bearer ', '') || '';
   if (!token) {
-    context.res = { status: 401, body: { message: 'Missing app token' } };
-    return;
+    return { status: 401, jsonBody: { message: 'Missing app token' } };
   }
 
   const config = buildConfig();
   const payload = jwt.verify(token, config.jwtSecret, { audience: config.audience }) as AppJwtPayload;
-  context.res = { status: 200, body: payload };
+  return { status: 200, jsonBody: payload };
 });
 
 export default httpTrigger;
