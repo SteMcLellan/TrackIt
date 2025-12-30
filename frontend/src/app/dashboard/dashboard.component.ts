@@ -8,7 +8,7 @@ import { AuthService } from '../core/services/auth.service';
     template: `
     <section class="panel">
       <h2>Welcome back, {{ auth.appUserSnapshot?.name || 'friend' }}!</h2>
-      <p>Use the navigation above to manage meds, symptoms, and RUBI interventions.</p>
+      <p>Use the navigation above to access your TrackIt workspace.</p>
       <ul>
         <li>Email: {{ auth.appUserSnapshot?.email }}</li>
         <li>Role: {{ auth.appUserSnapshot?.role || 'parent' }}</li>

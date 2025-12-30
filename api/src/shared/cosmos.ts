@@ -6,9 +6,6 @@ export interface CosmosConfig {
   key: string;
   databaseId: string;
   usersContainerId: string;
-  medsContainerId: string;
-  symptomsContainerId: string;
-  rubiContainerId: string;
 }
 
 export function buildCosmos(config?: Partial<CosmosConfig>): { client: CosmosClient; containers: Record<string, Container> } {
@@ -17,9 +14,6 @@ export function buildCosmos(config?: Partial<CosmosConfig>): { client: CosmosCli
     key: process.env.COSMOS_KEY || '',
     databaseId: process.env.COSMOS_DATABASE || 'trackit',
     usersContainerId: process.env.COSMOS_USERS_CONTAINER || 'users',
-    medsContainerId: process.env.COSMOS_MEDS_CONTAINER || 'meds',
-    symptomsContainerId: process.env.COSMOS_SYMPTOMS_CONTAINER || 'symptoms',
-    rubiContainerId: process.env.COSMOS_RUBI_CONTAINER || 'rubi',
     ...config
   };
 
@@ -28,10 +22,7 @@ export function buildCosmos(config?: Partial<CosmosConfig>): { client: CosmosCli
   return {
     client,
     containers: {
-      users: database.container(resolved.usersContainerId),
-      meds: database.container(resolved.medsContainerId),
-      symptoms: database.container(resolved.symptomsContainerId),
-      rubi: database.container(resolved.rubiContainerId)
+      users: database.container(resolved.usersContainerId)
     }
   };
 }
