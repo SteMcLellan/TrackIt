@@ -8,8 +8,9 @@ import { AuthService } from '../core/services/auth.service';
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
     <section class="card">
-      <h1>Sign in with Google</h1>
-      <p>Authenticate to access your protected TrackIt data.</p>
+      <p class="app-title">TrackIt — ADHD Symptoms</p>
+      <h1>Sign in as a Parent</h1>
+      <p>Use your Google account to access your child's TrackIt dashboard.</p>
       <div id="g_id_signin"></div>
       @if (error) {
         <p class="error">{{ error }}</p>
@@ -25,6 +26,13 @@ import { AuthService } from '../core/services/auth.service';
         border: 1px solid #e2e8f0;
         border-radius: 0.5rem;
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
+      }
+      .app-title {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-bottom: 0.5rem;
       }
       .error {
         margin-top: 1rem;
