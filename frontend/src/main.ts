@@ -4,7 +4,7 @@ import { provideRouter, withPreloading, PreloadAllModules } from '@angular/route
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { AppComponent } from './app/app.component';
 import { appRoutes } from './app/app.routes';
-import { authInterceptor } from './app/core/interceptors/auth.interceptor';
+import { authInterceptor } from './app/shared/interceptors/auth.interceptor';
 
 bootstrapApplication(AppComponent, {
   providers: [

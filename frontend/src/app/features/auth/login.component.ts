@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from '../core/services/auth.service';
+import { AuthService } from '../../shared/services/auth.service';
+import { CardComponent } from '../../shared/ui/card/card.component';
 
 @Component({
     selector: 'app-login',
-    imports: [],
+    imports: [CardComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-    <section class="card">
+    <app-card style="max-width: 420px; margin: 2rem auto;">
       <p class="app-title">TrackIt — ADHD Symptoms</p>
       <h1>Sign in as a Parent</h1>
       <p>Use your Google account to access your child's TrackIt dashboard.</p>
@@ -15,18 +16,10 @@ import { AuthService } from '../core/services/auth.service';
       @if (error) {
         <p class="error">{{ error }}</p>
       }
-    </section>
+    </app-card>
     `,
     styles: [
         `
-      .card {
-        max-width: 420px;
-        margin: 2rem auto;
-        padding: 1.5rem;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.5rem;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
-      }
       .app-title {
         font-size: 0.9rem;
         text-transform: uppercase;
