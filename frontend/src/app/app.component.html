@@ -1,9 +1,8 @@
 <header class="app-header">
   <div class="brand">TrackIt</div>
   <nav>
-    <a routerLink="/dashboard">Dashboard</a>
-    <a routerLink="/login">Login</a>
     @if (auth.isAuthenticated()) {
+      <a routerLink="/dashboard">Dashboard</a>
       <button (click)="logout()">Logout</button>
     }
   </nav>

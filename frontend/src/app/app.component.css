@@ -23,6 +23,8 @@
   border: none;
   cursor: pointer;
   font-weight: 600;
+  font: inherit;
+  padding: 0;
 }
 
 main {
