@@ -1,11 +1,11 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 
 @Component({
     selector: 'app-login',
     imports: [],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
     <section class="card">
       <h1>Sign in with Google</h1>
@@ -37,15 +37,18 @@ import { AuthService } from '../core/services/auth.service';
 export class LoginComponent implements OnInit, OnDestroy {
   private buttonRendered = false;
   error?: string;
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
-  constructor(private auth: AuthService, private router: Router) {}
-
-  ngOnInit(): void {
-    this.auth.appUser$.subscribe((user) => {
-      if (user) {
+  constructor() {
+    effect(() => {
+      if (this.auth.isAuthenticated()) {
         this.router.navigate(['/dashboard']);
       }
     });
+  }
+
+  ngOnInit(): void {
     this.renderButton();
   }
 

@@ -1,17 +1,17 @@
-import { Component } from '@angular/core';
-
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { AuthService } from '../core/services/auth.service';
 
 @Component({
     selector: 'app-dashboard',
     imports: [],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
     <section class="panel">
-      <h2>Welcome back, {{ auth.appUserSnapshot?.name || 'friend' }}!</h2>
+      <h2>Welcome back, {{ auth.appUser().name }}!</h2>
       <p>Use the navigation above to access your TrackIt workspace.</p>
       <ul>
-        <li>Email: {{ auth.appUserSnapshot?.email }}</li>
-        <li>Role: {{ auth.appUserSnapshot?.role || 'parent' }}</li>
+        <li>Email: {{ auth.appUser().email }}</li>
+        <li>Role: {{ auth.appUser().role }}</li>
       </ul>
     </section>
   `,
@@ -28,5 +28,5 @@ import { AuthService } from '../core/services/auth.service';
     ]
 })
 export class DashboardComponent {
-  constructor(public auth: AuthService) {}
+  readonly auth = inject(AuthService);
 }

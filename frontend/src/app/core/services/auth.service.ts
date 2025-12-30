@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 interface AppUser {
@@ -8,35 +8,30 @@ interface AppUser {
   email: string;
   name: string;
   picture?: string;
-  role?: string;
+  role: string;
   token: string;
 }
+
+const signedOutUser: AppUser = {
+  sub: '',
+  email: 'signed-out@trackit.local',
+  name: 'Signed out',
+  picture: undefined,
+  role: 'guest',
+  token: ''
+};
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly storageKey = 'trackit.appUser';
-  private readonly appUserSubject = new BehaviorSubject<AppUser | null>(null);
-  readonly appUser$ = this.appUserSubject.asObservable();
+  private readonly http = inject(HttpClient);
+  private readonly appUserState = signal<AppUser>(signedOutUser);
+  readonly appUser = this.appUserState.asReadonly();
+  readonly isAuthenticated = computed(() => this.isTokenValid(this.appUserState().token));
 
-  constructor(private http: HttpClient) {
+  constructor() {
     const stored = this.readStoredUser();
-    if (stored) {
-      this.appUserSubject.next(stored);
-    } else {
-      localStorage.removeItem(this.storageKey);
-    }
-  }
-
-  get appUserSnapshot(): AppUser | null {
-    return this.appUserSubject.value;
-  }
-
-  isAuthenticated(): boolean {
-    const token = this.appUserSubject.value?.token;
-    if (!token || !this.isTokenValid(token)) {
-      return false;
-    }
-    return true;
+    this.appUserState.set(stored);
   }
 
   renderGoogleButton(containerId: string, onError: (msg: string) => void): void {
@@ -61,7 +56,7 @@ export class AuthService {
   }
 
   logout(): void {
-    this.appUserSubject.next(null);
+    this.appUserState.set(signedOutUser);
     localStorage.removeItem(this.storageKey);
   }
 
@@ -79,19 +74,21 @@ export class AuthService {
       .subscribe();
   }
 
-  private readStoredUser(): AppUser | null {
+  private readStoredUser(): AppUser {
     const raw = localStorage.getItem(this.storageKey);
     if (!raw) {
-      return null;
+      return signedOutUser;
     }
     try {
       const parsed = JSON.parse(raw) as AppUser;
       if (!parsed?.token || !this.isTokenValid(parsed.token)) {
-        return null;
+        localStorage.removeItem(this.storageKey);
+        return signedOutUser;
       }
       return parsed;
     } catch {
-      return null;
+      localStorage.removeItem(this.storageKey);
+      return signedOutUser;
     }
   }
 
@@ -100,7 +97,7 @@ export class AuthService {
       this.logout();
       return;
     }
-    this.appUserSubject.next(user);
+    this.appUserState.set(user);
     localStorage.setItem(this.storageKey, JSON.stringify(user));
   }
 
