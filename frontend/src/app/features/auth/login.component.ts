@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
 import { CardComponent } from '../../shared/ui/card/card.component';
@@ -41,15 +41,11 @@ export class LoginComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  constructor() {
-    effect(() => {
-      if (this.auth.isAuthenticated()) {
-        this.router.navigate(['/dashboard']);
-      }
-    });
-  }
-
   ngOnInit(): void {
+    if (this.auth.isAuthenticated()) {
+      this.router.navigate(['/dashboard']);
+      return;
+    }
     this.renderButton();
   }
 
