@@ -1,4 +1,4 @@
-import { provideZoneChangeDetection } from "@angular/core";
+import { provideZonelessChangeDetection } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
@@ -8,7 +8,8 @@ import { authInterceptor } from './app/shared/interceptors/auth.interceptor';
 
 bootstrapApplication(AppComponent, {
   providers: [
-    provideZoneChangeDetection(),provideRouter(appRoutes, withPreloading(PreloadAllModules)),
+    provideZonelessChangeDetection(),
+    provideRouter(appRoutes, withPreloading(PreloadAllModules)),
     provideHttpClient(withInterceptors([authInterceptor]))
   ]
 }).catch((err) => console.error(err));
