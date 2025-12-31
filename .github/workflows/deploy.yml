@@ -49,3 +49,5 @@ jobs:
           app_location: .
           api_location: dist/api
           output_location: dist/frontend
+          skip_app_build: true
+          skip_api_build: true
