@@ -31,3 +31,4 @@
 ## Notes
 - Azure Functions run via `func start --javascript` (see `api/package.json`).
 - If adding new outputs, keep them under `dist/<workspace>/`.
+- For auth questions, read `docs/architecture/auth-flow.md` first.
