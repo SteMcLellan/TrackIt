@@ -2,8 +2,14 @@ import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
 import jwt from 'jsonwebtoken';
 import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 
+/**
+ * Remote JWKS for Google ID token validation.
+ */
 const GOOGLE_JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
 
+/**
+ * Claims stored in the app-issued JWT.
+ */
 export interface AppUserClaims {
   sub: string;
   email?: string;
@@ -17,6 +23,9 @@ export interface AppJwtPayload extends AppUserClaims {
   exp: number;
 }
 
+/**
+ * Auth configuration loaded from environment variables.
+ */
 export interface AuthConfig {
   googleClientId: string;
   jwtSecret: string;
@@ -24,6 +33,9 @@ export interface AuthConfig {
   audience: string;
 }
 
+/**
+ * Verifies a Google ID token against the Google JWKS and required claims.
+ */
 export async function verifyGoogleIdToken(idToken: string, config: AuthConfig): Promise<JWTPayload> {
   const { payload } = await jwtVerify(idToken, GOOGLE_JWKS, {
     issuer: ['accounts.google.com', 'https://accounts.google.com'],
@@ -32,6 +44,9 @@ export async function verifyGoogleIdToken(idToken: string, config: AuthConfig): 
   return payload;
 }
 
+/**
+ * Signs a TrackIt app JWT using the configured HMAC secret.
+ */
 export function signAppJwt(claims: AppUserClaims, config: AuthConfig): string {
   return jwt.sign(
     {
@@ -46,6 +61,9 @@ export function signAppJwt(claims: AppUserClaims, config: AuthConfig): string {
   );
 }
 
+/**
+ * Builds authentication config from environment variables.
+ */
 export function buildConfig(): AuthConfig {
   return {
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -55,18 +73,24 @@ export function buildConfig(): AuthConfig {
   };
 }
 
+/**
+ * Wraps an Azure Function handler to return structured errors.
+ */
 export function withErrorHandling(
   handler: (req: HttpRequest, context: InvocationContext) => Promise<HttpResponseInit>
 ) {
   return async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
     try {
       return await handler(req, context);
-    } catch (err: any) {
+    } catch (err: unknown) {
       context.error('Error', err);
-      const status = err.status || 500;
+      const status =
+        typeof err === 'object' && err && 'status' in err && typeof (err as { status?: unknown }).status === 'number'
+          ? (err as { status: number }).status
+          : 500;
       return {
         status,
-        jsonBody: { message: err.message || 'Internal error' }
+        jsonBody: { message: err instanceof Error ? err.message : 'Internal error' }
       };
     }
   };

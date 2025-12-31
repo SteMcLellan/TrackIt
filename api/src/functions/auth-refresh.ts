@@ -1,7 +1,10 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { buildConfig, signAppJwt, verifyGoogleIdToken, withErrorHandling } from '../shared/auth';
 
-const authRefresh = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+/**
+ * Issues a fresh app JWT using a valid Google ID token.
+ */
+const authRefresh = withErrorHandling(async (req: HttpRequest): Promise<HttpResponseInit> => {
   const idToken = req.headers.get('authorization')?.replace('Bearer ', '') || '';
   if (!idToken) {
     return { status: 401, jsonBody: { message: 'Missing Google ID token' } };
@@ -23,6 +26,9 @@ const authRefresh = withErrorHandling(async (req: HttpRequest, context: Invocati
   return { status: 200, jsonBody: { token } };
 });
 
+/**
+ * Anonymous endpoint for refreshing app access tokens.
+ */
 app.http('auth-refresh', {
   methods: ['POST'],
   authLevel: 'anonymous',

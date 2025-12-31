@@ -12,6 +12,9 @@ interface AppUser {
   token: string;
 }
 
+/**
+ * Sentinel user used when no authenticated session exists.
+ */
 const signedOutUser: AppUser = {
   sub: '',
   email: 'signed-out@trackit.local',
@@ -29,11 +32,17 @@ export class AuthService {
   readonly appUser = this.appUserState.asReadonly();
   readonly isAuthenticated = computed(() => this.isTokenValid(this.appUserState().token));
 
+  /**
+   * Hydrates user state from local storage on startup.
+   */
   constructor() {
     const stored = this.readStoredUser();
     this.appUserState.set(stored);
   }
 
+  /**
+   * Initializes Google Identity Services and renders the button.
+   */
   renderGoogleButton(containerId: string, onError: (msg: string) => void): void {
     const google = (window as any).google;
     if (!google?.accounts?.id) {
@@ -55,11 +64,17 @@ export class AuthService {
     });
   }
 
+  /**
+   * Clears persisted credentials and resets the user state.
+   */
   logout(): void {
     this.appUserState.set(signedOutUser);
     localStorage.removeItem(this.storageKey);
   }
 
+  /**
+   * Exchanges a Google ID token for an app-issued JWT.
+   */
   private exchangeGoogleToken(idToken: string, onError: (msg: string) => void): void {
     this.http
       .post<AppUser>(`${environment.apiBaseUrl}/auth/login`, {}, {
@@ -74,6 +89,9 @@ export class AuthService {
       .subscribe();
   }
 
+  /**
+   * Loads a persisted user if the token is present and unexpired.
+   */
   private readStoredUser(): AppUser {
     const raw = localStorage.getItem(this.storageKey);
     if (!raw) {
@@ -92,6 +110,9 @@ export class AuthService {
     }
   }
 
+  /**
+   * Persists a validated user and updates the app state.
+   */
   private persistUser(user: AppUser): void {
     if (!user?.token || !this.isTokenValid(user.token)) {
       this.logout();
@@ -101,6 +122,9 @@ export class AuthService {
     localStorage.setItem(this.storageKey, JSON.stringify(user));
   }
 
+  /**
+   * Checks if a JWT has a valid, unexpired exp claim.
+   */
   private isTokenValid(token: string): boolean {
     const exp = this.readJwtExp(token);
     if (!exp) {
@@ -109,6 +133,9 @@ export class AuthService {
     return Date.now() < exp * 1000;
   }
 
+  /**
+   * Reads the exp claim from a JWT payload, or returns null if invalid.
+   */
   private readJwtExp(token: string): number | null {
     try {
       const [, payload] = token.split('.');

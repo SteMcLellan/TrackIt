@@ -1,6 +1,9 @@
 import { CosmosClient, Container } from '@azure/cosmos';
 import { UserDocument } from '../models/user';
 
+/**
+ * Cosmos DB connection settings.
+ */
 export interface CosmosConfig {
   endpoint: string;
   key: string;
@@ -8,6 +11,9 @@ export interface CosmosConfig {
   usersContainerId: string;
 }
 
+/**
+ * Creates a Cosmos client and container map from env or overrides.
+ */
 export function buildCosmos(config?: Partial<CosmosConfig>): { client: CosmosClient; containers: Record<string, Container> } {
   const resolved: CosmosConfig = {
     endpoint: process.env.COSMOS_ENDPOINT || '',
@@ -27,6 +33,9 @@ export function buildCosmos(config?: Partial<CosmosConfig>): { client: CosmosCli
   };
 }
 
+/**
+ * Inserts or updates a user document while managing timestamps.
+ */
 export async function upsertUser(containers: Record<string, Container>, user: UserDocument) {
   const timestamp = new Date().toISOString();
   const existing = user.createdAt;

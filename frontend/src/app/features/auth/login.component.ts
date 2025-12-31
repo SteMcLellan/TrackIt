@@ -3,6 +3,9 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
 import { CardComponent } from '../../shared/ui/card/card.component';
 
+/**
+ * Sign-in screen that initializes the Google Identity Services button.
+ */
 @Component({
     selector: 'app-login',
     imports: [CardComponent],
@@ -41,6 +44,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  /**
+   * Redirects authenticated users and renders the Google sign-in button.
+   */
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
       this.router.navigate(['/dashboard']);
@@ -49,6 +55,9 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.renderButton();
   }
 
+  /**
+   * Removes the GIS script when the component is destroyed.
+   */
   ngOnDestroy(): void {
     const script = document.getElementById('g_id_onload');
     if (script) {
@@ -56,6 +65,9 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Initializes the Google sign-in button once per component instance.
+   */
   private renderButton(): void {
     if (this.buttonRendered || !(window as any).google?.accounts?.id) {
       return;

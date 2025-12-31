@@ -6,6 +6,9 @@ import { AppComponent } from './app/app.component';
 import { appRoutes } from './app/app.routes';
 import { authInterceptor } from './app/shared/interceptors/auth.interceptor';
 
+/**
+ * Bootstraps the TrackIt application with zoneless change detection.
+ */
 bootstrapApplication(AppComponent, {
   providers: [
     provideZonelessChangeDetection(),

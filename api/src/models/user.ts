@@ -1,3 +1,6 @@
+/**
+ * Cosmos DB user document shape.
+ */
 export interface UserDocument {
   id?: string;
   sub: string;
@@ -5,7 +8,7 @@ export interface UserDocument {
   name?: string;
   picture?: string;
   roles?: string[];
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>;
   createdAt: string;
   lastLoginAt: string;
 }

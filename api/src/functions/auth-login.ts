@@ -1,9 +1,12 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { buildConfig, signAppJwt, verifyGoogleIdToken, withErrorHandling } from '../shared/auth';
 import { buildCosmos, upsertUser } from '../shared/cosmos';
 import { UserDocument } from '../models/user';
 
-const authLogin = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+/**
+ * Exchanges a Google ID token for an app JWT and upserts the user profile.
+ */
+const authLogin = withErrorHandling(async (req: HttpRequest): Promise<HttpResponseInit> => {
   const idToken = req.headers.get('authorization')?.replace('Bearer ', '') || '';
   if (!idToken) {
     return { status: 401, jsonBody: { message: 'Missing Google ID token' } };
@@ -44,6 +47,9 @@ const authLogin = withErrorHandling(async (req: HttpRequest, context: Invocation
   };
 });
 
+/**
+ * Anonymous endpoint for initial sign-in with a Google ID token.
+ */
 app.http('auth-login', {
   methods: ['POST'],
   authLevel: 'anonymous',

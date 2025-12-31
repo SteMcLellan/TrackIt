@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
+/**
+ * Simple content container with consistent padding and border styling.
+ */
 @Component({
   selector: 'app-card',
   changeDetection: ChangeDetectionStrategy.OnPush,

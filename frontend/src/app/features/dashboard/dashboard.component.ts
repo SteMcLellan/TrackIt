@@ -2,6 +2,9 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { AuthService } from '../../shared/services/auth.service';
 import { CardComponent } from '../../shared/ui/card/card.component';
 
+/**
+ * Dashboard landing page for authenticated users.
+ */
 @Component({
     selector: 'app-dashboard',
     imports: [CardComponent],
