@@ -207,10 +207,10 @@ Example response:
   - [x] Create endpoint + validation.
   - [x] Create form and success state.
   - [x] Auto-link participant to current user.
-- [ ] Story 3: List and select participants.
-  - [ ] List endpoint filtered by user links.
-  - [ ] List UI with empty state and selection.
-  - [ ] Persist active participant selection.
+- [x] Story 3: List and select participants.
+  - [x] List endpoint filtered by user links.
+  - [x] List UI with empty state and selection.
+  - [x] Persist active participant selection.
 - [ ] Story 4: View participant details and history.
   - [ ] Detail endpoint with association check.
   - [ ] Detail UI with age/name and history placeholder.

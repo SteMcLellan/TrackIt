@@ -3,6 +3,7 @@
   <nav>
     @if (auth.isAuthenticated()) {
       <a routerLink="/dashboard">Dashboard</a>
+      <a routerLink="/participants">Participants</a>
       <button (click)="logout()">Logout</button>
     }
   </nav>

@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { CollectionResponse } from '../models/collection';
 import { Participant } from '../models/participant';
@@ -11,9 +11,13 @@ export type CreateParticipantRequest = {
 
 export type CreateParticipantResponse = Omit<Participant, 'role'>;
 
+const ACTIVE_PARTICIPANT_KEY = 'trackit.activeParticipantId';
+
 @Injectable({ providedIn: 'root' })
 export class ParticipantService {
   private readonly http = inject(HttpClient);
+  private readonly activeParticipantIdSignal = signal<string | null>(this.readActiveParticipantId());
+  readonly activeParticipantId = this.activeParticipantIdSignal.asReadonly();
 
   listParticipants(pageSize?: number) {
     let params = new HttpParams();
@@ -25,5 +29,35 @@ export class ParticipantService {
 
   createParticipant(request: CreateParticipantRequest) {
     return this.http.post<CreateParticipantResponse>(`${environment.apiBaseUrl}/participants`, request);
+  }
+
+  setActiveParticipant(participantId: string) {
+    this.activeParticipantIdSignal.set(participantId);
+    this.writeActiveParticipantId(participantId);
+  }
+
+  clearActiveParticipant() {
+    this.activeParticipantIdSignal.set(null);
+    this.writeActiveParticipantId(null);
+  }
+
+  private readActiveParticipantId(): string | null {
+    try {
+      return localStorage.getItem(ACTIVE_PARTICIPANT_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  private writeActiveParticipantId(value: string | null) {
+    try {
+      if (!value) {
+        localStorage.removeItem(ACTIVE_PARTICIPANT_KEY);
+      } else {
+        localStorage.setItem(ACTIVE_PARTICIPANT_KEY, value);
+      }
+    } catch {
+      // Ignore storage errors (e.g., private mode).
+    }
   }
 }

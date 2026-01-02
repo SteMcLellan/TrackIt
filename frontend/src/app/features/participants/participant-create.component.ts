@@ -23,9 +23,12 @@ function integerValidator(): ValidatorFn {
       @if (created()) {
         <h2>Participant created</h2>
         <p class="muted">
-          You're all set. You can start tracking in your dashboard.
+          You're all set. Jump to your dashboard or review your participants.
         </p>
-        <a class="button" routerLink="/dashboard">Go to dashboard</a>
+        <div class="actions">
+          <a class="button" routerLink="/dashboard">Go to dashboard</a>
+          <a class="button secondary" routerLink="/participants">View participants</a>
+        </div>
       } @else {
         <h2>Create a participant</h2>
         <p class="muted">
@@ -114,6 +117,16 @@ function integerValidator(): ValidatorFn {
         font-weight: 600;
         border: none;
         cursor: pointer;
+      }
+      .button.secondary {
+        background: #fff;
+        color: var(--color-primary, #0c4a6e);
+        border: 1px solid var(--color-primary, #0c4a6e);
+      }
+      .actions {
+        display: flex;
+        gap: var(--space-3, 0.75rem);
+        flex-wrap: wrap;
       }
       .button[disabled] {
         opacity: 0.6;
