@@ -22,6 +22,8 @@
 - Prefer workspace-relative scripts (`npm --workspace <name> run <script>`).
 - Avoid changing build output paths unless explicitly requested.
 - Frontend updates must follow the most modern Angular 21 approaches.
+    - Use Signals where possible
+    - Use experimental resources such as `httpResource`.
 
 ## Where to Look
 - Frontend config: `frontend/angular.json`
