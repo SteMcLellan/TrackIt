@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CardComponent } from '../../shared/ui/card/card.component';
 
 @Component({
   selector: 'app-participant-start',
   imports: [RouterLink, CardComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-card>
       <h2>Let's create your first participant</h2>
@@ -12,12 +13,7 @@ import { CardComponent } from '../../shared/ui/card/card.component';
         Participants help you organize who you are tracking in TrackIt.
       </p>
 
-      @if (mode === 'start') {
-        <a class="button" routerLink="/participants/new">Create participant</a>
-      } @else {
-        <p class="muted">The create form is coming next in this plan.</p>
-        <a class="link" routerLink="/dashboard">Back to dashboard</a>
-      }
+      <a class="button" routerLink="/participants/new">Create participant</a>
     </app-card>
   `,
   styles: [
@@ -38,18 +34,7 @@ import { CardComponent } from '../../shared/ui/card/card.component';
         text-decoration: none;
         font-weight: 600;
       }
-      .link {
-        color: var(--color-primary, #0c4a6e);
-        text-decoration: none;
-        font-weight: 600;
-      }
     `
   ]
 })
-export class ParticipantStartComponent {
-  readonly mode: 'start' | 'new';
-
-  constructor(route: ActivatedRoute) {
-    this.mode = route.snapshot.routeConfig?.path === 'participants/new' ? 'new' : 'start';
-  }
-}
+export class ParticipantStartComponent {}

@@ -9,7 +9,7 @@
     "build": "npm run build:frontend && npm run build:api",
     "build:api": "npm --workspace api run build",
     "build:frontend": "npm --workspace frontend run build",
-    "dev:api": "npm --workspace api run start",
+    "dev:api": "npm --workspace api run dev",
     "dev:frontend": "npm --workspace frontend run start",
     "test:frontend": "npm --workspace frontend run test",
     "lint": "npm run lint:frontend && npm run lint:api",

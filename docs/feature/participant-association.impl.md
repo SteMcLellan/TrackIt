@@ -203,10 +203,10 @@ Example response:
 - [x] Story 1: Prompt after sign-in when no participants exist.
   - [x] Check participants after auth and route to create flow.
   - [x] Show prompt whenever participant count is zero.
-- [ ] Story 2: Create participant with minimal info.
-  - [ ] Create endpoint + validation.
-  - [ ] Create form and success state.
-  - [ ] Auto-link participant to current user.
+- [x] Story 2: Create participant with minimal info.
+  - [x] Create endpoint + validation.
+  - [x] Create form and success state.
+  - [x] Auto-link participant to current user.
 - [ ] Story 3: List and select participants.
   - [ ] List endpoint filtered by user links.
   - [ ] List UI with empty state and selection.
