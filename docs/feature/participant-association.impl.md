@@ -217,6 +217,6 @@ Example response:
 - [x] Story 5: Update participant metadata.
   - [x] Update endpoint (manager role).
   - [x] Edit UI with validation and confirmation.
-- [ ] Story 6: Show dashboard when participants exist.
-  - [ ] Route to dashboard on sign-in when participant count > 0.
-  - [ ] Do not show create prompt when participants exist.
+- [x] Story 6: Show dashboard when participants exist.
+  - [x] Route to dashboard on sign-in when participant count > 0.
+  - [x] Do not show create prompt when participants exist.
