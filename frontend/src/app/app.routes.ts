@@ -4,6 +4,7 @@ import { ParticipantStartGuard } from './shared/guards/participant-start.guard';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { LoginComponent } from './features/auth/login.component';
 import { ParticipantCreateComponent } from './features/participants/participant-create.component';
+import { ParticipantDetailComponent } from './features/participants/participant-detail.component';
 import { ParticipantListComponent } from './features/participants/participant-list.component';
 import { ParticipantStartComponent } from './features/participants/participant-start.component';
 
@@ -16,5 +17,6 @@ export const appRoutes: Routes = [
   { path: 'participants', component: ParticipantListComponent, canActivate: [AuthGuard] },
   { path: 'participants/start', component: ParticipantStartComponent, canActivate: [AuthGuard] },
   { path: 'participants/new', component: ParticipantCreateComponent, canActivate: [AuthGuard] },
+  { path: 'participants/:id', component: ParticipantDetailComponent, canActivate: [AuthGuard] },
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' }
 ];

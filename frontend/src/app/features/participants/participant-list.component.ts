@@ -41,9 +41,10 @@ import { environment } from '../../../environments/environment';
                 role="button"
                 tabindex="0"
                 [class.active]="participant.id === activeParticipantId()"
+                [attr.aria-pressed]="participant.id === activeParticipantId()"
                 (click)="selectParticipant(participant)"
                 (keydown.enter)="selectParticipant(participant)"
-                (keydown.space)="selectParticipant(participant)"
+                (keydown.space)="onSpace($event, participant)"
               >
                 <div class="info">
                   <div class="name">
@@ -55,6 +56,13 @@ import { environment } from '../../../environments/environment';
                   <div class="meta">Age {{ participant.ageYears }}</div>
                 </div>
                 <div class="actions">
+                  <a
+                    class="link subtle"
+                    [routerLink]="['/participants', participant.id]"
+                    (click)="$event.stopPropagation()"
+                  >
+                    View details
+                  </a>
                   <a class="link" routerLink="/dashboard" (click)="$event.stopPropagation()">
                     <span>Go to dashboard</span>
                     <app-icon-arrow-right />
@@ -146,6 +154,9 @@ import { environment } from '../../../environments/environment';
         padding: 0.35rem 0;
         white-space: nowrap;
       }
+      .link.subtle {
+        color: var(--color-text-muted, #64748b);
+      }
       .name {
         font-weight: 600;
         display: flex;
@@ -201,6 +212,11 @@ export class ParticipantListComponent {
 
   selectParticipant(participant: Participant) {
     this.participantsService.setActiveParticipant(participant.id);
+  }
+
+  onSpace(event: KeyboardEvent, participant: Participant) {
+    event.preventDefault();
+    this.selectParticipant(participant);
   }
 
   fallbackName(participant: Participant): string {

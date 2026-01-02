@@ -211,9 +211,9 @@ Example response:
   - [x] List endpoint filtered by user links.
   - [x] List UI with empty state and selection.
   - [x] Persist active participant selection.
-- [ ] Story 4: View participant details and history.
-  - [ ] Detail endpoint with association check.
-  - [ ] Detail UI with age/name and history placeholder.
+- [x] Story 4: View participant details and history.
+  - [x] Detail endpoint with association check.
+  - [x] Detail UI with age/name and history placeholder.
 - [ ] Story 5: Update participant metadata.
   - [ ] Update endpoint (manager role).
   - [ ] Edit UI with validation and confirmation.
