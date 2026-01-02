@@ -5,36 +5,28 @@ Use this folder for product-first feature specs. These docs are the source of tr
 ## File Naming
 - One file per feature.
 - Use kebab-case names, e.g. `participant-association.md`.
+- Implementation plans should be stored as `docs/feature/<feature-name>.impl.md`.
 
 ## Recommended Layout
-Follow the structure below (mirrors current feature docs):
+Follow the structure below (product- and user-focused):
 
 1. **Feature Summary**
 2. **Rollout / Scope**
 3. **User Stories** (short list)
 4. **User Story Details**
    - User story statement
+   - Important data flows and validations
    - Acceptance criteria
-   - UX / Frontend notes
-5. **Technical Design** (at the end)
-   - Goals / Non-goals
-   - Terminology
-   - Data model (TypeScript type aliases)
-     - Include Cosmos layout comments above types (container + partition key)
-   - API changes
-     - Type aliases for request/response
-     - Endpoint list with auth requirements
-     - Example request/response payloads
-   - Privacy & data minimization
-   - Logging & audit
-   - Validation rules
-   - Edge cases
-   - Open questions
+   - UX notes and user-facing behavior
+5. **Open Questions**
+
+## Optional: Technical Considerations
+Only add this section if the feature itself is highly technical or requires non-obvious constraints. Keep it brief and user-impact oriented (no detailed data models or API specs).
 
 ## Conventions
-- Keep the doc product-first; defer low-level details to Technical Design.
+- Keep the doc product-first and user-focused.
+- Avoid technical designs, schemas, and API details unless the feature demands it.
 - Use minimal identifiable data unless explicitly required.
-- Make auth requirements explicit on every endpoint.
 - Keep examples realistic but not tied to real user data.
 
 ## When Updating
