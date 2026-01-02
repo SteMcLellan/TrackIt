@@ -14,7 +14,7 @@ const authLogin = withErrorHandling(async (req: HttpRequest): Promise<HttpRespon
 
   const config = buildConfig();
   const googleClaims = await verifyGoogleIdToken(idToken, config);
-  const { containers } = buildCosmos();
+  const { containers } = await buildCosmos();
   const user: UserDocument = {
     sub: googleClaims.sub as string,
     email: googleClaims.email as string,

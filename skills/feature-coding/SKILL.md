@@ -14,6 +14,7 @@ Use this skill to implement features strictly story-by-story and keep the implem
 4. Update the checklist in the implementation plan as items are completed.
 5. Santiy check your work against the original user story in `docs/feature/<feature-name>.md`. Identify if any acceptance criteria were missed.
 5. Stop and confirm before moving to the next story.
+6. If a story cannot be implemented without a later story, propose splitting or re-scoping the stories before coding.
 
 ## Rules
 - Implement stories in order unless the user explicitly changes the order.

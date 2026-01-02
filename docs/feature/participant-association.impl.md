@@ -200,9 +200,9 @@ Example response:
 7. Add tests and polish UX.
 
 ## Story-Tracking Checklist
-- [ ] Story 1: Prompt after sign-in when no participants exist.
-  - [ ] Check participants after auth and route to create flow.
-  - [ ] Ensure prompt disappears once participant exists.
+- [x] Story 1: Prompt after sign-in when no participants exist.
+  - [x] Check participants after auth and route to create flow.
+  - [x] Show prompt whenever participant count is zero.
 - [ ] Story 2: Create participant with minimal info.
   - [ ] Create endpoint + validation.
   - [ ] Create form and success state.
@@ -217,3 +217,6 @@ Example response:
 - [ ] Story 5: Update participant metadata.
   - [ ] Update endpoint (manager role).
   - [ ] Edit UI with validation and confirmation.
+- [ ] Story 6: Show dashboard when participants exist.
+  - [ ] Route to dashboard on sign-in when participant count > 0.
+  - [ ] Do not show create prompt when participants exist.

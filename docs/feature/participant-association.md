@@ -13,6 +13,7 @@ Parents can associate themselves with a Participant they will track data for. Pa
 3. As a parent, I can see a list of my participants and select one.
 4. As a parent, I can view a participant's details and tracking history.
 5. As a parent, I can update a participant's metadata.
+6. As a parent, when I have at least one participant, I see my dashboard after sign-in.
 
 ## User Story Details
 ### 1) Prompt on first sign-in
@@ -27,8 +28,7 @@ As a parent, I am prompted to create a participant after sign-in if I have none.
 
 **Acceptance criteria**
 - Parents with zero participants are prompted to create one after sign-in.
-- Parents with existing participants proceed to their normal landing experience.
-- Completing the create flow removes the prompt for future sessions.
+- The prompt is shown every time the user signs in and still has zero participants.
 
 **UX notes**
 - Use a friendly, action-oriented message that explains why a participant is required.
@@ -111,6 +111,20 @@ As a parent, I can update a participant's metadata.
 - Participant detail view includes an "Edit" action for managers.
 - Edit form pre-fills current values and validates age.
 - Successful update shows confirmation and refreshes the view.
+
+### 6) Show dashboard when participants exist
+**User story**  
+As a parent, when I have at least one participant, I see my dashboard after sign-in.
+
+**Important data flows and validations**
+- On successful sign-in, if the parent has one or more participants, route to the dashboard.
+
+**Acceptance criteria**
+- Parents with at least one participant land on the dashboard after sign-in.
+- The prompt to create a participant is not shown when participants exist.
+
+**UX notes**
+- The dashboard experience remains unchanged for parents with participants.
 
 ## Open Questions
 - Should we store age as age in years or use date of birth (and derive age)?
