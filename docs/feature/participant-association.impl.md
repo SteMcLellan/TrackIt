@@ -214,9 +214,9 @@ Example response:
 - [x] Story 4: View participant details and history.
   - [x] Detail endpoint with association check.
   - [x] Detail UI with age/name and history placeholder.
-- [ ] Story 5: Update participant metadata.
-  - [ ] Update endpoint (manager role).
-  - [ ] Edit UI with validation and confirmation.
+- [x] Story 5: Update participant metadata.
+  - [x] Update endpoint (manager role).
+  - [x] Edit UI with validation and confirmation.
 - [ ] Story 6: Show dashboard when participants exist.
   - [ ] Route to dashboard on sign-in when participant count > 0.
   - [ ] Do not show create prompt when participants exist.

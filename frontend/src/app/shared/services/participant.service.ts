@@ -11,6 +11,11 @@ export type CreateParticipantRequest = {
 
 export type CreateParticipantResponse = Omit<Participant, 'role'>;
 
+export type UpdateParticipantRequest = {
+  displayName?: string;
+  ageYears?: number;
+};
+
 const ACTIVE_PARTICIPANT_KEY = 'trackit.activeParticipantId';
 
 @Injectable({ providedIn: 'root' })
@@ -29,6 +34,10 @@ export class ParticipantService {
 
   createParticipant(request: CreateParticipantRequest) {
     return this.http.post<CreateParticipantResponse>(`${environment.apiBaseUrl}/participants`, request);
+  }
+
+  updateParticipant(participantId: string, request: UpdateParticipantRequest) {
+    return this.http.patch<Participant>(`${environment.apiBaseUrl}/participants/${participantId}`, request);
   }
 
   setActiveParticipant(participantId: string) {
