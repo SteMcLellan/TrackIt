@@ -14,6 +14,7 @@ Use this skill to turn a product spec into an implementation plan.
 4. Produce a technical implementation plan (data model, API, UI, migrations, testing).
 5. Identify dependencies, risks, and sequencing.
 6. Propose a step-by-step execution plan before coding.
+7. Identify if changes required touch existing features and plan for updates to `docs/acrhitecture` files.
 
 ## Output Expectations
 - Translate user stories into concrete technical tasks.

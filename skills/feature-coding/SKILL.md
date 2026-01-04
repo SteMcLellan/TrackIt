@@ -21,6 +21,7 @@ Use this skill to implement features strictly story-by-story and keep the implem
 - Do not bundle multiple stories in one pass.
 - Keep changes minimal and focused on the current story.
 - Update the story checklist to reflect progress in `docs/feature/<feature-name>.impl.md`.
+- If the last story in a feature is completed, write up the architecture notes in `docs/architecture/<feature-name>.md`. In the case where the feature updated an existing feature  update the existing architecture document.
 
 ## Output Expectations
 - Summarize what was completed for the single story.
