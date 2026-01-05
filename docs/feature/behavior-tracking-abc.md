@@ -111,7 +111,9 @@ As a parent, I can filter incidents by time range and function so I can focus on
 - Provide a one-tap “Clear filters”.
 
 ## Open Questions
-- Do we store time as local time with timezone or always UTC and display local?
-- Should “Place” be free text or a constrained list of common locations?
-- Do we allow multiple functions of behavior on one incident or only one?
-- Are edits/delete allowed indefinitely, or only within a time window?
+- None.
+
+## Decisions
+- **Place** will be a free-text field in MVP. Use short helper text and examples to guide consistent entry. Consider “recent places” or quick-pick chips in a later iteration.
+- **Function of Behavior** is a single-select field in MVP to keep data consistent.
+- **Edits/deletes** are allowed at any time, with a warning/confirmation when modifying older items.

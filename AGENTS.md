@@ -24,6 +24,7 @@
 - Frontend updates must follow the most modern Angular 21 approaches.
     - Use Signals where possible
     - Use experimental resources such as `httpResource`.
+- Store and process all timestamps in UTC. Any local time display should be derived from UTC.
 
 ## Where to Look
 - Frontend config: `frontend/angular.json`

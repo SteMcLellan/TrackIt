@@ -4,6 +4,7 @@ import { UserDocument } from '../models/user';
 export interface ParticipantsCosmosConfig {
   participantsContainerId: string;
   userParticipantLinksContainerId: string;
+  behaviorIncidentsContainerId: string;
 }
 
 /**
@@ -16,6 +17,7 @@ export interface CosmosConfig {
   usersContainerId: string;
   participantsContainerId: string;
   userParticipantLinksContainerId: string;
+  behaviorIncidentsContainerId: string;
 }
 
 /**
@@ -31,6 +33,7 @@ export async function buildCosmos(
     usersContainerId: process.env.COSMOS_USERS_CONTAINER || 'users',
     participantsContainerId: process.env.COSMOS_PARTICIPANTS_CONTAINER || 'participants',
     userParticipantLinksContainerId: process.env.COSMOS_USER_PARTICIPANT_LINKS_CONTAINER || 'userParticipantLinks',
+    behaviorIncidentsContainerId: process.env.COSMOS_BEHAVIOR_INCIDENTS_CONTAINER || 'behaviorIncidents',
     ...config
   };
 
@@ -48,12 +51,17 @@ export async function buildCosmos(
     id: resolved.userParticipantLinksContainerId,
     partitionKey: { paths: ['/userId'] }
   });
+  const { container: behaviorIncidentsContainer } = await database.containers.createIfNotExists({
+    id: resolved.behaviorIncidentsContainerId,
+    partitionKey: { paths: ['/participantId'] }
+  });
   return {
     client,
     containers: {
       users: usersContainer,
       participants: participantsContainer,
-      userParticipantLinks: userParticipantLinksContainer
+      userParticipantLinks: userParticipantLinksContainer,
+      behaviorIncidents: behaviorIncidentsContainer
     }
   };
 }
