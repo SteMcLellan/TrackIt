@@ -1,10 +1,12 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { Container } from '@azure/cosmos';
 import { authorize } from '../shared/authorize';
 import { buildCosmos } from '../shared/cosmos';
 import { withErrorHandling } from '../shared/auth';
+import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
+import { parseJsonBody } from '../shared/requests';
+import { readBehaviorIncident } from '../shared/data/behavior-incidents';
+import { readParticipantLink } from '../shared/data/participants';
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
-import { UserParticipantLinkDocument } from '../models/participant';
 
 type UpdateBehaviorIncidentRequest = {
   antecedent?: string;
@@ -15,25 +17,7 @@ type UpdateBehaviorIncidentRequest = {
   function?: BehaviorFunction;
 };
 
-type ValidationErrorDetail = {
-  id: string;
-  message: string;
-};
-
 const behaviorFunctionOptions: BehaviorFunction[] = ['sensory', 'tangible', 'escape', 'attention'];
-
-function buildValidationError(errors: ValidationErrorDetail[]): HttpResponseInit {
-  return {
-    status: 400,
-    headers: { 'content-type': 'application/problem+json' },
-    jsonBody: {
-      type: 'https://example.net/validation-error',
-      title: 'Your request is not valid.',
-      status: 400,
-      errors
-    }
-  };
-}
 
 function isNonEmpty(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -83,41 +67,20 @@ function validateUpdateRequest(body: UpdateBehaviorIncidentRequest): ValidationE
   return errors;
 }
 
-async function readParticipantLink(
-  container: Container,
-  userId: string,
-  participantId: string
-): Promise<UserParticipantLinkDocument | null> {
-  const query = {
-    query: 'SELECT * FROM c WHERE c.userId = @userId AND c.participantId = @participantId',
-    parameters: [
-      { name: '@userId', value: userId },
-      { name: '@participantId', value: participantId }
-    ]
-  };
-  const response = await container.items.query<UserParticipantLinkDocument>(query, {
-    partitionKey: userId,
-    maxItemCount: 1
-  }).fetchNext();
-  return response.resources?.[0] ?? null;
-}
-
-async function readIncident(
-  container: Container,
-  participantId: string,
-  incidentId: string
-): Promise<BehaviorIncidentDocument | null> {
-  const { resource } = await container.item(incidentId, participantId).read<BehaviorIncidentDocument>();
-  return resource ?? null;
-}
-
-const behaviorIncidentDetailHandler = withErrorHandling(
+const readBehaviorIncidentHandler = withErrorHandling(
   async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
     const user = authorize(context, req);
     const participantId = req.params.participantId;
     const incidentId = req.params.incidentId;
     if (!participantId || !incidentId) {
-      return { status: 400, jsonBody: { message: 'Participant id and incident id are required.' } };
+      const errors: ValidationErrorDetail[] = [];
+      if (!participantId) {
+        errors.push({ id: 'incidents.participantId.required', message: 'Participant id is required.' });
+      }
+      if (!incidentId) {
+        errors.push({ id: 'incidents.incidentId.required', message: 'Incident id is required.' });
+      }
+      return buildValidationError(errors);
     }
 
     const { containers } = await buildCosmos();
@@ -126,56 +89,7 @@ const behaviorIncidentDetailHandler = withErrorHandling(
       return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
     }
 
-    if (req.method === 'PATCH') {
-      let body: UpdateBehaviorIncidentRequest;
-      try {
-        body = (await req.json()) as UpdateBehaviorIncidentRequest;
-      } catch {
-        return buildValidationError([
-          { id: 'incidents.body.invalid', message: 'Request body must be valid JSON.' }
-        ]);
-      }
-
-      const errors = validateUpdateRequest(body);
-      if (errors.length > 0) {
-        return buildValidationError(errors);
-      }
-
-      const existing = await readIncident(containers.behaviorIncidents, participantId, incidentId);
-      if (!existing) {
-        return { status: 404, jsonBody: { message: 'Incident not found.' } };
-      }
-
-      const updated: BehaviorIncidentDocument = {
-        ...existing,
-        antecedent: typeof body.antecedent === 'string' ? body.antecedent.trim() : existing.antecedent,
-        behavior: typeof body.behavior === 'string' ? body.behavior.trim() : existing.behavior,
-        consequence: typeof body.consequence === 'string' ? body.consequence.trim() : existing.consequence,
-        occurredAtUtc: typeof body.occurredAtUtc === 'string' ? body.occurredAtUtc : existing.occurredAtUtc,
-        place: typeof body.place === 'string' ? body.place.trim() : existing.place,
-        function: typeof body.function === 'string' ? body.function : existing.function,
-        updatedAt: new Date().toISOString()
-      };
-
-      await containers.behaviorIncidents.items.upsert(updated);
-
-      return { status: 200, jsonBody: updated };
-    }
-
-    if (req.method === 'DELETE') {
-      const existing = await readIncident(containers.behaviorIncidents, participantId, incidentId);
-      if (!existing) {
-        return { status: 404, jsonBody: { message: 'Incident not found.' } };
-      }
-      await containers.behaviorIncidents.item(incidentId, participantId).delete();
-      return { status: 204 };
-    }
-
-    if (req.method !== 'GET') {
-      return { status: 405, jsonBody: { message: 'Method not allowed.' } };
-    }
-
-    const incident = await readIncident(containers.behaviorIncidents, participantId, incidentId);
+    const incident = await readBehaviorIncident(containers.behaviorIncidents, participantId, incidentId);
     if (!incident) {
       return { status: 404, jsonBody: { message: 'Incident not found.' } };
     }
@@ -184,11 +98,113 @@ const behaviorIncidentDetailHandler = withErrorHandling(
   }
 );
 
-app.http('behavior-incident-detail', {
-  methods: ['GET', 'PATCH', 'DELETE'],
+const updateBehaviorIncidentHandler = withErrorHandling(
+  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const user = authorize(context, req);
+    const participantId = req.params.participantId;
+    const incidentId = req.params.incidentId;
+    if (!participantId || !incidentId) {
+      const errors: ValidationErrorDetail[] = [];
+      if (!participantId) {
+        errors.push({ id: 'incidents.participantId.required', message: 'Participant id is required.' });
+      }
+      if (!incidentId) {
+        errors.push({ id: 'incidents.incidentId.required', message: 'Incident id is required.' });
+      }
+      return buildValidationError(errors);
+    }
+
+    const { containers } = await buildCosmos();
+    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
+    if (!link) {
+      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
+    }
+
+    const parsed = await parseJsonBody<UpdateBehaviorIncidentRequest>(req, {
+      id: 'incidents.body.invalid',
+      message: 'Request body must be valid JSON.'
+    });
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+
+    const errors = validateUpdateRequest(parsed.value);
+    if (errors.length > 0) {
+      return buildValidationError(errors);
+    }
+
+    const existing = await readBehaviorIncident(containers.behaviorIncidents, participantId, incidentId);
+    if (!existing) {
+      return { status: 404, jsonBody: { message: 'Incident not found.' } };
+    }
+
+    const updated: BehaviorIncidentDocument = {
+      ...existing,
+      antecedent: typeof parsed.value.antecedent === 'string' ? parsed.value.antecedent.trim() : existing.antecedent,
+      behavior: typeof parsed.value.behavior === 'string' ? parsed.value.behavior.trim() : existing.behavior,
+      consequence: typeof parsed.value.consequence === 'string' ? parsed.value.consequence.trim() : existing.consequence,
+      occurredAtUtc: typeof parsed.value.occurredAtUtc === 'string' ? parsed.value.occurredAtUtc : existing.occurredAtUtc,
+      place: typeof parsed.value.place === 'string' ? parsed.value.place.trim() : existing.place,
+      function: typeof parsed.value.function === 'string' ? parsed.value.function : existing.function,
+      updatedAt: new Date().toISOString()
+    };
+
+    await containers.behaviorIncidents.items.upsert(updated);
+
+    return { status: 200, jsonBody: updated };
+  }
+);
+
+const deleteBehaviorIncidentHandler = withErrorHandling(
+  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const user = authorize(context, req);
+    const participantId = req.params.participantId;
+    const incidentId = req.params.incidentId;
+    if (!participantId || !incidentId) {
+      const errors: ValidationErrorDetail[] = [];
+      if (!participantId) {
+        errors.push({ id: 'incidents.participantId.required', message: 'Participant id is required.' });
+      }
+      if (!incidentId) {
+        errors.push({ id: 'incidents.incidentId.required', message: 'Incident id is required.' });
+      }
+      return buildValidationError(errors);
+    }
+
+    const { containers } = await buildCosmos();
+    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
+    if (!link) {
+      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
+    }
+
+    const existing = await readBehaviorIncident(containers.behaviorIncidents, participantId, incidentId);
+    if (!existing) {
+      return { status: 404, jsonBody: { message: 'Incident not found.' } };
+    }
+    await containers.behaviorIncidents.item(incidentId, participantId).delete();
+    return { status: 204 };
+  }
+);
+
+app.http('behavior-incident-detail-get', {
+  methods: ['GET'],
   authLevel: 'anonymous',
   route: 'participants/{participantId}/incidents/{incidentId}',
-  handler: behaviorIncidentDetailHandler
+  handler: readBehaviorIncidentHandler
 });
 
-export { behaviorIncidentDetailHandler };
+app.http('behavior-incident-detail-patch', {
+  methods: ['PATCH'],
+  authLevel: 'anonymous',
+  route: 'participants/{participantId}/incidents/{incidentId}',
+  handler: updateBehaviorIncidentHandler
+});
+
+app.http('behavior-incident-detail-delete', {
+  methods: ['DELETE'],
+  authLevel: 'anonymous',
+  route: 'participants/{participantId}/incidents/{incidentId}',
+  handler: deleteBehaviorIncidentHandler
+});
+
+export { readBehaviorIncidentHandler, updateBehaviorIncidentHandler, deleteBehaviorIncidentHandler };

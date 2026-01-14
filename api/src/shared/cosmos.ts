@@ -20,6 +20,9 @@ export interface CosmosConfig {
   behaviorIncidentsContainerId: string;
 }
 
+let cachedClient: CosmosClient | null = null;
+let cachedContainers: Record<string, Container> | null = null;
+
 /**
  * Creates a Cosmos client and container map from env or overrides.
  */
@@ -36,6 +39,10 @@ export async function buildCosmos(
     behaviorIncidentsContainerId: process.env.COSMOS_BEHAVIOR_INCIDENTS_CONTAINER || 'behaviorIncidents',
     ...config
   };
+
+  if (cachedClient && cachedContainers) {
+    return { client: cachedClient, containers: cachedContainers };
+  }
 
   const client = new CosmosClient({ endpoint: resolved.endpoint, key: resolved.key });
   const { database } = await client.databases.createIfNotExists({ id: resolved.databaseId });
@@ -55,14 +62,18 @@ export async function buildCosmos(
     id: resolved.behaviorIncidentsContainerId,
     partitionKey: { paths: ['/participantId'] }
   });
+
+  cachedClient = client;
+  cachedContainers = {
+    users: usersContainer,
+    participants: participantsContainer,
+    userParticipantLinks: userParticipantLinksContainer,
+    behaviorIncidents: behaviorIncidentsContainer
+  };
+
   return {
     client,
-    containers: {
-      users: usersContainer,
-      participants: participantsContainer,
-      userParticipantLinks: userParticipantLinksContainer,
-      behaviorIncidents: behaviorIncidentsContainer
-    }
+    containers: cachedContainers
   };
 }
 

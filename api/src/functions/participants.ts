@@ -1,9 +1,11 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { Container } from '@azure/cosmos';
 import { randomUUID } from 'crypto';
 import { authorize } from '../shared/authorize';
 import { buildCosmos } from '../shared/cosmos';
 import { withErrorHandling } from '../shared/auth';
+import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
+import { parseJsonBody } from '../shared/requests';
+import { listParticipantLinks, readParticipant } from '../shared/data/participants';
 import { ParticipantDocument, UserParticipantLinkDocument } from '../models/participant';
 
 type ParticipantResponse = ParticipantDocument & { role: 'manager' | 'viewer' };
@@ -18,55 +20,12 @@ type CreateParticipantRequest = {
   ageYears: number;
 };
 
-type ValidationErrorDetail = {
-  id: string;
-  message: string;
-};
-
-function buildValidationError(errors: ValidationErrorDetail[]): HttpResponseInit {
-  return {
-    status: 400,
-    headers: { 'content-type': 'application/problem+json' },
-    jsonBody: {
-      type: 'https://example.net/validation-error',
-      title: 'Your request is not valid.',
-      status: 400,
-      errors
-    }
-  };
-}
-
 function parsePageSize(value?: string | null): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 25;
   }
   return Math.min(parsed, 100);
-}
-
-async function listParticipantLinks(
-  container: Container,
-  userId: string,
-  pageSize: number,
-  nextToken?: string | null
-) {
-  const query = {
-    query: 'SELECT * FROM c WHERE c.userId = @userId',
-    parameters: [{ name: '@userId', value: userId }]
-  };
-  return container.items.query<UserParticipantLinkDocument>(query, {
-    partitionKey: userId,
-    maxItemCount: pageSize,
-    continuationToken: nextToken ?? undefined
-  }).fetchNext();
-}
-
-async function readParticipant(
-  container: Container,
-  participantId: string
-): Promise<ParticipantDocument | null> {
-  const { resource } = await container.item(participantId, participantId).read<ParticipantDocument>();
-  return resource ?? null;
 }
 
 function normalizeDisplayName(displayName?: string | null): string | undefined {
@@ -88,45 +47,45 @@ function validateCreateRequest(body: CreateParticipantRequest): ValidationErrorD
   return errors;
 }
 
-const participantsHandler = withErrorHandling(
+const listParticipantsHandler = withErrorHandling(
   async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
     const user = authorize(context, req);
     const { containers } = await buildCosmos();
 
-    if (req.method !== 'GET' && req.method !== 'POST') {
-      return { status: 405, jsonBody: { message: 'Method not allowed.' } };
-    }
+    const pageSize = parsePageSize(req.query.get('pageSize'));
+    const nextToken = req.query.get('nextToken');
+    const linksPage = await listParticipantLinks(containers.userParticipantLinks, user.sub, pageSize, nextToken);
+    const items: ParticipantResponse[] = [];
 
-    if (req.method === 'GET') {
-      const pageSize = parsePageSize(req.query.get('pageSize'));
-      const nextToken = req.query.get('nextToken');
-      const linksPage = await listParticipantLinks(containers.userParticipantLinks, user.sub, pageSize, nextToken);
-      const items: ParticipantResponse[] = [];
-
-      for (const link of linksPage.resources ?? []) {
-        const participant = await readParticipant(containers.participants, link.participantId);
-        if (participant) {
-          items.push({ ...participant, role: link.role });
-        }
+    for (const link of linksPage.resources ?? []) {
+      const participant = await readParticipant(containers.participants, link.participantId);
+      if (participant) {
+        items.push({ ...participant, role: link.role });
       }
-
-      const response: ListParticipantsResponse = {
-        items,
-        nextToken: linksPage.continuationToken ?? null
-      };
-      return { status: 200, jsonBody: response };
     }
 
-    let body: CreateParticipantRequest;
-    try {
-      body = (await req.json()) as CreateParticipantRequest;
-    } catch {
-      return buildValidationError([
-        { id: 'participants.body.invalid', message: 'Request body must be valid JSON.' }
-      ]);
+    const response: ListParticipantsResponse = {
+      items,
+      nextToken: linksPage.continuationToken ?? null
+    };
+    return { status: 200, jsonBody: response };
+  }
+);
+
+const createParticipantHandler = withErrorHandling(
+  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const user = authorize(context, req);
+    const { containers } = await buildCosmos();
+
+    const parsed = await parseJsonBody<CreateParticipantRequest>(req, {
+      id: 'participants.body.invalid',
+      message: 'Request body must be valid JSON.'
+    });
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
-    const errors = validateCreateRequest(body);
+    const errors = validateCreateRequest(parsed.value);
     if (errors.length > 0) {
       return buildValidationError(errors);
     }
@@ -135,8 +94,8 @@ const participantsHandler = withErrorHandling(
     const participantId = `participant_${randomUUID()}`;
     const participant: ParticipantDocument = {
       id: participantId,
-      displayName: normalizeDisplayName(body.displayName),
-      ageYears: body.ageYears,
+      displayName: normalizeDisplayName(parsed.value.displayName),
+      ageYears: parsed.value.ageYears,
       createdAt: timestamp,
       createdByUserId: user.sub
     };
@@ -156,11 +115,18 @@ const participantsHandler = withErrorHandling(
   }
 );
 
-app.http('participants', {
-  methods: ['GET', 'POST'],
+app.http('participants-list', {
+  methods: ['GET'],
   authLevel: 'anonymous',
   route: 'participants',
-  handler: participantsHandler
+  handler: listParticipantsHandler
 });
 
-export { participantsHandler };
+app.http('participants-create', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'participants',
+  handler: createParticipantHandler
+});
+
+export { listParticipantsHandler, createParticipantHandler };

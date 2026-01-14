@@ -1,11 +1,13 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { Container } from '@azure/cosmos';
 import { randomUUID } from 'crypto';
 import { authorize } from '../shared/authorize';
 import { buildCosmos } from '../shared/cosmos';
 import { withErrorHandling } from '../shared/auth';
+import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
+import { parseJsonBody } from '../shared/requests';
+import { buildBehaviorIncidentListQuery } from '../shared/data/behavior-incidents';
+import { readParticipantLink } from '../shared/data/participants';
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
-import { UserParticipantLinkDocument } from '../models/participant';
 
 type CreateBehaviorIncidentRequest = {
   antecedent: string;
@@ -16,45 +18,8 @@ type CreateBehaviorIncidentRequest = {
   function: BehaviorFunction;
 };
 
-type ValidationErrorDetail = {
-  id: string;
-  message: string;
-};
-
 const behaviorFunctionOptions: BehaviorFunction[] = ['sensory', 'tangible', 'escape', 'attention'];
 const maxPageSize = 100;
-
-function buildValidationError(errors: ValidationErrorDetail[]): HttpResponseInit {
-  return {
-    status: 400,
-    headers: { 'content-type': 'application/problem+json' },
-    jsonBody: {
-      type: 'https://example.net/validation-error',
-      title: 'Your request is not valid.',
-      status: 400,
-      errors
-    }
-  };
-}
-
-async function readParticipantLink(
-  container: Container,
-  userId: string,
-  participantId: string
-): Promise<UserParticipantLinkDocument | null> {
-  const query = {
-    query: 'SELECT * FROM c WHERE c.userId = @userId AND c.participantId = @participantId',
-    parameters: [
-      { name: '@userId', value: userId },
-      { name: '@participantId', value: participantId }
-    ]
-  };
-  const response = await container.items.query<UserParticipantLinkDocument>(query, {
-    partitionKey: userId,
-    maxItemCount: 1
-  }).fetchNext();
-  return response.resources?.[0] ?? null;
-}
 
 function isNonEmpty(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -106,40 +71,14 @@ type ListBehaviorIncidentsResponse = {
   nextToken: string | null;
 };
 
-function buildListQuery(
-  participantId: string,
-  functionFilter?: BehaviorFunction,
-  fromUtc?: string,
-  toUtc?: string
-) {
-  const conditions: string[] = ['c.participantId = @participantId'];
-  const parameters = [{ name: '@participantId', value: participantId }];
-
-  if (functionFilter) {
-    conditions.push('c.function = @function');
-    parameters.push({ name: '@function', value: functionFilter });
-  }
-  if (fromUtc) {
-    conditions.push('c.occurredAtUtc >= @fromUtc');
-    parameters.push({ name: '@fromUtc', value: fromUtc });
-  }
-  if (toUtc) {
-    conditions.push('c.occurredAtUtc <= @toUtc');
-    parameters.push({ name: '@toUtc', value: toUtc });
-  }
-
-  return {
-    query: `SELECT * FROM c WHERE ${conditions.join(' AND ')} ORDER BY c.occurredAtUtc DESC`,
-    parameters
-  };
-}
-
-const behaviorIncidentsHandler = withErrorHandling(
+const listBehaviorIncidentsHandler = withErrorHandling(
   async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
     const user = authorize(context, req);
     const participantId = req.params.participantId;
     if (!participantId) {
-      return { status: 400, jsonBody: { message: 'Participant id is required.' } };
+      return buildValidationError([
+        { id: 'incidents.participantId.required', message: 'Participant id is required.' }
+      ]);
     }
 
     const { containers } = await buildCosmos();
@@ -148,55 +87,71 @@ const behaviorIncidentsHandler = withErrorHandling(
       return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
     }
 
-    if (req.method === 'GET') {
-      const pageSize = parsePageSize(req.query.get('pageSize'));
-      const nextToken = req.query.get('nextToken');
-      const functionFilter = req.query.get('function') as BehaviorFunction | null;
-      const fromUtc = req.query.get('fromUtc');
-      const toUtc = req.query.get('toUtc');
+    const pageSize = parsePageSize(req.query.get('pageSize'));
+    const nextToken = req.query.get('nextToken');
+    const functionFilter = req.query.get('function') as BehaviorFunction | null;
+    const fromUtc = req.query.get('fromUtc');
+    const toUtc = req.query.get('toUtc');
 
-      const listErrors: ValidationErrorDetail[] = [];
-      if (functionFilter && !behaviorFunctionOptions.includes(functionFilter)) {
-        listErrors.push({ id: 'incidents.function.invalid', message: 'Function is not valid.' });
-      }
-      if (fromUtc && !isUtcIsoString(fromUtc)) {
-        listErrors.push({ id: 'incidents.fromUtc.invalid', message: 'fromUtc must be a UTC ISO string.' });
-      }
-      if (toUtc && !isUtcIsoString(toUtc)) {
-        listErrors.push({ id: 'incidents.toUtc.invalid', message: 'toUtc must be a UTC ISO string.' });
-      }
-      if (listErrors.length > 0) {
-        return buildValidationError(listErrors);
-      }
-
-      const query = buildListQuery(participantId, functionFilter ?? undefined, fromUtc ?? undefined, toUtc ?? undefined);
-      const response = await containers.behaviorIncidents.items.query<BehaviorIncidentDocument>(query, {
-        partitionKey: participantId,
-        maxItemCount: pageSize,
-        continuationToken: nextToken ?? undefined
-      }).fetchNext();
-
-      const payload: ListBehaviorIncidentsResponse = {
-        items: response.resources ?? [],
-        nextToken: response.continuationToken ?? null
-      };
-      return { status: 200, jsonBody: payload };
+    const listErrors: ValidationErrorDetail[] = [];
+    if (functionFilter && !behaviorFunctionOptions.includes(functionFilter)) {
+      listErrors.push({ id: 'incidents.function.invalid', message: 'Function is not valid.' });
+    }
+    if (fromUtc && !isUtcIsoString(fromUtc)) {
+      listErrors.push({ id: 'incidents.fromUtc.invalid', message: 'fromUtc must be a UTC ISO string.' });
+    }
+    if (toUtc && !isUtcIsoString(toUtc)) {
+      listErrors.push({ id: 'incidents.toUtc.invalid', message: 'toUtc must be a UTC ISO string.' });
+    }
+    if (listErrors.length > 0) {
+      return buildValidationError(listErrors);
     }
 
-    if (req.method !== 'POST') {
-      return { status: 405, jsonBody: { message: 'Method not allowed.' } };
-    }
+    const query = buildBehaviorIncidentListQuery(
+      participantId,
+      functionFilter ?? undefined,
+      fromUtc ?? undefined,
+      toUtc ?? undefined
+    );
+    const response = await containers.behaviorIncidents.items.query<BehaviorIncidentDocument>(query, {
+      partitionKey: participantId,
+      maxItemCount: pageSize,
+      continuationToken: nextToken ?? undefined
+    }).fetchNext();
 
-    let body: CreateBehaviorIncidentRequest;
-    try {
-      body = (await req.json()) as CreateBehaviorIncidentRequest;
-    } catch {
+    const payload: ListBehaviorIncidentsResponse = {
+      items: response.resources ?? [],
+      nextToken: response.continuationToken ?? null
+    };
+    return { status: 200, jsonBody: payload };
+  }
+);
+
+const createBehaviorIncidentHandler = withErrorHandling(
+  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const user = authorize(context, req);
+    const participantId = req.params.participantId;
+    if (!participantId) {
       return buildValidationError([
-        { id: 'incidents.body.invalid', message: 'Request body must be valid JSON.' }
+        { id: 'incidents.participantId.required', message: 'Participant id is required.' }
       ]);
     }
 
-    const errors = validateCreateRequest(body);
+    const { containers } = await buildCosmos();
+    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
+    if (!link) {
+      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
+    }
+
+    const parsed = await parseJsonBody<CreateBehaviorIncidentRequest>(req, {
+      id: 'incidents.body.invalid',
+      message: 'Request body must be valid JSON.'
+    });
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+
+    const errors = validateCreateRequest(parsed.value);
     if (errors.length > 0) {
       return buildValidationError(errors);
     }
@@ -205,12 +160,12 @@ const behaviorIncidentsHandler = withErrorHandling(
     const incident: BehaviorIncidentDocument = {
       id: `incident_${randomUUID()}`,
       participantId,
-      antecedent: body.antecedent.trim(),
-      behavior: body.behavior.trim(),
-      consequence: body.consequence.trim(),
-      occurredAtUtc: body.occurredAtUtc,
-      place: body.place.trim(),
-      function: body.function,
+      antecedent: parsed.value.antecedent.trim(),
+      behavior: parsed.value.behavior.trim(),
+      consequence: parsed.value.consequence.trim(),
+      occurredAtUtc: parsed.value.occurredAtUtc,
+      place: parsed.value.place.trim(),
+      function: parsed.value.function,
       createdAt: now,
       createdByUserId: user.sub
     };
@@ -221,11 +176,18 @@ const behaviorIncidentsHandler = withErrorHandling(
   }
 );
 
-app.http('behavior-incidents', {
-  methods: ['POST', 'GET'],
+app.http('behavior-incidents-list', {
+  methods: ['GET'],
   authLevel: 'anonymous',
   route: 'participants/{participantId}/incidents',
-  handler: behaviorIncidentsHandler
+  handler: listBehaviorIncidentsHandler
 });
 
-export { behaviorIncidentsHandler };
+app.http('behavior-incidents-create', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'participants/{participantId}/incidents',
+  handler: createBehaviorIncidentHandler
+});
+
+export { listBehaviorIncidentsHandler, createBehaviorIncidentHandler };
