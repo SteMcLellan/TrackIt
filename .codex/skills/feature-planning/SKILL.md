@@ -5,7 +5,7 @@ description: Product-focused feature planning and specification writing. Use whe
 
 # Feature Planning Skill
 
-Use this skill to turn a feature idea into a product-first spec focused on users and outcomes.
+Use this skill to turn a feature idea into a product-first spec focused on users and outcomes. Use the planning tools to help me develop a solid product focused plan for this feature.
 
 ## Workflow
 1. Clarify the feature goal, user types, and scope.
