@@ -9,12 +9,15 @@ Use this skill to turn a product spec into an implementation plan.
 
 ## Workflow
 1. Locate the relevant product spec in `docs/feature/`.
-2. Read `docs/feature/IMPLEMENTATION_GUIDE.md` and follow its structure.
+2. Read `.codex/prompts/implementation-plan.md` and follow its structure.
 3. Extract user stories, acceptance criteria, and scope.
 4. Produce a technical implementation plan (data model, API, UI, migrations, testing).
 5. Identify dependencies, risks, and sequencing.
 6. Propose a step-by-step execution plan before coding.
 7. Identify if changes required touch existing features and plan for updates to `docs/acrhitecture` files.
+
+## Output Form (implementation plan template)
+Use the template in `references/FORMS.md` for new plans and updates.
 
 ## Output Expectations
 - Translate user stories into concrete technical tasks.
