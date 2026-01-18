@@ -23,6 +23,28 @@
 - If file is not found, ask user if they are running `npm run dev:frontend:log`
 - If the log shows a build failure (TypeScript/template errors), correct errors and repeat until the log shows a successful build (e.g. "Application bundle generation complete").
 
+## Multi-Agent Workflow (Coordinator + Workers)
+- **Coordinator session (main worktree):**
+  - Owns planning and decisions: `docs/feature/*.md`, `docs/feature/*.impl.md`, and coordination notes.
+  - Breaks work into 1-story-at-a-time tasks and keeps the implementation checklist up to date.
+  - Avoids editing the same code files workers are actively changing.
+- **Worker sessions (separate worktrees):**
+  - Implement code changes for assigned story scope only.
+  - Validate changes locally (frontend via dev log; API via build) and report back what changed + how it was verified.
+  - Minimize overlap: do not have multiple workers edit the same files simultaneously.
+
+## Worktrees (Recommended for Parallel Agents)
+- Use separate worktrees for parallel agents, grouped under `..\\TrackIt.wt\\<agent-id>\\` (e.g. `..\\TrackIt.wt\\a\\`, `..\\TrackIt.wt\\b\\`).
+- Each worktree has its own `dist/`, so frontend build logs won’t collide across worktrees.
+- If multiple dev servers run at the same time, **frontend/API ports must not collide** (use the worker prompt’s suggested port mapping or pick any unused ports).
+
+## Coordination Files (Shared Across Worktrees)
+- Use the shared folder `..\\TrackIt.wt\\agents\\` for coordination artifacts (handoffs, scratch notes, per-ticket checklists).
+- This folder lives outside the repo and is not committed.
+- Suggested handoff file naming:
+  - `..\\TrackIt.wt\\agents\\handoff-<ticket-id>.md`
+  - Include: story/task, files changed, verification evidence, and notes/risks.
+
 ## Conventions
 - Keep workspace outputs under repo `dist/` only.
 - Prefer workspace-relative scripts (`npm --workspace <name> run <script>`).
