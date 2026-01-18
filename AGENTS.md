@@ -31,6 +31,7 @@
     - Use Signals where possible
     - Use experimental resources such as `httpResource`.
 - Store and process all timestamps in UTC. Any local time display should be derived from UTC.
+- Data modeling conventions (especially time/day fields): see `docs/architecture/data-modeling.md`.
 - Cosmos client/container instances are cached at module scope; restart the function host to pick up env/config changes.
 
 ## Where to Look
