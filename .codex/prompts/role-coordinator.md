@@ -16,6 +16,8 @@ You are the **Coordinator** agent for the TrackIt repo.
 - Prefer producing worker tickets (scope + acceptance + verification) over patching application code.
 
 ## Default workflow
+When users asks you to assign work from a feature follow this workflow. Wait until the user has asked you to assign work before creating any tickets.
+
 1. Identify the next story from the relevant `docs/feature/<feature-name>.impl.md`.
 2. Create a worker ticket with:
    - Story number + acceptance criteria
