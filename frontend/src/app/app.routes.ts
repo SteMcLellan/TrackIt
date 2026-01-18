@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './shared/guards/auth.guard';
-import { ParticipantStartGuard } from './shared/guards/participant-start.guard';
-import { DashboardComponent } from './features/dashboard/dashboard.component';
+import { ActiveParticipantGuard } from './shared/guards/active-participant.guard';
+import { HomeComponent } from './features/home/home.component';
 import { LoginComponent } from './features/auth/login.component';
 import { IncidentCreateComponent } from './features/incidents/incident-create.component';
 import { IncidentDetailComponent } from './features/incidents/incident-detail.component';
@@ -19,7 +19,7 @@ import { ParticipantStartComponent } from './features/participants/participant-s
  */
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
-  { path: 'dashboard', component: DashboardComponent, canActivate: [AuthGuard, ParticipantStartGuard] },
+  { path: 'home', component: HomeComponent, canActivate: [AuthGuard, ActiveParticipantGuard] },
   { path: 'incidents', component: IncidentListComponent, canActivate: [AuthGuard] },
   { path: 'incidents/new', component: IncidentCreateComponent, canActivate: [AuthGuard] },
   { path: 'incidents/:id', component: IncidentDetailComponent, canActivate: [AuthGuard] },
@@ -30,5 +30,5 @@ export const appRoutes: Routes = [
   { path: 'participants/start', component: ParticipantStartComponent, canActivate: [AuthGuard] },
   { path: 'participants/new', component: ParticipantCreateComponent, canActivate: [AuthGuard] },
   { path: 'participants/:id', component: ParticipantDetailComponent, canActivate: [AuthGuard] },
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' }
+  { path: '', redirectTo: '/home', pathMatch: 'full' }
 ];

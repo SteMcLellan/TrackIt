@@ -7,8 +7,10 @@
   - 0 participants → `/participants/start`
   - participants exist but none selected → `/participants`
 - Inline medication logging for today (Taken / Not taken) on Home.
-- Show a 7‑day adherence “dots” snapshot for all active medications.
-- Show a minimal “Incidents (last 7 days)” summary with a short recent list and quick actions.
+- Show an adherence “dots” snapshot for all active medications (range controlled by Home selector).
+- Show a minimal “Incidents (last N days)” summary with a short recent list and quick actions (range controlled by Home selector).
+- Refactor the Home meds UX to reduce duplication and merge “Today” logging + dots into a single “Medication check‑in” section.
+ - Add a Home date range selector (7/14/30) that affects both meds and incidents.
 
 ## Assumptions / Open Questions
 - Open question retained: whether Home should support “Yesterday” med logging (explicitly out of scope for MVP).
@@ -100,7 +102,6 @@ Use the existing `CardComponent` patterns and keep the page action-first.
 
 - Manual checks (recommended):
   - `/` redirects to `/home`
-  - `/dashboard` redirects/aliases to `/home`
   - Login flow lands on `/home`
   - With no participants: `/home` routes to `/participants/start`
   - With participants but none selected: `/home` routes to `/participants`
@@ -120,35 +121,47 @@ Use the existing `CardComponent` patterns and keep the page action-first.
    - Use it in both Adherence and Home
 6. Implement incidents last-7-days summary card (minimal preview).
 7. Run through manual checks and verify FE build via `dist/frontend/dev-frontend.log`.
+8. Add Home date range selector and wire it to meds + incidents.
 
 ## Story-Tracking Checklist
 ### Story 1: Home landing route + naming
-- [ ] Add `/home` route and set default redirect (`/`) to `/home`
-- [ ] Remove `/dashboard` route
-- [ ] Update nav label/link to “Home”
-- [ ] Update login redirect to `/home`
-- [ ] Add Home gating (active participant required)
+- [x] Add `/home` route and set default redirect (`/`) to `/home`
+- [x] Remove `/dashboard` route
+- [x] Update nav label/link to “Home”
+- [x] Update login redirect to `/home`
+- [x] Add Home gating (active participant required)
 
 ### Story 2: Inline med logging on Home
-- [ ] Fetch active medications for today (local date) and render checklist
-- [ ] Fetch logs for today and derive status badge per medication
-- [ ] Add one-tap “Taken / Not taken” actions (upsert + refresh)
-- [ ] Handle save-in-progress + failure message
-- [ ] Empty state: no meds → link to “Add medication”
+- [x] Fetch active medications for today (local date) and render checklist
+- [x] Fetch logs for today and derive status badge per medication
+- [x] Add one-tap “Taken / Not taken” actions (upsert + refresh)
+- [x] Handle save-in-progress + failure message
+- [x] Empty state: no meds → link to “Add medication”
 
 ### Story 3: 7-day adherence dots snapshot
-- [ ] Compute last 7 local dates (including today)
-- [ ] Fetch logs for the 7-day range
-- [ ] Extract reusable dots strip component from adherence page
-- [ ] Render dots per active medication on Home
-- [ ] Link to full adherence page
+- [x] Compute last 7 local dates (including today)
+- [x] Fetch logs for the 7-day range
+- [x] Extract reusable dots strip component from adherence page
+- [x] Render dots per active medication on Home
+- [x] Link to full adherence page
 
 ### Story 4: Incidents last 7 days (minimal)
-- [ ] Fetch incidents for last 7 days (UTC window)
-- [ ] Show count + up to 3 recent incidents (date/time + place/function)
-- [ ] Provide “Log incident” and “View incidents” actions
+- [x] Fetch incidents for last 7 days (UTC window)
+- [x] Show count + up to 3 recent incidents (date/time + place/function)
+- [x] Provide “Log incident” and “View incidents” actions
 
 ### Story 5: Setup-first routing/empty states
-- [ ] `/home` redirects to `/participants/start` when no participants exist
-- [ ] `/home` redirects to `/participants` when participants exist but none selected
-- [ ] Error states for meds/logs/incidents show clear next step (retry or link)
+- [x] `/home` redirects to `/participants/start` when no participants exist
+- [x] `/home` redirects to `/participants` when participants exist but none selected
+- [x] Error states for meds/logs/incidents show clear next step (retry or link)
+
+### Story 6: Merge meds logging + dots and reduce duplication
+- [x] Replace separate “Today’s meds” and “Adherence” sections with a single “Medication check‑in” section
+- [x] Move shared medication check-in logic out of `HomeComponent` into a reusable component
+- [x] Keep Home as a thin layout container (minimal fetch/logic)
+
+### Story 7: Home date range selector (7/14/30)
+- [x] Add range selector UI (default 7) to Home
+- [x] Wire selection to medication check-in dots/log fetch range
+- [x] Wire selection to incidents fetch + copy (“last X days”)
+- [x] Verify behavior via manual check + FE build log

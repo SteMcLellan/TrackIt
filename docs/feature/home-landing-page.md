@@ -28,6 +28,8 @@
 3. As a caregiver, I want a quick 7‑day adherence snapshot (“dots” diagram) so I can see missed days at a glance.
 4. As a caregiver, I want a quick view of behavior incidents in the last 7 days so I can see if anything happened recently.
 5. As a caregiver, when I’m missing setup (no participant selected, no meds set up), I want clear next steps so I’m not stuck.
+6. As a caregiver, I want a single medication “check‑in” section that combines today’s status and the 7‑day snapshot so I don’t have to scan multiple areas.
+7. As a caregiver, I want a date range selector (7/14/30 days) on Home so I can quickly adjust the timeframe used for meds and incidents.
 
 ## User Story Details
 ### 1) Rename “Dashboard” to “Home” and route to `/home`
@@ -120,6 +122,46 @@ As a caregiver, when I’m missing setup (no participant selected, no meds set u
 
 **UX notes**
 - Prefer “what to do next” actions over raw error text.
+
+### 6) Single medication check-in section (merge Today + dots)
+**User story**  
+As a caregiver, I want a single medication “check‑in” section that combines today’s status and the 7‑day snapshot so I don’t have to scan multiple areas.
+
+**Important data flows and validations**
+- Reuse the same data already required for stories (2) and (3).
+- The combined layout must still allow one-tap Taken/Not taken logging for today.
+
+**Acceptance criteria**
+- Home shows a single “Medication check‑in” section for all active medications (for today) that includes:
+  - today’s status (Taken / Not taken / Not logged)
+  - one-tap Taken / Not taken actions
+  - a 7‑day dots strip per medication
+- Home does not show separate, redundant “Today’s meds” and “Adherence” sections.
+
+**UX notes**
+- Keep the row scannable: name + dose/frequency + today status + dots + actions.
+
+### 7) Home date range selector (7/14/30)
+**User story**  
+As a caregiver, I want a date range selector (7/14/30 days) on Home so I can quickly adjust the timeframe used for meds and incidents.
+
+**Important data flows and validations**
+- The selection should default to 7 days.
+- The selected range applies consistently to:
+  - medication dots (and the logs used to derive those dots)
+  - incidents list/count on Home
+
+**Acceptance criteria**
+- Home includes a range selector with 7/14/30 day options.
+- Default selection is 7 days.
+- Changing the selection updates:
+  - the medication dots range on Home
+  - the “Incidents (last X days)” count/list on Home
+- The selection is reflected in UI text (“last 14 days”, “last 30 days”, etc.) where applicable.
+
+**UX notes**
+- Keep it compact and hard to mis-tap (pill buttons like the Adherence page).
+- It should feel like a global filter for Home rather than per-card.
 
 ## Open Questions
 - For the med checklist: should we allow logging for yesterday (a common “did we forget?” scenario), or keep MVP strictly “today” with a link to the Daily log for other dates?

@@ -63,8 +63,8 @@ import { environment } from '../../../environments/environment';
                   >
                     View details
                   </a>
-                  <a class="link" routerLink="/dashboard" (click)="$event.stopPropagation()">
-                    <span>Go to dashboard</span>
+                  <a class="link" routerLink="/home" (click)="$event.stopPropagation()">
+                    <span>Go to Home</span>
                     <app-icon-arrow-right />
                   </a>
                 </div>

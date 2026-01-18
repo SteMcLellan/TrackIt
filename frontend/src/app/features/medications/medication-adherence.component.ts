@@ -8,6 +8,7 @@ import { MedicationLogService } from '../../shared/services/medication-log.servi
 import { Medication } from '../../shared/models/medication';
 import { MedicationLog } from '../../shared/models/medication-log';
 import { CollectionResponse } from '../../shared/models/collection';
+import { MedicationDotsStripComponent } from './components/medication-dots-strip.component';
 import { environment } from '../../../environments/environment';
 
 type MedicationsResponse = CollectionResponse<Medication>;
@@ -20,7 +21,7 @@ type RangeOption = {
 
 @Component({
   selector: 'app-medication-adherence',
-  imports: [CardComponent, RouterLink],
+  imports: [CardComponent, RouterLink, MedicationDotsStripComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
@@ -79,6 +80,10 @@ type RangeOption = {
           <p class="muted">No medications to display.</p>
           <a class="button" routerLink="/medications/list">Add medication</a>
         } @else {
+          <div class="dots-header" aria-hidden="true" [style.--dot-count]="rangeDates().length">
+            <span>{{ dotsHeader().left }}</span>
+            <span>{{ dotsHeader().right }}</span>
+          </div>
           <ul class="list" role="list">
             @for (medication of visibleMedications(); track medication.id) {
               <li class="item">
@@ -90,18 +95,12 @@ type RangeOption = {
                     <span>{{ frequencyLabel(medication.frequencyText) }}</span>
                   </div>
                 </div>
-                <div class="strip" role="list">
-                  @for (day of rangeDates(); track day) {
-                    <span
-                      class="day"
-                      [class.taken]="logStatus(medication.id, day) === 'taken'"
-                      [class.not-taken]="logStatus(medication.id, day) === 'not_taken'"
-                      [class.not-logged]="!logStatus(medication.id, day)"
-                      [attr.aria-label]="day + ': ' + statusLabel(logStatus(medication.id, day))"
-                      role="listitem"
-                    ></span>
-                  }
-                </div>
+                <app-medication-dots-strip
+                  [dates]="rangeDates()"
+                  [statusesByDate]="statusByDate(medication.id)"
+                  [startDateUtc]="medication.startDateUtc"
+                  [endDateUtc]="medication.endDateUtc"
+                />
               </li>
             }
           </ul>
@@ -222,6 +221,21 @@ type RangeOption = {
         gap: 0.35rem;
         color: var(--color-text-muted, #64748b);
         flex-wrap: wrap;
+      }
+      .dots-header {
+        display: none;
+        width: calc(var(--dot-count) * 0.75rem + (var(--dot-count) - 1) * 0.35rem);
+        margin: 0 0 var(--space-2, 0.5rem) auto;
+        justify-content: space-between;
+        gap: 0.5rem;
+        color: var(--color-text-muted, #64748b);
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      @media (min-width: 720px) {
+        .dots-header {
+          display: flex;
+        }
       }
       .strip {
         display: grid;
@@ -347,6 +361,16 @@ export class MedicationAdherenceComponent {
     return dates;
   });
 
+  readonly dotsHeader = computed(() => {
+    const dates = this.rangeDates();
+    const first = dates[0];
+    const last = dates[dates.length - 1];
+    return {
+      left: first ? this.formatShortDate(first) : '',
+      right: last && last === this.todayLocalDate() ? 'Today' : last ? this.formatShortDate(last) : 'Today'
+    };
+  });
+
   private readonly logMap = computed(() => {
     const map = new Map<string, MedicationLog>();
     for (const log of this.logs()) {
@@ -381,6 +405,17 @@ export class MedicationAdherenceComponent {
     return this.logMap().get(this.logKey(medicationId, logLocalDate))?.status ?? null;
   }
 
+  statusByDate(medicationId: string): Record<string, 'taken' | 'not_taken'> {
+    const statuses: Record<string, 'taken' | 'not_taken'> = {};
+    for (const day of this.rangeDates()) {
+      const status = this.logStatus(medicationId, day);
+      if (status) {
+        statuses[day] = status;
+      }
+    }
+    return statuses;
+  }
+
   statusLabel(status: 'taken' | 'not_taken' | null) {
     if (status === 'taken') {
       return 'Taken';
@@ -411,5 +446,15 @@ export class MedicationAdherenceComponent {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private todayLocalDate(): string {
+    return this.formatLocalDate(new Date());
+  }
+
+  private formatShortDate(value: string): string {
+    const [year, month, day] = value.split('-').map((part) => Number(part));
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' });
   }
 }

@@ -56,7 +56,7 @@ export function toLocalDateInputValue(utcValue: string): string {
         <p class="muted">Incident saved. You can log another or return later.</p>
         <div class="actions">
           <button class="button" type="button" (click)="reset()">Log another incident</button>
-          <a class="button secondary" routerLink="/dashboard">Back to dashboard</a>
+          <a class="button secondary" routerLink="/home">Back to Home</a>
         </div>
       } @else {
         <form [formGroup]="form" (ngSubmit)="submit()" class="grid">

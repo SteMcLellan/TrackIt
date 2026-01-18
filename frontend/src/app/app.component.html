@@ -2,7 +2,7 @@
   <div class="brand">TrackIt</div>
   <nav>
     @if (auth.isAuthenticated()) {
-      <a routerLink="/dashboard">Dashboard</a>
+      <a routerLink="/home">Home</a>
       <a routerLink="/medications">Medications</a>
       <a routerLink="/participants">Participants</a>
       <button (click)="logout()">Logout</button>

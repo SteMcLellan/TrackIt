@@ -14,7 +14,7 @@ import { CardComponent } from '../../shared/ui/card/card.component';
     <app-card style="max-width: 420px; margin: 2rem auto;">
       <p class="app-title">TrackIt — ADHD Symptoms</p>
       <h1>Sign in as a Parent</h1>
-      <p>Use your Google account to access your child's TrackIt dashboard.</p>
+      <p>Use your Google account to access your child's TrackIt Home.</p>
       <div id="g_id_signin"></div>
       @if (error) {
         <p class="error">{{ error }}</p>
@@ -47,7 +47,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   constructor() {
     effect(() => {
       if (this.auth.isAuthenticated()) {
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/home']);
       }
     });
   }
@@ -57,7 +57,7 @@ export class LoginComponent implements OnInit, OnDestroy {
    */
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
+      this.router.navigate(['/home']);
       return;
     }
     this.renderButton();
