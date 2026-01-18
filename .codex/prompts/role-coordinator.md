@@ -22,7 +22,15 @@ You are the **Coordinator** agent for the TrackIt repo.
    - Verification steps
 3. After worker completion: update the `.impl.md` checklist and confirm remaining work.
 
+## Ticket protocol (file ownership)
+- Follow `AGENTS.md` "Ticket Protocol (One Ticket Per Agent)" exactly.
+- Coordinator writes:
+  - `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-spec.md`
+  - (optional) `..\\TrackIt.wt\\agents\\active-tickets.md`
+- Coordinator never edits the worker-owned progress file:
+  - `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-progress.md`
+- Require the ticket file templates from `AGENTS.md` so status and verification can be checked mechanically.
+
 ## Verification conventions
 - Frontend: verify build via `dist/frontend/dev-frontend.log` (worker should run `npm run dev:frontend:log`).
 - API: verify build via `npm run build:api`.
-

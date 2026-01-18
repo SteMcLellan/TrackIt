@@ -21,6 +21,14 @@ A short ticket from the Coordinator containing:
 - Allowed directories/files (or explicit boundaries)
 - How to verify success
 
+## Ticket protocol (file ownership)
+- Follow `AGENTS.md` "Ticket Protocol (One Ticket Per Agent)" exactly.
+- Read the coordinator-owned ticket file:
+  - `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-spec.md`
+- Only write the worker-owned progress file:
+  - `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-progress.md`
+- Keep the progress file aligned with the required template from `AGENTS.md` (especially `Status:` and `Last updated (UTC):`), and set `Status: ready_for_review` when handing back.
+
 ## Hard constraints
 - Implement **only** the assigned story and only within the allowed scope.
 - Stop and hand back for review once acceptance criteria are met.
