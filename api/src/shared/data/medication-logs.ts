@@ -1,15 +1,17 @@
+import type { SqlParameter, SqlQuerySpec } from '@azure/cosmos';
+
 export function buildMedicationLogListQuery(
   participantId: string,
   startDate: string,
   endDate: string,
   medicationIds?: string[]
-) {
+): SqlQuerySpec {
   const conditions: string[] = [
     'c.participantId = @participantId',
     'c.logLocalDate >= @startDate',
     'c.logLocalDate <= @endDate'
   ];
-  const parameters: Array<{ name: string; value: unknown }> = [
+  const parameters: SqlParameter[] = [
     { name: '@participantId', value: participantId },
     { name: '@startDate', value: startDate },
     { name: '@endDate', value: endDate }

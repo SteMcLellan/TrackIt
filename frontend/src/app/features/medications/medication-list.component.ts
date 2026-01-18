@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { httpResource } from '@angular/common/http';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { startWith } from 'rxjs';
 import { CardComponent } from '../../shared/ui/card/card.component';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { MedicationService } from '../../shared/services/medication.service';
@@ -393,6 +395,10 @@ export class MedicationListComponent {
     endDateUtc: this.fb.control<string | null>(''),
     notes: this.fb.control<string | null>('')
   });
+  private readonly formStatus = toSignal(
+    this.medicationForm.statusChanges.pipe(startWith(this.medicationForm.status)),
+    { initialValue: this.medicationForm.status }
+  );
 
   readonly medicationsResource = httpResource<MedicationsResponse>(() => {
     const participantId = this.activeParticipantId();
@@ -424,7 +430,7 @@ export class MedicationListComponent {
   readonly isEditing = computed(() => !!this.editingMedication());
   readonly formTitle = computed(() => (this.isEditing() ? 'Edit medication' : 'Add medication'));
   readonly formCta = computed(() => (this.isEditing() ? 'Save changes' : 'Add medication'));
-  readonly canSubmit = computed(() => this.medicationForm.valid && !this.saving());
+  readonly canSubmit = computed(() => this.formStatus() === 'VALID' && !this.saving());
   readonly frequencyOptions = [
     { value: 'once-daily', label: 'Once daily' },
     { value: 'twice-daily', label: 'Twice daily' },
