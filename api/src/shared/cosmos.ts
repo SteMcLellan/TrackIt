@@ -5,6 +5,8 @@ export interface ParticipantsCosmosConfig {
   participantsContainerId: string;
   userParticipantLinksContainerId: string;
   behaviorIncidentsContainerId: string;
+  medicationsContainerId: string;
+  medicationLogsContainerId: string;
 }
 
 /**
@@ -18,6 +20,8 @@ export interface CosmosConfig {
   participantsContainerId: string;
   userParticipantLinksContainerId: string;
   behaviorIncidentsContainerId: string;
+  medicationsContainerId: string;
+  medicationLogsContainerId: string;
 }
 
 let cachedClient: CosmosClient | null = null;
@@ -37,6 +41,8 @@ export async function buildCosmos(
     participantsContainerId: process.env.COSMOS_PARTICIPANTS_CONTAINER || 'participants',
     userParticipantLinksContainerId: process.env.COSMOS_USER_PARTICIPANT_LINKS_CONTAINER || 'userParticipantLinks',
     behaviorIncidentsContainerId: process.env.COSMOS_BEHAVIOR_INCIDENTS_CONTAINER || 'behaviorIncidents',
+    medicationsContainerId: process.env.COSMOS_MEDICATIONS_CONTAINER || 'medications',
+    medicationLogsContainerId: process.env.COSMOS_MEDICATION_LOGS_CONTAINER || 'medicationLogs',
     ...config
   };
 
@@ -62,13 +68,23 @@ export async function buildCosmos(
     id: resolved.behaviorIncidentsContainerId,
     partitionKey: { paths: ['/participantId'] }
   });
+  const { container: medicationsContainer } = await database.containers.createIfNotExists({
+    id: resolved.medicationsContainerId,
+    partitionKey: { paths: ['/participantId'] }
+  });
+  const { container: medicationLogsContainer } = await database.containers.createIfNotExists({
+    id: resolved.medicationLogsContainerId,
+    partitionKey: { paths: ['/participantId'] }
+  });
 
   cachedClient = client;
   cachedContainers = {
     users: usersContainer,
     participants: participantsContainer,
     userParticipantLinks: userParticipantLinksContainer,
-    behaviorIncidents: behaviorIncidentsContainer
+    behaviorIncidents: behaviorIncidentsContainer,
+    medications: medicationsContainer,
+    medicationLogs: medicationLogsContainer
   };
 
   return {
