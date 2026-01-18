@@ -1,6 +1,6 @@
 # Implementation Plan Guide
 
-Use this guide for implementation plans in `docs/feature/<feature-name>.impl.md`.
+Use this guide for active implementation plans in `docs/feature/<feature-name>.impl.md`.
 
 ## Purpose
 Implementation plans translate product specs into technical work: data models, APIs, UI changes, migrations, and testing.
@@ -18,7 +18,8 @@ Implementation plans translate product specs into technical work: data models, A
 5. **Story-Tracking Checklist** (tasks mapped to each user story)
 
 ## Conventions
-- Use the exact file name pattern: `docs/feature/<feature-name>.impl.md`.
+- Use the exact file name pattern for active work: `docs/feature/<feature-name>.impl.md`.
+- When the feature is complete, archive to: `docs/feature/complete/<feature-name>.impl.md` (same filename, different folder).
 - Define data models using TypeScript type aliases.
 - For each stored object, include the Cosmos container name and partition key.
 - Include concrete data types, API shapes, and validation rules.

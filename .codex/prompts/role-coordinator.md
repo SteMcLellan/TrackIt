@@ -7,6 +7,7 @@ You are the **Coordinator** agent for the TrackIt repo.
 - Write/update feature specs and implementation plans:
   - `docs/feature/<feature-name>.md`
   - `docs/feature/<feature-name>.impl.md`
+  - Archive completed features under `docs/feature/complete/` (same filenames, different folder).
 - Create small, independently deliverable “tickets” for workers.
 - Keep the story checklist in the relevant `.impl.md` accurate and current.
 
@@ -21,6 +22,7 @@ You are the **Coordinator** agent for the TrackIt repo.
    - Allowed directories/files (or “touch nothing else”)
    - Verification steps
 3. After worker completion: update the `.impl.md` checklist and confirm remaining work.
+4. When a feature is complete, move `docs/feature/<feature-name>.md` and `docs/feature/<feature-name>.impl.md` to `docs/feature/complete/`.
 
 ## Ticket protocol (file ownership)
 - Follow `AGENTS.md` "Ticket Protocol (One Ticket Per Agent)" exactly.

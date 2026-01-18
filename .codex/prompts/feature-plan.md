@@ -5,7 +5,8 @@ Use this folder for product-first feature specs. These docs are the source of tr
 ## File Naming
 - One file per feature.
 - Use kebab-case names, e.g. `participant-association.md`.
-- Implementation plans should be stored as `docs/feature/<feature-name>.impl.md`.
+- Active implementation plans should be stored as `docs/feature/<feature-name>.impl.md`.
+- When a feature is complete, move both spec + plan into `docs/feature/complete/` (keep filenames the same).
 
 ## Recommended Layout
 Follow the structure below (product- and user-focused):

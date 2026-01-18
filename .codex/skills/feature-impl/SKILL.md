@@ -1,6 +1,6 @@
 ---
 name: feature-impl
-description: Create implementation plans from product feature specs and user stories. Use when the user asks how to implement a feature or wants a technical plan based on docs/feature specs. Output plans in docs/feature/<feature-name>.impl.md.
+description: Create implementation plans from product feature specs and user stories. Use when the user asks how to implement a feature or wants a technical plan based on docs/feature specs. Output plans in docs/feature/<feature-name>.impl.md (archive completed plans in docs/feature/complete/).
 ---
 
 # Feature Implementation Planning Skill
@@ -8,7 +8,7 @@ description: Create implementation plans from product feature specs and user sto
 Use this skill to turn a product spec into an implementation plan.
 
 ## Workflow
-1. Locate the relevant product spec in `docs/feature/`.
+1. Locate the relevant product spec in `docs/feature/` (or `docs/feature/complete/` if it’s an archived feature).
 2. Read `.codex/prompts/implementation-plan.md` and follow its structure.
 3. Extract user stories, acceptance criteria, and scope.
 4. Produce a technical implementation plan (data model, API, UI, migrations, testing).

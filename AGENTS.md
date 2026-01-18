@@ -25,7 +25,7 @@
 
 ## Multi-Agent Workflow (Coordinator + Workers)
 - **Coordinator session (main worktree):**
-  - Owns planning and decisions: `docs/feature/*.md`, `docs/feature/*.impl.md`, and coordination notes.
+  - Owns planning and decisions: active feature docs in `docs/feature/` and archived completed feature docs in `docs/feature/complete/`.
   - Breaks work into 1-story-at-a-time tasks and keeps the implementation checklist up to date.
   - Avoids editing the same code files workers are actively changing.
 - **Worker sessions (separate worktrees):**
@@ -144,6 +144,8 @@
 - Cosmos client/container instances are cached at module scope; restart the function host to pick up env/config changes.
 
 ## Where to Look
+- Active feature specs/plans: `docs/feature/`
+- Completed feature archive: `docs/feature/complete/`
 - Frontend config: `frontend/angular.json`
 - API TS config: `api/tsconfig.json`
 - Repo scripts: `package.json`
@@ -151,3 +153,10 @@
 ## Notes
 - Azure Functions run via `func start --javascript` (see `api/package.json`).
 - If adding new outputs, keep them under `dist/<workspace>/`.
+
+## Feature Completion Workflow (Archive)
+- When a feature is complete (all items checked in its `## Story-Tracking Checklist` and verification steps pass), the coordinator moves:
+  - `docs/feature/<feature-name>.md` -> `docs/feature/complete/<feature-name>.md`
+  - `docs/feature/<feature-name>.impl.md` -> `docs/feature/complete/<feature-name>.impl.md`
+- Keep filenames stable (only the directory changes) so history and grepability stay consistent.
+- New/active work should never be added under `docs/feature/complete/`.

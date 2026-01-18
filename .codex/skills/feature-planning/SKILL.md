@@ -11,6 +11,7 @@ Use this skill to turn a feature idea into a product-first spec focused on users
 1. Clarify the feature goal, user types, and scope.
 2. Read `.codex/prompts/feature-plan.md` to follow the product spec structure.
 3. Create or update a feature doc under `docs/feature/<feature-name>.md`.
+   - Completed features live under `docs/feature/complete/` (don’t edit unless explicitly reopening the feature).
 4. Keep the doc product- and user-focused; avoid technical design details unless the feature is highly technical.
 5. Confirm open questions and decisions before implementation work begins.
 6. If a user story becomes dependent on a later story, split or refine stories so each one is independently deliverable.
