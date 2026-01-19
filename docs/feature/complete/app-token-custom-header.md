@@ -81,3 +81,7 @@ As a developer, I can roll out this change safely without breaking local develop
 - SWA/proxy layers may treat `Authorization` specially (inject/strip/override) for platform auth, which can corrupt app-level JWT verification.
 - A custom header avoids collisions with platform auth mechanisms while keeping the app stateless.
 - Ensure responses do not log or return token contents; only return safe, actionable error messages.
+
+## Completion Notes
+- `npm run build:api` passes locally after the change.
+- SWA logs for `/api/participants?pageSize=50` now show requests authenticated via `x-trackit-app-token` instead of `Authorization`.

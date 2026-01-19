@@ -52,8 +52,13 @@ Errors: return `401` when missing/invalid token; do not return `500` for token v
 2. API: switch `authorize()` to read `x-trackit-app-token` and return 401 on verification failures.
 3. Verify local build/logs and SWA behavior.
 
+## Completion Notes
+- `npm run build:api` succeeds locally (tsc + copy metadata).
+- SWA auth requests now reach Functions with `x-trackit-app-token`; `/api/participants?pageSize=50` returns 200 post-login without signature errors.
+- Local dev verification: frontend dev log shows a successful Angular bundle once the local server resolves port collision.
+
 ## Story-Tracking Checklist
 ### Story 1: Use custom header for app JWT
-- [ ] Frontend sends app JWT via `x-trackit-app-token` for authenticated API calls.
-- [ ] API reads `x-trackit-app-token` in `authorize()` and returns 401 (not 500) for invalid signatures.
-- [ ] SWA deployment: authenticated API calls succeed reliably after login.
+- [x] Frontend sends app JWT via `x-trackit-app-token` for authenticated API calls.
+- [x] API reads `x-trackit-app-token` in `authorize()` and returns 401 (not 500) for invalid signatures.
+- [x] SWA deployment: authenticated API calls succeed reliably after login.
