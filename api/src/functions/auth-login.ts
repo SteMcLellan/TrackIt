@@ -7,8 +7,20 @@ import { UserDocument } from '../models/user';
  * Exchanges a Google ID token for an app JWT and upserts the user profile.
  */
 const authLogin = withErrorHandling(async (req: HttpRequest): Promise<HttpResponseInit> => {
+  let bodyToken = '';
+  try {
+    const body = (await req.json()) as unknown;
+    if (body && typeof body === 'object' && 'idToken' in body && typeof (body as { idToken?: unknown }).idToken === 'string') {
+      bodyToken = (body as { idToken: string }).idToken;
+    }
+  } catch {
+    // Ignore invalid/missing JSON body.
+  }
+
+  const headerToken = req.headers.get('x-trackit-google-id-token') || '';
   const authHeader = req.headers.get('authorization') || '';
-  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : authHeader;
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : authHeader;
+  const idToken = bodyToken || headerToken || bearerToken;
   if (!idToken) {
     return { status: 401, jsonBody: { message: 'Missing Google ID token' } };
   }
@@ -21,7 +33,7 @@ const authLogin = withErrorHandling(async (req: HttpRequest): Promise<HttpRespon
       status: 401,
       jsonBody: {
         message:
-          'Expected a Google ID token (e.g. RS256). Received an HMAC token (likely the TrackIt app JWT). Clear local storage and retry.',
+          'Expected a Google ID token (e.g. RS256). Received an HMAC token (HS*). This usually means the TrackIt app JWT (or a proxy-generated token) was sent instead of the Google credential.',
         alg: header.alg,
         kid: header.kid
       }

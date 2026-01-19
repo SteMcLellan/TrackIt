@@ -77,9 +77,7 @@ export class AuthService {
    */
   private exchangeGoogleToken(idToken: string, onError: (msg: string) => void): void {
     this.http
-      .post<AppUser>(`${environment.apiBaseUrl}/auth/login`, {}, {
-        headers: { Authorization: `Bearer ${idToken}` }
-      })
+      .post<AppUser>(`${environment.apiBaseUrl}/auth/login`, { idToken })
       .pipe(
         tap({
           next: (user) => this.persistUser(user),
