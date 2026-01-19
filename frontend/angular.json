@@ -51,7 +51,8 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "buildTarget": "trackit:build:development"
+            "buildTarget": "trackit:build:development",
+            "proxyConfig": "src/proxy.conf.json"
           }
         }
       }

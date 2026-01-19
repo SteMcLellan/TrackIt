@@ -107,11 +107,17 @@ resetLog('process start');
 process.stdout.write(`[dev:frontend:log] Writing latest build output to: ${logPath}\n`);
 
 function spawnNpmRunDevFrontend() {
+  const forwardedArgs = process.argv.slice(2);
+  const npmRunArgs =
+    forwardedArgs.length > 0
+      ? ['run', 'dev:frontend', '--', ...forwardedArgs]
+      : ['run', 'dev:frontend'];
+
   // Prefer spawning npm via the JS entrypoint when available (most reliable on Windows).
   // When invoked via `npm run`, `npm_execpath` is typically set.
   const npmExecPath = process.env.npm_execpath;
   if (npmExecPath) {
-    return spawn(process.execPath, [npmExecPath, 'run', 'dev:frontend'], {
+    return spawn(process.execPath, [npmExecPath, ...npmRunArgs], {
       stdio: ['inherit', 'pipe', 'pipe'],
       env: { ...process.env, FORCE_COLOR: '1' },
     });
@@ -119,7 +125,7 @@ function spawnNpmRunDevFrontend() {
 
   // Fallback: try direct npm binary.
   const npmCmd = process.platform === 'win32' ? 'npm' : 'npm';
-  return spawn(npmCmd, ['run', 'dev:frontend'], {
+  return spawn(npmCmd, npmRunArgs, {
     stdio: ['inherit', 'pipe', 'pipe'],
     env: { ...process.env, FORCE_COLOR: '1' },
     shell: process.platform === 'win32',
