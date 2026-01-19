@@ -7,6 +7,39 @@ import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functio
  */
 const GOOGLE_JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
 
+export interface JwtHeader {
+  alg?: string;
+  kid?: string;
+  typ?: string;
+}
+
+/**
+ * Best-effort decode of the JWT header without validating the token.
+ */
+export function readJwtHeader(token: string): JwtHeader | null {
+  try {
+    const [rawHeader] = token.split('.');
+    if (!rawHeader) {
+      return null;
+    }
+
+    const base64 = rawHeader.replace(/-/g, '+').replace(/_/g, '/');
+    const padLength = (4 - (base64.length % 4)) % 4;
+    const padded = base64 + '='.repeat(padLength);
+
+    const decoded = Buffer.from(padded, 'base64').toString('utf8');
+    const parsed = JSON.parse(decoded) as Record<string, unknown>;
+
+    return {
+      alg: typeof parsed.alg === 'string' ? parsed.alg : undefined,
+      kid: typeof parsed.kid === 'string' ? parsed.kid : undefined,
+      typ: typeof parsed.typ === 'string' ? parsed.typ : undefined
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Claims stored in the app-issued JWT.
  */

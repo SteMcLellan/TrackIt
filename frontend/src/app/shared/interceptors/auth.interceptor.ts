@@ -10,6 +10,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!auth.isAuthenticated()) {
     return next(req);
   }
+  if (req.headers.has('Authorization')) {
+    return next(req);
+  }
   const token = auth.appUser().token;
   return next(
     req.clone({
