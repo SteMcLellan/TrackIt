@@ -60,6 +60,16 @@
 
 ### Template: `ticket-<ticket-id>-spec.md` (coordinator-owned)
 ```md
+---
+ticketId: <ticket-id>
+kind: spec
+owner: coordinator
+assignee: <agent-id>
+status: queued # queued|in_progress|ready_for_review|blocked|done
+createdUtc: <YYYY-MM-DD>
+updatedUtc: <YYYY-MM-DD HH:mm>
+---
+
 # Ticket <ticket-id> — <short title>
 
 - Owner: coordinator
@@ -99,6 +109,19 @@
 
 ### Template: `ticket-<ticket-id>-progress.md` (worker-owned)
 ```md
+---
+ticketId: <ticket-id>
+kind: progress
+owner: worker
+agent: <agent-id>
+status: in_progress # in_progress|ready_for_review|blocked|done
+updatedUtc: <YYYY-MM-DD HH:mm>
+branch: agent/<agent-id>
+headCommit: <sha>
+verification:
+  notes: <short string>
+---
+
 # Ticket <ticket-id> — progress
 
 - Owner: worker <agent-id> (<worker name>)
