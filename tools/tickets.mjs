@@ -280,9 +280,10 @@ async function loadTickets(agentsDir) {
 function computeEffectiveTicket({ spec, progress }) {
   if (!spec) return null;
 
-  // Coordinator can close a ticket by marking the spec done. This prevents "stuck" active
-  // tickets when a worker forgets to update their progress status post-merge.
-  const effectiveStatus = spec.status === 'done' ? 'done' : (progress?.status ?? spec.status ?? null);
+  // The coordinator can close/block a ticket by updating the spec. This prevents "stuck" active
+  // tickets when progress isn't updated post-merge/supersession.
+  const isSpecTerminal = spec.status === 'done' || spec.status === 'blocked';
+  const effectiveStatus = isSpecTerminal ? spec.status : (progress?.status ?? spec.status ?? null);
   const effectiveUpdatedUtc = progress?.updatedUtc ?? spec.updatedUtc ?? null;
 
   return {
