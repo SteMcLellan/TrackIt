@@ -76,12 +76,16 @@ export class LoginComponent implements OnInit, OnDestroy {
   /**
    * Initializes the Google sign-in button once per component instance.
    */
-  private renderButton(): void {
-    if (this.buttonRendered || !(window as any).google?.accounts?.id) {
+  private async renderButton(): Promise<void> {
+    if (this.buttonRendered) {
       return;
     }
 
-    this.buttonRendered = true;
-    this.auth.renderGoogleButton('g_id_signin', (err) => (this.error = err));
+    await this.auth.renderGoogleButton('g_id_signin', (err) => {
+      this.error = err;
+    });
+    if (!this.error) {
+      this.buttonRendered = true;
+    }
   }
 }
