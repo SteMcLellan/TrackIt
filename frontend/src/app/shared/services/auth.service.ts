@@ -27,10 +27,8 @@ const signedOutUser: AppUser = {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly storageKey = 'trackit.appUser';
-  private readonly googleScriptSrc = 'https://accounts.google.com/gsi/client';
   private readonly http = inject(HttpClient);
   private readonly appUserState = signal<AppUser>(signedOutUser);
-  private googleScriptPromise?: Promise<void>;
   readonly appUser = this.appUserState.asReadonly();
   readonly isAuthenticated = computed(() => this.isTokenValid(this.appUserState().token));
 
@@ -45,22 +43,10 @@ export class AuthService {
   /**
    * Initializes Google Identity Services and renders the button.
    */
-  async renderGoogleButton(containerId: string, onError: (msg: string) => void): Promise<void> {
-    try {
-      await this.loadGoogleIdentity(onError);
-    } catch {
-      return;
-    }
-
+  renderGoogleButton(containerId: string, onError: (msg: string) => void): void {
     const google = (window as any).google;
     if (!google?.accounts?.id) {
       onError('Google Identity Services failed to load.');
-      return;
-    }
-
-    const container = document.getElementById(containerId);
-    if (!container) {
-      onError('Unable to render Google sign-in button.');
       return;
     }
 
@@ -71,7 +57,7 @@ export class AuthService {
       auto_select: true
     });
 
-    google.accounts.id.renderButton(container, {
+    google.accounts.id.renderButton(document.getElementById(containerId), {
       type: 'standard',
       theme: 'outline',
       size: 'large'
@@ -161,57 +147,5 @@ export class AuthService {
     } catch {
       return null;
     }
-  }
-
-  /**
-   * Ensures the Google Identity Services script is loaded before rendering the button.
-   */
-  private loadGoogleIdentity(onError: (msg: string) => void): Promise<void> {
-    const google = (window as any).google;
-    if (google?.accounts?.id) {
-      return Promise.resolve();
-    }
-
-    if (this.googleScriptPromise) {
-      return this.googleScriptPromise;
-    }
-
-    this.googleScriptPromise = new Promise((resolve, reject) => {
-      const existingScript = document.querySelector<HTMLScriptElement>(
-        `script[src="${this.googleScriptSrc}"]`
-      );
-      const script = existingScript ?? document.createElement('script');
-      script.src = this.googleScriptSrc;
-      script.async = true;
-      script.defer = true;
-      script.id = 'g_id_onload';
-
-      const cleanup = () => {
-        script.removeEventListener('load', onLoad);
-        script.removeEventListener('error', onErrorEvent);
-      };
-
-      const onLoad = () => {
-        cleanup();
-        resolve();
-      };
-
-      const onErrorEvent = () => {
-        cleanup();
-        reject(new Error('Google Identity Services failed to load.'));
-      };
-
-      script.addEventListener('load', onLoad);
-      script.addEventListener('error', onErrorEvent);
-
-      if (!existingScript) {
-        document.head.appendChild(script);
-      }
-    }).catch((err) => {
-      onError('Google Identity Services failed to load.');
-      throw err;
-    });
-
-    return this.googleScriptPromise;
   }
 }
