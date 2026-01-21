@@ -69,9 +69,9 @@
 
 ## Story-Tracking Checklist
 ### Story 1: Tap-friendly primary actions
-- [ ] Increase button height and spacing for primary actions on mobile/tablet.
-- [ ] Update multi-button groups to wrap or stack at smaller widths.
-- [ ] Verify one-handed use on the medication check-in actions.
+- [x] Increase button height and spacing for primary actions on mobile/tablet.
+- [x] Update multi-button groups to wrap or stack at smaller widths.
+- [ ] Verify one-handed use on the medication check-in actions (manual QA at 428x926 and 768x1024).
 
 ### Story 2: Calm, scannable content blocks
 - [ ] Adjust card/list spacing and header hierarchy in Home and Medication screens.
