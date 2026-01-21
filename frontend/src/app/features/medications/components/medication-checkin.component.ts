@@ -112,7 +112,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         align-items: center;
         gap: var(--space-3, 0.75rem);
         flex-wrap: wrap;
-        margin-bottom: var(--space-3, 0.75rem);
+        margin-bottom: var(--space-4, 1rem);
       }
       .header-actions {
         display: flex;
@@ -158,14 +158,14 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       .list {
         list-style: none;
         padding: 0;
-        margin: var(--space-3, 0.75rem) 0 0;
+        margin: var(--space-4, 1rem) 0 0;
         display: grid;
-        gap: var(--space-3, 0.75rem);
+        gap: var(--space-4, 1rem);
       }
       .item {
         border: 1px solid #e2e8f0;
         border-radius: var(--radius-2, 0.5rem);
-        padding: var(--space-3, 0.75rem);
+        padding: var(--space-4, 1rem);
         background: #fff;
         display: grid;
         grid-template-columns: 1fr;
@@ -179,7 +179,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       }
       .item-main {
         display: grid;
-        gap: 0.25rem;
+        gap: 0.45rem;
       }
       .title {
         font-weight: 700;
@@ -187,7 +187,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       .meta {
         display: flex;
         align-items: center;
-        gap: 0.35rem;
+        gap: 0.5rem;
         color: var(--color-text-muted, #64748b);
         flex-wrap: wrap;
       }
@@ -219,7 +219,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       }
       .item-actions {
         display: flex;
-        gap: var(--space-2, 0.5rem);
+        gap: var(--space-3, 0.75rem);
         flex-wrap: wrap;
         align-items: center;
       }
