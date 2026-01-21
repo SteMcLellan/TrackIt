@@ -83,10 +83,10 @@
 - [x] Remove the secondary white header and any duplicate metadata.
 
 ### Story 4: Consistent mobile spacing system
-- [ ] Define spacing tokens and apply them across shared components.
-- [ ] Ensure similar elements share consistent padding/margins across screens.
+- [x] Define spacing tokens and apply them across shared components.
+- [x] Ensure similar elements share consistent padding/margins across screens.
 
 ### Story 5: Single header with menu drawer
-- [ ] Build a top sheet menu with participant switching, nav links, and account actions.
-- [ ] Center the logo-only mark in the top bar and omit the app title text.
-- [ ] Keep participant context inside the menu only.
+- [x] Build a top sheet menu with participant switching, nav links, and account actions.
+- [x] Center the logo-only mark in the top bar and omit the app title text.
+- [x] Keep participant context inside the menu only.
