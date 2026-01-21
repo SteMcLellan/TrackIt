@@ -74,9 +74,9 @@
 - [x] Verify one-handed use on the medication check-in actions (manual QA at 428x926 and 768x1024).
 
 ### Story 2: Calm, scannable content blocks
-- [ ] Adjust card/list spacing and header hierarchy in Home and Medication screens.
-- [ ] Reduce visual clutter by using consistent vertical rhythm and separators.
-- [ ] Confirm "today" emphasis is clear without extra noise.
+- [x] Adjust card/list spacing and header hierarchy in Home and Medication screens.
+- [x] Reduce visual clutter by using consistent vertical rhythm and separators.
+- [x] Confirm "today" emphasis is clear without extra noise.
 
 ### Story 3: Lighter top chrome
 - [ ] Replace the current header + context bar with a single top bar.
