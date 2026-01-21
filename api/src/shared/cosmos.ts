@@ -4,6 +4,7 @@ import { UserDocument } from '../models/user';
 export interface ParticipantsCosmosConfig {
   participantsContainerId: string;
   userParticipantLinksContainerId: string;
+  participantInvitesContainerId: string;
   behaviorIncidentsContainerId: string;
   medicationsContainerId: string;
   medicationLogsContainerId: string;
@@ -19,6 +20,7 @@ export interface CosmosConfig {
   usersContainerId: string;
   participantsContainerId: string;
   userParticipantLinksContainerId: string;
+  participantInvitesContainerId: string;
   behaviorIncidentsContainerId: string;
   medicationsContainerId: string;
   medicationLogsContainerId: string;
@@ -40,6 +42,8 @@ export async function buildCosmos(
     usersContainerId: process.env.COSMOS_USERS_CONTAINER || 'users',
     participantsContainerId: process.env.COSMOS_PARTICIPANTS_CONTAINER || 'participants',
     userParticipantLinksContainerId: process.env.COSMOS_USER_PARTICIPANT_LINKS_CONTAINER || 'userParticipantLinks',
+    participantInvitesContainerId:
+      process.env.COSMOS_PARTICIPANT_INVITES_CONTAINER || 'participantInvites',
     behaviorIncidentsContainerId: process.env.COSMOS_BEHAVIOR_INCIDENTS_CONTAINER || 'behaviorIncidents',
     medicationsContainerId: process.env.COSMOS_MEDICATIONS_CONTAINER || 'medications',
     medicationLogsContainerId: process.env.COSMOS_MEDICATION_LOGS_CONTAINER || 'medicationLogs',
@@ -63,6 +67,10 @@ export async function buildCosmos(
   const { container: userParticipantLinksContainer } = await database.containers.createIfNotExists({
     id: resolved.userParticipantLinksContainerId,
     partitionKey: { paths: ['/userId'] }
+  });
+  const { container: participantInvitesContainer } = await database.containers.createIfNotExists({
+    id: resolved.participantInvitesContainerId,
+    partitionKey: { paths: ['/participantId'] }
   });
   const { container: behaviorIncidentsContainer } = await database.containers.createIfNotExists({
     id: resolved.behaviorIncidentsContainerId,
@@ -90,6 +98,7 @@ export async function buildCosmos(
     users: usersContainer,
     participants: participantsContainer,
     userParticipantLinks: userParticipantLinksContainer,
+    participantInvites: participantInvitesContainer,
     behaviorIncidents: behaviorIncidentsContainer,
     medications: medicationsContainer,
     medicationLogs: medicationLogsContainer
