@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { GoogleIdentityService } from './google-identity.service';
 
 interface AppUser {
   sub: string;
@@ -28,6 +29,7 @@ const signedOutUser: AppUser = {
 export class AuthService {
   private readonly storageKey = 'trackit.appUser';
   private readonly http = inject(HttpClient);
+  private readonly googleIdentity = inject(GoogleIdentityService);
   private readonly appUserState = signal<AppUser>(signedOutUser);
   readonly appUser = this.appUserState.asReadonly();
   readonly isAuthenticated = computed(() => this.isTokenValid(this.appUserState().token));
@@ -42,19 +44,22 @@ export class AuthService {
 
   /**
    * Initializes Google Identity Services and renders the button.
+   * Waits for GIS library to load before initializing.
    */
-  renderGoogleButton(containerId: string, onError: (msg: string) => void): void {
-    const google = (window as any).google;
-    if (!google?.accounts?.id) {
+  async renderGoogleButton(containerId: string, onError: (msg: string) => void): Promise<void> {
+    try {
+      await this.googleIdentity.waitForGoogleIdentity();
+    } catch (err) {
       onError('Google Identity Services failed to load.');
       return;
     }
 
+    const google = (window as any).google;
     google.accounts.id.initialize({
       client_id: environment.googleClientId,
       callback: (response: any) => this.exchangeGoogleToken(response.credential, onError),
       ux_mode: 'popup',
-      auto_select: true
+      auto_select: !this.isMobileDevice()
     });
 
     google.accounts.id.renderButton(document.getElementById(containerId), {
@@ -147,5 +152,14 @@ export class AuthService {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Detects if the user is on a mobile device.
+   * Used to disable auto_select which can interfere with mobile UI.
+   */
+  private isMobileDevice(): boolean {
+    return window.innerWidth < 768 ||
+      /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 }
