@@ -25,11 +25,6 @@ type MedicationsResponse = CollectionResponse<Medication>;
             <h2>Medication list</h2>
             <p class="muted">Manage medications for the active participant.</p>
           </div>
-          <div class="header-actions">
-            <a class="button secondary" routerLink="/medications">Daily log</a>
-            <a class="button secondary" routerLink="/medications/history">Adherence</a>
-            <a class="button secondary" routerLink="/participants">Select participant</a>
-          </div>
         </div>
 
         @if (!activeParticipantId()) {
@@ -242,7 +237,8 @@ type MedicationsResponse = CollectionResponse<Medication>;
         justify-content: center;
         background: var(--color-primary, #0c4a6e);
         color: #fff;
-        padding: 0.55rem 1.1rem;
+        padding: 0.7rem 1.1rem;
+        min-height: 44px;
         border-radius: var(--radius-2, 0.5rem);
         text-decoration: none;
         font-weight: 600;
@@ -356,12 +352,17 @@ type MedicationsResponse = CollectionResponse<Medication>;
         align-items: center;
       }
       .link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         background: none;
         border: none;
         color: var(--color-primary, #0c4a6e);
         font-weight: 600;
         cursor: pointer;
-        padding: 0;
+        padding: 0.5rem 0.75rem;
+        min-height: 44px;
+        border-radius: var(--radius-2, 0.5rem);
       }
       .dot {
         color: var(--color-text-muted, #94a3b8);
@@ -370,6 +371,20 @@ type MedicationsResponse = CollectionResponse<Medication>;
         margin: 0;
         color: #b91c1c;
         font-weight: 600;
+      }
+      @media (max-width: 520px) {
+        .header-actions,
+        .actions,
+        .item-actions {
+          width: 100%;
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .header-actions .button,
+        .actions .button,
+        .item-actions .link {
+          width: 100%;
+        }
       }
     `
   ]
