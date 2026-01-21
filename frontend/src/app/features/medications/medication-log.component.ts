@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { CardComponent } from '../../shared/ui/card/card.component';
+import { SkeletonComponent } from '../../shared/ui/skeleton/skeleton.component';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { MedicationService } from '../../shared/services/medication.service';
 import { MedicationLogService } from '../../shared/services/medication-log.service';
@@ -15,7 +16,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
 
 @Component({
   selector: 'app-medication-log',
-  imports: [CardComponent, RouterLink],
+  imports: [CardComponent, RouterLink, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
@@ -63,14 +64,48 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         @if (!activeParticipantId()) {
           <p class="error" role="alert">Select a participant to view the checklist.</p>
         } @else if (medicationsResource.isLoading()) {
-          <p class="muted">Loading medications...</p>
+          <ul class="list" role="list" aria-label="Loading medications">
+            @for (i of [1, 2, 3]; track i) {
+              <li class="item skeleton-item">
+                <div class="item-main">
+                  <app-skeleton width="120px" height="1.1rem" />
+                  <div class="meta-skeleton">
+                    <app-skeleton width="80px" height="0.9rem" />
+                    <app-skeleton width="60px" height="0.9rem" />
+                  </div>
+                  <app-skeleton width="70px" height="1.5rem" radius="999px" />
+                </div>
+                <div class="item-actions">
+                  <app-skeleton variant="button" width="80px" height="44px" />
+                  <app-skeleton variant="button" width="100px" height="44px" />
+                </div>
+              </li>
+            }
+          </ul>
         } @else if (medicationsResource.error()) {
           <p class="error" role="alert">Unable to load medications.</p>
         } @else if (activeMedicationsForDate().length === 0) {
           <p class="muted">No active medications for this date.</p>
           <a class="button" routerLink="/medications/list">Add medication</a>
         } @else if (logsResource.isLoading()) {
-          <p class="muted">Loading log entries...</p>
+          <ul class="list" role="list" aria-label="Loading log entries">
+            @for (i of [1, 2, 3]; track i) {
+              <li class="item skeleton-item">
+                <div class="item-main">
+                  <app-skeleton width="120px" height="1.1rem" />
+                  <div class="meta-skeleton">
+                    <app-skeleton width="80px" height="0.9rem" />
+                    <app-skeleton width="60px" height="0.9rem" />
+                  </div>
+                  <app-skeleton width="70px" height="1.5rem" radius="999px" />
+                </div>
+                <div class="item-actions">
+                  <app-skeleton variant="button" width="80px" height="44px" />
+                  <app-skeleton variant="button" width="100px" height="44px" />
+                </div>
+              </li>
+            }
+          </ul>
         } @else if (logsResource.error()) {
           <p class="error" role="alert">Unable to load log entries.</p>
         } @else {
@@ -263,6 +298,13 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       }
       .dot {
         color: var(--color-text-muted, #94a3b8);
+      }
+      .meta-skeleton {
+        display: flex;
+        gap: var(--space-2, 0.5rem);
+      }
+      .skeleton-item {
+        padding: var(--space-4, 1rem);
       }
       .error {
         margin: 0;

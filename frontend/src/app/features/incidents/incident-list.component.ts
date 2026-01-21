@@ -3,6 +3,7 @@ import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { CardComponent } from '../../shared/ui/card/card.component';
+import { SkeletonComponent } from '../../shared/ui/skeleton/skeleton.component';
 import { FunctionAttentionIconComponent } from '../../shared/ui/icons/function-attention-icon.component';
 import { FunctionEscapeIconComponent } from '../../shared/ui/icons/function-escape-icon.component';
 import { FunctionSensoryIconComponent } from '../../shared/ui/icons/function-sensory-icon.component';
@@ -28,6 +29,7 @@ const functionLabels: Record<BehaviorFunction, string> = {
   imports: [
     RouterLink,
     CardComponent,
+    SkeletonComponent,
     ReactiveFormsModule,
     FunctionAttentionIconComponent,
     FunctionEscapeIconComponent,
@@ -49,7 +51,36 @@ const functionLabels: Record<BehaviorFunction, string> = {
         <p class="error" role="alert">Select a participant to view incidents.</p>
         <a class="button secondary" routerLink="/participants">Select participant</a>
       } @else if (incidentsResource.isLoading()) {
-        <p class="muted">Loading incidents...</p>
+        <ul class="list" role="list" aria-label="Loading incidents">
+          @for (i of [1, 2, 3]; track i) {
+            <li class="item skeleton-item">
+              <div class="summary">
+                <div class="summary-top">
+                  <app-skeleton width="140px" height="1rem" />
+                  <app-skeleton width="50px" height="28px" radius="999px" />
+                </div>
+                <div class="meta-skeleton">
+                  <app-skeleton width="100px" height="0.9rem" />
+                  <app-skeleton width="60px" height="0.9rem" />
+                </div>
+              </div>
+              <div class="abc">
+                <div class="preview-skeleton">
+                  <app-skeleton variant="circle" width="22px" height="22px" />
+                  <app-skeleton width="90%" height="0.9rem" />
+                </div>
+                <div class="preview-skeleton">
+                  <app-skeleton variant="circle" width="22px" height="22px" />
+                  <app-skeleton width="85%" height="0.9rem" />
+                </div>
+                <div class="preview-skeleton">
+                  <app-skeleton variant="circle" width="22px" height="22px" />
+                  <app-skeleton width="80%" height="0.9rem" />
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
       } @else if (incidentsResource.error()) {
         <p class="error" role="alert">Unable to load incidents.</p>
       } @else {
@@ -285,6 +316,18 @@ const functionLabels: Record<BehaviorFunction, string> = {
       .abc {
         display: grid;
         gap: 0.5rem;
+      }
+      .meta-skeleton {
+        display: flex;
+        gap: var(--space-2, 0.5rem);
+      }
+      .preview-skeleton {
+        display: flex;
+        gap: var(--space-2, 0.5rem);
+        align-items: center;
+      }
+      .skeleton-item {
+        padding: var(--space-4, 1rem);
       }
       .tag {
         display: inline-flex;

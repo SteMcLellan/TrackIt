@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { httpResource } from '@angular/common/http';
 import { Router, NavigationEnd, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -14,40 +14,16 @@ import { environment } from '../../../../environments/environment';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isAuthenticated() && !hideOnAuthPage()) {
-      <header class="top-bar">
-        <button
-          class="logo-button"
-          type="button"
-          [attr.aria-expanded]="isOpen()"
-          aria-controls="app-top-sheet"
-          aria-label="Open menu"
-          (click)="toggleMenu()"
-        >
-          <svg
-            class="logo-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              d="M7.2 12.6 L10.5 15.9 L16.9 8.6"
-              fill="none"
-              stroke="#ffffff"
-              stroke-width="2.4"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <circle cx="16.8" cy="14.8" r="1.1" fill="#ffffff" />
-            <circle cx="18.6" cy="13.1" r="0.9" fill="#ffffff" />
-          </svg>
-        </button>
-      </header>
-
-      <div class="sheet-backdrop" [class.open]="isOpen()" (click)="closeMenu()" aria-hidden="true"></div>
+      <div
+        class="sheet-backdrop"
+        [class.open]="isOpen()"
+        (click)="closeMenu()"
+        aria-hidden="true"
+      ></div>
 
       <section
-        id="app-top-sheet"
-        class="top-sheet"
+        id="app-bottom-sheet"
+        class="bottom-sheet"
         role="dialog"
         aria-modal="true"
         aria-label="Menu"
@@ -55,6 +31,10 @@ import { environment } from '../../../../environments/environment';
         (keydown.escape)="closeMenu()"
         tabindex="-1"
       >
+        <div class="drag-handle" aria-hidden="true">
+          <div class="drag-bar"></div>
+        </div>
+
         <div class="sheet-header">
           <span class="sheet-title">TrackIt</span>
         </div>
@@ -87,170 +67,217 @@ import { environment } from '../../../../environments/environment';
 
         <div class="sheet-section">
           <div class="section-label">Navigate</div>
-          <div class="button-group">
-            <a class="menu-link" routerLink="/home" (click)="closeMenu()">Home</a>
-            <a class="menu-link" routerLink="/medications" (click)="closeMenu()">Medications</a>
-            <a class="menu-link" routerLink="/participants" (click)="closeMenu()">Participants</a>
+          <div class="nav-grid">
+            <a class="nav-link" routerLink="/home" (click)="closeMenu()">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <span>Home</span>
+            </a>
+            <a class="nav-link" routerLink="/medications" (click)="closeMenu()">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.5 20.5L3.5 13.5a4.95 4.95 0 1 1 7-7l7 7a4.95 4.95 0 0 1-7 7z"/>
+                <path d="M8.5 8.5l7 7"/>
+              </svg>
+              <span>Medications</span>
+            </a>
+            <a class="nav-link" routerLink="/incidents" (click)="closeMenu()">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              <span>Incidents</span>
+            </a>
+            <a class="nav-link" routerLink="/participants" (click)="closeMenu()">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <span>Participants</span>
+            </a>
           </div>
         </div>
-
       </section>
     }
   `,
-  styles: [
-    `
-      .top-bar {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 0;
-        background: #0c4a6e;
-        color: #f8fafc;
-      }
+  styles: [`
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-normal, 200ms ease);
+      z-index: 80;
+    }
 
-      .logo-button {
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        padding: 0.15rem;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
+    .sheet-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
 
-      .logo-icon {
-        width: 40px;
-        height: 40px;
-      }
+    .bottom-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top-left-radius: var(--radius-3, 0.75rem);
+      border-top-right-radius: var(--radius-3, 0.75rem);
+      box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.12);
+      transform: translateY(100%);
+      transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+      z-index: 90;
+      padding: 0 var(--space-5, 1.5rem) var(--space-5, 1.5rem);
+      padding-bottom: calc(var(--space-5, 1.5rem) + env(safe-area-inset-bottom, 0px));
+      display: grid;
+      gap: var(--space-4, 1rem);
+      max-height: 70vh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
 
-      .logo-button:focus-visible {
-        outline: 2px solid #e2e8f0;
-        outline-offset: 2px;
-      }
+    .bottom-sheet.open {
+      transform: translateY(0);
+    }
 
-      .sheet-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.35);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 200ms ease;
-        z-index: 30;
-      }
+    .drag-handle {
+      display: flex;
+      justify-content: center;
+      padding: var(--space-3, 0.75rem) 0;
+      cursor: grab;
+    }
 
-      .sheet-backdrop.open {
-        opacity: 1;
-        pointer-events: auto;
-      }
+    .drag-bar {
+      width: 36px;
+      height: 4px;
+      background: #cbd5e1;
+      border-radius: var(--radius-full, 999px);
+    }
 
-      .top-sheet {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: #fff;
-        border-bottom-left-radius: var(--radius-2, 0.5rem);
-        border-bottom-right-radius: var(--radius-2, 0.5rem);
-        box-shadow: 0 20px 30px rgba(15, 23, 42, 0.2);
-        transform: translateY(-110%);
-        transition: transform 220ms ease;
-        z-index: 40;
-        padding: var(--space-5, 1.5rem);
-        display: grid;
-        gap: var(--space-4, 1rem);
-        max-height: 80vh;
-        overflow-y: auto;
-      }
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3, 0.75rem);
+    }
 
-      .top-sheet.open {
-        transform: translateY(0);
-      }
+    .sheet-title {
+      font-weight: 700;
+      font-size: var(--font-size-lg, 1.125rem);
+      color: var(--color-primary, #0c4a6e);
+    }
 
-      .sheet-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-3, 0.75rem);
-      }
+    .sheet-section {
+      display: grid;
+      gap: var(--space-2, 0.5rem);
+    }
 
-      .sheet-title {
-        font-weight: 700;
-        font-size: 1.1rem;
-        color: #0c4a6e;
-      }
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--space-2, 0.5rem);
+    }
 
-      .sheet-section {
-        display: grid;
-        gap: var(--space-2, 0.5rem);
-      }
+    .section-label {
+      font-size: var(--font-size-xs, 0.75rem);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted, #64748b);
+      font-weight: 600;
+    }
 
-      .section-header {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: var(--space-2, 0.5rem);
-      }
+    .section-value {
+      font-weight: 600;
+    }
 
-      .section-label {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--color-text-muted, #64748b);
-        font-weight: 600;
-      }
+    .section-sub {
+      color: var(--color-text-muted, #64748b);
+      font-weight: 500;
+    }
 
-      .section-value {
-        font-weight: 600;
-      }
+    .muted {
+      color: var(--color-text-muted, #64748b);
+      font-weight: 500;
+    }
 
-      .section-sub {
-        color: var(--color-text-muted, #64748b);
-        font-weight: 500;
-      }
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-3, 0.75rem);
+    }
 
-      .muted {
-        color: var(--color-text-muted, #64748b);
-        font-weight: 500;
-      }
+    .nav-link {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2, 0.5rem);
+      padding: var(--space-4, 1rem);
+      border-radius: var(--radius-2, 0.5rem);
+      border: 1px solid var(--color-border, #e2e8f0);
+      text-decoration: none;
+      color: #0f172a;
+      font-weight: 600;
+      background: #fff;
+      transition: background var(--transition-fast, 120ms ease), border-color var(--transition-fast, 120ms ease);
+    }
 
-      .menu-link {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-        border-radius: var(--radius-2, 0.5rem);
-        border: 1px solid #cbd5f5;
-        text-decoration: none;
-        color: #0f172a;
-        font-weight: 600;
-        background: #fff;
-      }
+    .nav-link:active {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
 
-      .section-link {
-        border: none;
-        background: none;
-        padding: 0;
-        color: var(--color-primary, #0c4a6e);
-        font-weight: 600;
-        text-decoration: none;
-        font-size: 0.85rem;
-        cursor: pointer;
-      }
+    .nav-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--color-primary, #0c4a6e);
+    }
 
-    `
-  ]
+    .section-link {
+      border: none;
+      background: none;
+      padding: 0;
+      color: var(--color-primary, #0c4a6e);
+      font-weight: 600;
+      text-decoration: none;
+      font-size: var(--font-size-sm, 0.8125rem);
+      cursor: pointer;
+    }
+
+    @media (min-width: 480px) {
+      .nav-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  `]
 })
 export class TopSheetMenuComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly participants = inject(ParticipantService);
 
+  readonly isOpenExternal = input(false);
+  readonly closed = output<void>();
+
   readonly isAuthenticated = this.auth.isAuthenticated;
-  readonly isOpen = signal(false);
+  private readonly _isOpen = signal(false);
+
+  readonly isOpen = computed(() => this._isOpen() || this.isOpenExternal());
+
+  constructor() {
+    effect(() => {
+      if (this.isOpenExternal()) {
+        this._isOpen.set(true);
+      }
+    });
+  }
 
   readonly displayName = computed(() => {
     const user = this.auth.appUser();
@@ -283,11 +310,12 @@ export class TopSheetMenuComponent {
   });
 
   toggleMenu() {
-    this.isOpen.update((value) => !value);
+    this._isOpen.update((value) => !value);
   }
 
   closeMenu() {
-    this.isOpen.set(false);
+    this._isOpen.set(false);
+    this.closed.emit();
   }
 
   logout() {

@@ -1,4 +1,9 @@
+/* ==========================================================================
+   Design Tokens
+   ========================================================================== */
+
 :root {
+  /* Spacing scale */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -6,19 +11,192 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
   --space-7: 2.5rem;
+
+  /* Mobile-first container padding (12px on mobile, 24px on tablet+) */
+  --container-padding: var(--space-3);
+  --card-padding: var(--space-4);
+  --bottom-nav-height: 56px;
+
+  /* Typography */
+  --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+
+  /* Shadows (Linear/Notion-style: subtle, diffuse) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  /* Transitions */
+  --transition-fast: 120ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* Colors */
+  --color-primary: #0c4a6e;
+  --color-text-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-bg: #f1f5f9;
+
+  /* Radius */
+  --radius-1: 0.25rem;
+  --radius-2: 0.5rem;
+  --radius-3: 0.75rem;
+  --radius-full: 999px;
+}
+
+/* Responsive spacing for larger screens */
+@media (min-width: 768px) {
+  :root {
+    --container-padding: var(--space-5);
+    --card-padding: var(--space-5);
+  }
+}
+
+/* ==========================================================================
+   Base Styles
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  background: #f1f5f9;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  background: var(--color-bg);
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
   color: inherit;
 }
 
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
 .button-group {
   display: flex;
   gap: var(--space-3, 0.75rem);
   flex-wrap: wrap;
 }
+
+/* ==========================================================================
+   Micro-interactions
+   ========================================================================== */
+
+/* Button press feedback */
+button,
+[role="button"],
+.button {
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled),
+.button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Card/item lift on press */
+.card:active,
+.item:active,
+[data-interactive]:active {
+  transform: translateY(-1px);
+}
+
+/* Link hover/focus states */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Skeleton Loader Animation
+   ========================================================================== */
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #e2e8f0 25%,
+    #f1f5f9 50%,
+    #e2e8f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-1);
+}
+
+/* ==========================================================================
+   Route Transitions
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: fadeIn var(--transition-normal) ease-out;
+}
+
+/* ==========================================================================
+   List Item Stagger Animation
+   ========================================================================== */
+
+@keyframes staggerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-item {
+  animation: staggerFadeIn var(--transition-normal) ease-out both;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0ms; }
+.stagger-item:nth-child(2) { animation-delay: 40ms; }
+.stagger-item:nth-child(3) { animation-delay: 80ms; }
+.stagger-item:nth-child(4) { animation-delay: 120ms; }
+.stagger-item:nth-child(5) { animation-delay: 160ms; }
+.stagger-item:nth-child(6) { animation-delay: 200ms; }
+.stagger-item:nth-child(7) { animation-delay: 240ms; }
+.stagger-item:nth-child(8) { animation-delay: 280ms; }
+.stagger-item:nth-child(9) { animation-delay: 320ms; }
+.stagger-item:nth-child(10) { animation-delay: 360ms; }
