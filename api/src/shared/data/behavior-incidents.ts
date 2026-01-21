@@ -4,8 +4,8 @@ import { BehaviorFunction, BehaviorIncidentDocument } from '../../models/behavio
 export function buildBehaviorIncidentListQuery(
   participantId: string,
   functionFilter?: BehaviorFunction,
-  fromUtc?: string,
-  toUtc?: string
+  startDate?: string,
+  endDate?: string
 ) {
   const conditions: string[] = ['c.participantId = @participantId'];
   const parameters = [{ name: '@participantId', value: participantId }];
@@ -14,17 +14,17 @@ export function buildBehaviorIncidentListQuery(
     conditions.push('c.function = @function');
     parameters.push({ name: '@function', value: functionFilter });
   }
-  if (fromUtc) {
-    conditions.push('c.occurredAtUtc >= @fromUtc');
-    parameters.push({ name: '@fromUtc', value: fromUtc });
+  if (startDate) {
+    conditions.push('c.logLocalDate >= @startDate');
+    parameters.push({ name: '@startDate', value: startDate });
   }
-  if (toUtc) {
-    conditions.push('c.occurredAtUtc <= @toUtc');
-    parameters.push({ name: '@toUtc', value: toUtc });
+  if (endDate) {
+    conditions.push('c.logLocalDate <= @endDate');
+    parameters.push({ name: '@endDate', value: endDate });
   }
 
   return {
-    query: `SELECT * FROM c WHERE ${conditions.join(' AND ')} ORDER BY c.occurredAtUtc DESC`,
+    query: `SELECT * FROM c WHERE ${conditions.join(' AND ')} ORDER BY c.logLocalDate DESC, c.logLocalTime DESC`,
     parameters
   };
 }

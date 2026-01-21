@@ -8,30 +8,28 @@ import { parseJsonBody } from '../shared/requests';
 import { buildBehaviorIncidentListQuery } from '../shared/data/behavior-incidents';
 import { readParticipantLink } from '../shared/data/participants';
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
+import {
+  isNonEmpty,
+  isDateOnly,
+  isTimeOnly,
+  isValidTzOffset,
+  isFutureDate,
+  computeUtcFromLocal
+} from '../shared/validators';
 
 type CreateBehaviorIncidentRequest = {
   antecedent: string;
   behavior: string;
   consequence: string;
-  occurredAtUtc: string;
+  logLocalDate: string;
+  logLocalTime: string;
+  logTzOffsetMinutes: number;
   place: string;
   function: BehaviorFunction;
 };
 
 const behaviorFunctionOptions: BehaviorFunction[] = ['sensory', 'tangible', 'escape', 'attention'];
 const maxPageSize = 100;
-
-function isNonEmpty(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
-}
-
-function isUtcIsoString(value: string): boolean {
-  if (!value.endsWith('Z')) {
-    return false;
-  }
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed);
-}
 
 function parsePageSize(value?: string | null): number {
   const parsed = Number(value);
@@ -56,8 +54,19 @@ function validateCreateRequest(body: CreateBehaviorIncidentRequest): ValidationE
   if (!isNonEmpty(body.place)) {
     errors.push({ id: 'incidents.place.required', message: 'Place is required.' });
   }
-  if (!isNonEmpty(body.occurredAtUtc) || !isUtcIsoString(body.occurredAtUtc)) {
-    errors.push({ id: 'incidents.time.invalid', message: 'Time must be a UTC ISO string.' });
+  if (!isDateOnly(body.logLocalDate)) {
+    errors.push({ id: 'incidents.date.invalid', message: 'logLocalDate must be YYYY-MM-DD.' });
+  } else if (isFutureDate(body.logLocalDate)) {
+    errors.push({ id: 'incidents.date.future', message: 'logLocalDate cannot be in the future.' });
+  }
+  if (!isTimeOnly(body.logLocalTime)) {
+    errors.push({ id: 'incidents.time.invalid', message: 'logLocalTime must be HH:mm.' });
+  }
+  if (!isValidTzOffset(body.logTzOffsetMinutes)) {
+    errors.push({
+      id: 'incidents.offset.invalid',
+      message: 'logTzOffsetMinutes must be a valid timezone offset.'
+    });
   }
   if (!behaviorFunctionOptions.includes(body.function)) {
     errors.push({ id: 'incidents.function.invalid', message: 'Function is not valid.' });
@@ -90,18 +99,24 @@ const listBehaviorIncidentsHandler = withErrorHandling(
     const pageSize = parsePageSize(req.query.get('pageSize'));
     const nextToken = req.query.get('nextToken');
     const functionFilter = req.query.get('function') as BehaviorFunction | null;
-    const fromUtc = req.query.get('fromUtc');
-    const toUtc = req.query.get('toUtc');
+    const startDate = req.query.get('startDate');
+    const endDate = req.query.get('endDate');
 
     const listErrors: ValidationErrorDetail[] = [];
     if (functionFilter && !behaviorFunctionOptions.includes(functionFilter)) {
       listErrors.push({ id: 'incidents.function.invalid', message: 'Function is not valid.' });
     }
-    if (fromUtc && !isUtcIsoString(fromUtc)) {
-      listErrors.push({ id: 'incidents.fromUtc.invalid', message: 'fromUtc must be a UTC ISO string.' });
+    if (startDate && !isDateOnly(startDate)) {
+      listErrors.push({ id: 'incidents.startDate.invalid', message: 'startDate must be YYYY-MM-DD.' });
     }
-    if (toUtc && !isUtcIsoString(toUtc)) {
-      listErrors.push({ id: 'incidents.toUtc.invalid', message: 'toUtc must be a UTC ISO string.' });
+    if (endDate && !isDateOnly(endDate)) {
+      listErrors.push({ id: 'incidents.endDate.invalid', message: 'endDate must be YYYY-MM-DD.' });
+    }
+    if (startDate && endDate && isDateOnly(startDate) && isDateOnly(endDate) && startDate > endDate) {
+      listErrors.push({
+        id: 'incidents.dateRange.invalid',
+        message: 'startDate must be before or equal to endDate.'
+      });
     }
     if (listErrors.length > 0) {
       return buildValidationError(listErrors);
@@ -110,8 +125,8 @@ const listBehaviorIncidentsHandler = withErrorHandling(
     const query = buildBehaviorIncidentListQuery(
       participantId,
       functionFilter ?? undefined,
-      fromUtc ?? undefined,
-      toUtc ?? undefined
+      startDate ?? undefined,
+      endDate ?? undefined
     );
     const response = await containers.behaviorIncidents.items.query<BehaviorIncidentDocument>(query, {
       partitionKey: participantId,
@@ -157,16 +172,25 @@ const createBehaviorIncidentHandler = withErrorHandling(
     }
 
     const now = new Date().toISOString();
+    const occurredAtUtc = computeUtcFromLocal(
+      parsed.value.logLocalDate,
+      parsed.value.logLocalTime,
+      parsed.value.logTzOffsetMinutes
+    );
+
     const incident: BehaviorIncidentDocument = {
       id: `incident_${randomUUID()}`,
       participantId,
       antecedent: parsed.value.antecedent.trim(),
       behavior: parsed.value.behavior.trim(),
       consequence: parsed.value.consequence.trim(),
-      occurredAtUtc: parsed.value.occurredAtUtc,
+      occurredAtUtc,
+      logLocalDate: parsed.value.logLocalDate,
+      logLocalTime: parsed.value.logLocalTime,
+      logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
       place: parsed.value.place.trim(),
       function: parsed.value.function,
-      createdAt: now,
+      createdAtUtc: now,
       createdByUserId: user.sub
     };
 

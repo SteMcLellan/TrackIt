@@ -7,44 +7,60 @@ import { parseJsonBody } from '../shared/requests';
 import { readBehaviorIncident } from '../shared/data/behavior-incidents';
 import { readParticipantLink } from '../shared/data/participants';
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
+import {
+  isNonEmpty,
+  isDateOnly,
+  isTimeOnly,
+  isValidTzOffset,
+  isFutureDate,
+  computeUtcFromLocal
+} from '../shared/validators';
 
 type UpdateBehaviorIncidentRequest = {
   antecedent?: string;
   behavior?: string;
   consequence?: string;
-  occurredAtUtc?: string;
+  logLocalDate?: string;
+  logLocalTime?: string;
+  logTzOffsetMinutes?: number;
   place?: string;
   function?: BehaviorFunction;
 };
 
 const behaviorFunctionOptions: BehaviorFunction[] = ['sensory', 'tangible', 'escape', 'attention'];
 
-function isNonEmpty(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
-}
-
-function isUtcIsoString(value: string): boolean {
-  if (!value.endsWith('Z')) {
-    return false;
-  }
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed);
-}
-
 function validateUpdateRequest(body: UpdateBehaviorIncidentRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
 
+  // Check if at least one field is provided
   if (
     typeof body.antecedent === 'undefined' &&
     typeof body.behavior === 'undefined' &&
     typeof body.consequence === 'undefined' &&
-    typeof body.occurredAtUtc === 'undefined' &&
+    typeof body.logLocalDate === 'undefined' &&
+    typeof body.logLocalTime === 'undefined' &&
+    typeof body.logTzOffsetMinutes === 'undefined' &&
     typeof body.place === 'undefined' &&
     typeof body.function === 'undefined'
   ) {
     errors.push({ id: 'incidents.update.empty', message: 'At least one field must be provided.' });
   }
 
+  // All-or-nothing validation for time fields
+  const hasDate = typeof body.logLocalDate !== 'undefined';
+  const hasTime = typeof body.logLocalTime !== 'undefined';
+  const hasOffset = typeof body.logTzOffsetMinutes !== 'undefined';
+
+  if (hasDate || hasTime || hasOffset) {
+    if (!hasDate || !hasTime || !hasOffset) {
+      errors.push({
+        id: 'incidents.time.incomplete',
+        message: 'Must provide all three: logLocalDate, logLocalTime, logTzOffsetMinutes'
+      });
+    }
+  }
+
+  // Validate individual fields
   if (typeof body.antecedent !== 'undefined' && !isNonEmpty(body.antecedent)) {
     errors.push({ id: 'incidents.antecedent.required', message: 'Antecedent is required.' });
   }
@@ -57,8 +73,21 @@ function validateUpdateRequest(body: UpdateBehaviorIncidentRequest): ValidationE
   if (typeof body.place !== 'undefined' && !isNonEmpty(body.place)) {
     errors.push({ id: 'incidents.place.required', message: 'Place is required.' });
   }
-  if (typeof body.occurredAtUtc !== 'undefined' && !isUtcIsoString(body.occurredAtUtc)) {
-    errors.push({ id: 'incidents.time.invalid', message: 'Time must be a UTC ISO string.' });
+  if (typeof body.logLocalDate !== 'undefined') {
+    if (!isDateOnly(body.logLocalDate)) {
+      errors.push({ id: 'incidents.date.invalid', message: 'logLocalDate must be YYYY-MM-DD.' });
+    } else if (isFutureDate(body.logLocalDate)) {
+      errors.push({ id: 'incidents.date.future', message: 'logLocalDate cannot be in the future.' });
+    }
+  }
+  if (typeof body.logLocalTime !== 'undefined' && !isTimeOnly(body.logLocalTime)) {
+    errors.push({ id: 'incidents.time.invalid', message: 'logLocalTime must be HH:mm.' });
+  }
+  if (typeof body.logTzOffsetMinutes !== 'undefined' && !isValidTzOffset(body.logTzOffsetMinutes)) {
+    errors.push({
+      id: 'incidents.offset.invalid',
+      message: 'logTzOffsetMinutes must be a valid timezone offset.'
+    });
   }
   if (typeof body.function !== 'undefined' && !behaviorFunctionOptions.includes(body.function)) {
     errors.push({ id: 'incidents.function.invalid', message: 'Function is not valid.' });
@@ -138,15 +167,32 @@ const updateBehaviorIncidentHandler = withErrorHandling(
       return { status: 404, jsonBody: { message: 'Incident not found.' } };
     }
 
+    // Compute new time fields if provided
+    const logLocalDate = typeof parsed.value.logLocalDate === 'string' ? parsed.value.logLocalDate : existing.logLocalDate;
+    const logLocalTime = typeof parsed.value.logLocalTime === 'string' ? parsed.value.logLocalTime : existing.logLocalTime;
+    const logTzOffsetMinutes = typeof parsed.value.logTzOffsetMinutes === 'number' ? parsed.value.logTzOffsetMinutes : existing.logTzOffsetMinutes;
+
+    // Recompute occurredAtUtc if any time field changed
+    const occurredAtUtc = (
+      typeof parsed.value.logLocalDate !== 'undefined' ||
+      typeof parsed.value.logLocalTime !== 'undefined' ||
+      typeof parsed.value.logTzOffsetMinutes !== 'undefined'
+    )
+      ? computeUtcFromLocal(logLocalDate, logLocalTime, logTzOffsetMinutes)
+      : existing.occurredAtUtc;
+
     const updated: BehaviorIncidentDocument = {
       ...existing,
       antecedent: typeof parsed.value.antecedent === 'string' ? parsed.value.antecedent.trim() : existing.antecedent,
       behavior: typeof parsed.value.behavior === 'string' ? parsed.value.behavior.trim() : existing.behavior,
       consequence: typeof parsed.value.consequence === 'string' ? parsed.value.consequence.trim() : existing.consequence,
-      occurredAtUtc: typeof parsed.value.occurredAtUtc === 'string' ? parsed.value.occurredAtUtc : existing.occurredAtUtc,
+      occurredAtUtc,
+      logLocalDate,
+      logLocalTime,
+      logTzOffsetMinutes,
       place: typeof parsed.value.place === 'string' ? parsed.value.place.trim() : existing.place,
       function: typeof parsed.value.function === 'string' ? parsed.value.function : existing.function,
-      updatedAt: new Date().toISOString()
+      updatedAtUtc: new Date().toISOString()
     };
 
     await containers.behaviorIncidents.items.upsert(updated);

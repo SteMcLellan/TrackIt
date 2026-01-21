@@ -8,7 +8,9 @@ export type CreateBehaviorIncidentRequest = {
   antecedent: string;
   behavior: string;
   consequence: string;
-  occurredAtUtc: string;
+  logLocalDate: string;
+  logLocalTime: string;
+  logTzOffsetMinutes: number;
   place: string;
   function: BehaviorFunction;
 };
@@ -17,15 +19,17 @@ export type ListBehaviorIncidentsOptions = {
   pageSize?: number;
   nextToken?: string;
   function?: BehaviorFunction;
-  fromUtc?: string;
-  toUtc?: string;
+  startDate?: string;
+  endDate?: string;
 };
 
 export type UpdateBehaviorIncidentRequest = {
   antecedent?: string;
   behavior?: string;
   consequence?: string;
-  occurredAtUtc?: string;
+  logLocalDate?: string;
+  logLocalTime?: string;
+  logTzOffsetMinutes?: number;
   place?: string;
   function?: BehaviorFunction;
 };
@@ -52,11 +56,11 @@ export class BehaviorIncidentService {
     if (options.function) {
       params = params.set('function', options.function);
     }
-    if (options.fromUtc) {
-      params = params.set('fromUtc', options.fromUtc);
+    if (options.startDate) {
+      params = params.set('startDate', options.startDate);
     }
-    if (options.toUtc) {
-      params = params.set('toUtc', options.toUtc);
+    if (options.endDate) {
+      params = params.set('endDate', options.endDate);
     }
 
     return this.http.get<CollectionResponse<BehaviorIncident>>(

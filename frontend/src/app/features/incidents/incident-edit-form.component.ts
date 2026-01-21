@@ -2,7 +2,13 @@ import { ChangeDetectionStrategy, Component, effect, inject, input, output, sign
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BehaviorIncident, BehaviorFunction } from '../../shared/models/behavior-incident';
 import { BehaviorIncidentService, UpdateBehaviorIncidentRequest } from '../../shared/services/behavior-incident.service';
-import { functionOptions, toLocalDateInputValue, toUtcIsoString } from './incident-create.component';
+import { functionOptions } from './incident-create.component';
+import {
+  extractLocalDate,
+  extractLocalTime,
+  computeTzOffsetMinutes,
+  toDatetimeLocalInput
+} from '../../shared/utils/datetime';
 
 @Component({
   selector: 'app-incident-edit-form',
@@ -167,7 +173,7 @@ export class IncidentEditFormComponent {
     effect(() => {
       const incident = this.incident();
       this.form.reset({
-        occurredAt: toLocalDateInputValue(incident.occurredAtUtc),
+        occurredAt: toDatetimeLocalInput(incident.logLocalDate, incident.logLocalTime),
         place: incident.place,
         function: incident.function,
         antecedent: incident.antecedent,
@@ -200,10 +206,15 @@ export class IncidentEditFormComponent {
     }
 
     const incident = this.incident();
-    const occurredAtUtc = toUtcIsoString(this.form.controls.occurredAt.value);
+    const datetimeLocal = this.form.controls.occurredAt.value;
+    const logLocalDate = extractLocalDate(datetimeLocal);
+    const logLocalTime = extractLocalTime(datetimeLocal);
+    const logTzOffsetMinutes = computeTzOffsetMinutes(logLocalDate, logLocalTime);
 
     const payload: UpdateBehaviorIncidentRequest = {
-      occurredAtUtc,
+      logLocalDate,
+      logLocalTime,
+      logTzOffsetMinutes,
       place: this.form.controls.place.value.trim(),
       function: this.form.controls.function.value as BehaviorFunction,
       antecedent: this.form.controls.antecedent.value.trim(),

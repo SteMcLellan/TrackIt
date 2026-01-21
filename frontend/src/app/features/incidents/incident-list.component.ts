@@ -318,8 +318,8 @@ export class IncidentListComponent {
   readonly activeParticipantId = this.participants.activeParticipantId;
   readonly filters = this.fb.group({
     timeRange: this.fb.nonNullable.control('all'),
-    fromUtc: this.fb.nonNullable.control(''),
-    toUtc: this.fb.nonNullable.control(''),
+    startDate: this.fb.nonNullable.control(''),
+    endDate: this.fb.nonNullable.control(''),
     function: this.fb.nonNullable.control('all')
   });
 
@@ -329,8 +329,8 @@ export class IncidentListComponent {
     this.filters.valueChanges.subscribe((value) => {
       this.filterSnapshot.set({
         timeRange: value.timeRange ?? 'all',
-        fromUtc: value.fromUtc ?? '',
-        toUtc: value.toUtc ?? '',
+        startDate: value.startDate ?? '',
+        endDate: value.endDate ?? '',
         function: value.function ?? 'all'
       });
     });
@@ -349,9 +349,9 @@ export class IncidentListComponent {
 
     const params: Record<string, string> = { pageSize: '50' };
     if (filters.timeRange !== 'all') {
-      const range = this.buildRange(filters.timeRange);
-      params['fromUtc'] = range.fromUtc;
-      params['toUtc'] = range.toUtc;
+      const range = this.buildLocalDateRange(filters.timeRange);
+      params['startDate'] = range.startDate;
+      params['endDate'] = range.endDate;
     }
 
     if (filters.function !== 'all') {
@@ -406,77 +406,85 @@ export class IncidentListComponent {
   resetFilters() {
     this.filters.reset({
       timeRange: 'all',
-      fromUtc: '',
-      toUtc: '',
+      startDate: '',
+      endDate: '',
       function: 'all'
     });
   }
 
-  private buildRange(range: string) {
+  private buildLocalDateRange(range: string): { startDate: string; endDate: string } {
     const now = new Date();
-    const nowUtc = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      now.getUTCHours(),
-      now.getUTCMinutes(),
-      now.getUTCSeconds(),
-      now.getUTCMilliseconds()
-    ));
-
-    const startOfUtcWeek = (date: Date) => {
-      const day = date.getUTCDay();
-      const diff = (day + 6) % 7; // Monday = 0
-      return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - diff));
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     };
 
-    const startOfUtcMonth = (date: Date) =>
-      new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+    const startOfWeek = (date: Date): Date => {
+      const day = date.getDay();
+      const diff = (day + 6) % 7; // Monday = 0
+      const result = new Date(date);
+      result.setDate(date.getDate() - diff);
+      return result;
+    };
 
-    const endOfUtcDay = (date: Date) =>
-      new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+    const startOfMonth = (date: Date): Date => {
+      return new Date(date.getFullYear(), date.getMonth(), 1);
+    };
 
-    let fromUtc = nowUtc;
-    let toUtc = nowUtc;
+    const endOfDay = (date: Date): Date => {
+      const result = new Date(date);
+      result.setHours(23, 59, 59, 999);
+      return result;
+    };
+
+    let startDate = now;
+    let endDate = now;
 
     switch (range) {
       case 'this-week': {
-        fromUtc = startOfUtcWeek(nowUtc);
-        toUtc = nowUtc;
+        startDate = startOfWeek(now);
+        endDate = now;
         break;
       }
       case 'last-week': {
-        const startThisWeek = startOfUtcWeek(nowUtc);
-        const endLastWeek = new Date(startThisWeek.getTime() - 1);
-        fromUtc = startOfUtcWeek(new Date(startThisWeek.getTime() - 7 * 24 * 60 * 60 * 1000));
-        toUtc = endOfUtcDay(endLastWeek);
+        const startThisWeek = startOfWeek(now);
+        const endLastWeek = new Date(startThisWeek);
+        endLastWeek.setDate(startThisWeek.getDate() - 1);
+        const startLastWeek = new Date(startThisWeek);
+        startLastWeek.setDate(startThisWeek.getDate() - 7);
+        startDate = startLastWeek;
+        endDate = endOfDay(endLastWeek);
         break;
       }
       case 'this-month': {
-        fromUtc = startOfUtcMonth(nowUtc);
-        toUtc = nowUtc;
+        startDate = startOfMonth(now);
+        endDate = now;
         break;
       }
       case 'last-month': {
-        const startThisMonth = startOfUtcMonth(nowUtc);
-        const endLastMonth = new Date(startThisMonth.getTime() - 1);
-        fromUtc = startOfUtcMonth(new Date(startThisMonth.getTime() - 1));
-        toUtc = endOfUtcDay(endLastMonth);
+        const startThisMonth = startOfMonth(now);
+        const endLastMonth = new Date(startThisMonth);
+        endLastMonth.setDate(startThisMonth.getDate() - 1);
+        const startLastMonth = startOfMonth(new Date(startThisMonth.getTime() - 1));
+        startDate = startLastMonth;
+        endDate = endOfDay(endLastMonth);
         break;
       }
       case 'last-3-months': {
-        const from = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth() - 2, 1));
-        fromUtc = from;
-        toUtc = nowUtc;
+        const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        startDate = from;
+        endDate = now;
         break;
       }
       default: {
-        fromUtc = nowUtc;
-        toUtc = nowUtc;
+        startDate = now;
+        endDate = now;
       }
     }
 
-    return { fromUtc: fromUtc.toISOString(), toUtc: toUtc.toISOString() };
+    return { startDate: formatDate(startDate), endDate: formatDate(endDate) };
   }
 }
 

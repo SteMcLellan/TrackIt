@@ -66,7 +66,15 @@ export async function buildCosmos(
   });
   const { container: behaviorIncidentsContainer } = await database.containers.createIfNotExists({
     id: resolved.behaviorIncidentsContainerId,
-    partitionKey: { paths: ['/participantId'] }
+    partitionKey: { paths: ['/participantId'] },
+    indexingPolicy: {
+      compositeIndexes: [
+        [
+          { path: '/logLocalDate', order: 'descending' },
+          { path: '/logLocalTime', order: 'descending' }
+        ]
+      ]
+    }
   });
   const { container: medicationsContainer } = await database.containers.createIfNotExists({
     id: resolved.medicationsContainerId,

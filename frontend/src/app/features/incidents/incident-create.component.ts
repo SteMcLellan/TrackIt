@@ -5,6 +5,12 @@ import { CardComponent } from '../../shared/ui/card/card.component';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { BehaviorIncidentService } from '../../shared/services/behavior-incident.service';
 import { BehaviorFunction } from '../../shared/models/behavior-incident';
+import {
+  extractLocalDate,
+  extractLocalTime,
+  computeTzOffsetMinutes,
+  utcToDatetimeLocalInput
+} from '../../shared/utils/datetime';
 
 type FunctionOption = {
   value: BehaviorFunction;
@@ -18,7 +24,7 @@ export const functionOptions: FunctionOption[] = [
   { value: 'attention', label: 'Attention' }
 ];
 
-export function toLocalInputValue(date: Date): string {
+function toLocalInputValue(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   const year = date.getFullYear();
   const month = pad(date.getMonth() + 1);
@@ -26,16 +32,6 @@ export function toLocalInputValue(date: Date): string {
   const hours = pad(date.getHours());
   const minutes = pad(date.getMinutes());
   return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
-export function toUtcIsoString(localValue: string): string {
-  const parsed = new Date(localValue);
-  return parsed.toISOString();
-}
-
-export function toLocalDateInputValue(utcValue: string): string {
-  const date = new Date(utcValue);
-  return toLocalInputValue(date);
 }
 
 @Component({
@@ -246,7 +242,10 @@ export class IncidentCreateComponent {
       return;
     }
 
-    const occurredAt = toUtcIsoString(this.form.controls.occurredAt.value);
+    const datetimeLocal = this.form.controls.occurredAt.value;
+    const logLocalDate = extractLocalDate(datetimeLocal);
+    const logLocalTime = extractLocalTime(datetimeLocal);
+    const logTzOffsetMinutes = computeTzOffsetMinutes(logLocalDate, logLocalTime);
 
     this.saving.set(true);
     this.error.set(null);
@@ -255,7 +254,9 @@ export class IncidentCreateComponent {
       antecedent: this.form.controls.antecedent.value.trim(),
       behavior: this.form.controls.behavior.value.trim(),
       consequence: this.form.controls.consequence.value.trim(),
-      occurredAtUtc: occurredAt,
+      logLocalDate,
+      logLocalTime,
+      logTzOffsetMinutes,
       place: this.form.controls.place.value.trim(),
       function: this.form.controls.function.value as BehaviorFunction
     }).subscribe({
