@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { httpResource } from '@angular/common/http';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { startWith } from 'rxjs';
 import { CardComponent } from '../../shared/ui/card/card.component';
 import { ParticipantService } from '../../shared/services/participant.service';
@@ -15,7 +14,7 @@ type MedicationsResponse = CollectionResponse<Medication>;
 
 @Component({
   selector: 'app-medication-list',
-  imports: [CardComponent, ReactiveFormsModule, RouterLink],
+  imports: [CardComponent, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
@@ -201,7 +200,7 @@ type MedicationsResponse = CollectionResponse<Medication>;
     `
       .layout {
         display: grid;
-        gap: var(--space-4, 1rem);
+        gap: var(--space-5, 1.5rem);
       }
       .card {
         width: 100%;
@@ -214,7 +213,7 @@ type MedicationsResponse = CollectionResponse<Medication>;
         align-items: center;
         gap: var(--space-3, 0.75rem);
         flex-wrap: wrap;
-        margin-bottom: var(--space-3, 0.75rem);
+        margin-bottom: var(--space-4, 1rem);
       }
       .header-actions {
         display: flex;
@@ -222,10 +221,12 @@ type MedicationsResponse = CollectionResponse<Medication>;
         flex-wrap: wrap;
       }
       h2 {
-        margin: 0 0 var(--space-1, 0.25rem);
+        margin: 0 0 var(--space-2, 0.5rem);
+        font-size: 1.35rem;
       }
       h3 {
-        margin: 0 0 var(--space-2, 0.5rem);
+        margin: 0 0 var(--space-3, 0.75rem);
+        font-size: 1.1rem;
       }
       .muted {
         margin: 0;
@@ -263,11 +264,11 @@ type MedicationsResponse = CollectionResponse<Medication>;
       }
       .form {
         display: grid;
-        gap: var(--space-3, 0.75rem);
+        gap: var(--space-4, 1rem);
       }
       .grid {
         display: grid;
-        gap: var(--space-3, 0.75rem);
+        gap: var(--space-4, 1rem);
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       }
       .field {
@@ -305,7 +306,7 @@ type MedicationsResponse = CollectionResponse<Medication>;
       }
       .actions {
         display: flex;
-        gap: var(--space-2, 0.5rem);
+        gap: var(--space-3, 0.75rem);
         flex-wrap: wrap;
       }
       .list {
@@ -313,12 +314,12 @@ type MedicationsResponse = CollectionResponse<Medication>;
         padding: 0;
         margin: 0;
         display: grid;
-        gap: var(--space-3, 0.75rem);
+        gap: var(--space-4, 1rem);
       }
       .item {
         border: 1px solid #e2e8f0;
         border-radius: var(--radius-2, 0.5rem);
-        padding: var(--space-3, 0.75rem);
+        padding: var(--space-4, 1rem);
         background: #fff;
         display: flex;
         justify-content: space-between;
@@ -330,7 +331,7 @@ type MedicationsResponse = CollectionResponse<Medication>;
       }
       .item-main {
         display: grid;
-        gap: 0.25rem;
+        gap: 0.45rem;
       }
       .title {
         font-weight: 700;
@@ -338,12 +339,12 @@ type MedicationsResponse = CollectionResponse<Medication>;
       .meta {
         display: flex;
         align-items: center;
-        gap: 0.35rem;
+        gap: 0.5rem;
         color: var(--color-text-muted, #64748b);
         flex-wrap: wrap;
       }
       .notes {
-        margin: 0.25rem 0 0;
+        margin: 0.5rem 0 0;
         color: #1f2937;
       }
       .item-actions {

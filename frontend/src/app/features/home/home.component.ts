@@ -97,7 +97,7 @@ type RangeOption = {
     `
       .layout {
         display: grid;
-        gap: var(--space-4, 1rem);
+        gap: var(--space-5, 1.5rem);
       }
       .card {
         width: 100%;
@@ -110,7 +110,7 @@ type RangeOption = {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         flex-wrap: wrap;
-        margin-bottom: var(--space-3, 0.75rem);
+        margin-bottom: var(--space-4, 1rem);
       }
       .header-actions {
         display: flex;
@@ -139,7 +139,8 @@ type RangeOption = {
         color: #fff;
       }
       h2 {
-        margin: 0 0 var(--space-1, 0.25rem);
+        margin: 0 0 var(--space-2, 0.5rem);
+        font-size: 1.35rem;
       }
       .muted {
         margin: 0;
@@ -185,12 +186,12 @@ type RangeOption = {
         padding: 0;
         margin: 0;
         display: grid;
-        gap: var(--space-2, 0.5rem);
+        gap: var(--space-3, 0.75rem);
       }
       .incident {
         border: 1px solid #e2e8f0;
         border-radius: var(--radius-2, 0.5rem);
-        padding: var(--space-3, 0.75rem);
+        padding: var(--space-4, 1rem);
         display: flex;
         justify-content: space-between;
         gap: var(--space-3, 0.75rem);
@@ -199,7 +200,7 @@ type RangeOption = {
       }
       .incident-main {
         display: grid;
-        gap: 0.15rem;
+        gap: 0.35rem;
       }
       .title {
         font-weight: 700;
