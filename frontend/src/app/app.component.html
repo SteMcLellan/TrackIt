@@ -1,14 +1,4 @@
-<header class="app-header">
-  <div class="brand">TrackIt</div>
-  <nav>
-    @if (auth.isAuthenticated()) {
-      <a routerLink="/home">Home</a>
-      <a routerLink="/medications">Medications</a>
-      <a routerLink="/participants">Participants</a>
-      <button (click)="logout()">Logout</button>
-    }
-  </nav>
-</header>
+<app-top-sheet-menu></app-top-sheet-menu>
 <main>
   <router-outlet></router-outlet>
 </main>

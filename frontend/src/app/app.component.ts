@@ -1,26 +1,16 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Router, RouterLink, RouterOutlet } from '@angular/router';
-import { AuthService } from './shared/services/auth.service';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { TopSheetMenuComponent } from './shared/ui/top-sheet-menu/top-sheet-menu.component';
 
 /**
  * Root application shell that hosts the router outlet and top-level actions.
  */
 @Component({
     selector: 'app-root',
-    imports: [RouterOutlet, RouterLink],
+    imports: [RouterOutlet, TopSheetMenuComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './app.component.html',
     styleUrl: './app.component.css'
 })
 export class AppComponent {
-  readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
-
-  /**
-   * Clears the current session and returns the user to the login page.
-   */
-  logout(): void {
-    this.auth.logout();
-    this.router.navigate(['/login']);
-  }
 }

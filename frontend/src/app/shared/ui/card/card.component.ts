@@ -14,8 +14,8 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       :host {
         display: block;
         background: #fff;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
+        padding: var(--space-5, 1.5rem);
+        border-radius: var(--radius-2, 0.5rem);
         border: 1px solid #e2e8f0;
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
       }
