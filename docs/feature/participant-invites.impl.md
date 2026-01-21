@@ -211,9 +211,9 @@ Auth / redirect behavior (required for invite acceptance):
 
 ## Story-Tracking Checklist
 ### Story 1: Generate an invite
-- [ ] API: `POST /participants/{participantId}/invites` creates a single-use, 7-day invite (revokes previous unconsumed invites).
-- [ ] UI: Participant detail shows “Copy invite link” and clearly communicates “anyone with link can join”.
-- [ ] UI: Expiration is displayed (friendly) based on `expiresAt`.
+- [x] API: `POST /participants/{participantId}/invites` creates a single-use, 7-day invite (revokes previous unconsumed invites).
+- [x] UI: Participant detail shows “Copy invite link” and clearly communicates “anyone with link can join”.
+- [x] UI: Expiration is displayed (friendly) based on `expiresAt`.
 
 ### Story 2: Accept an invite
 - [ ] Frontend: invite route exists (`/invite/:participantId/:inviteId`) and calls accept endpoint.
