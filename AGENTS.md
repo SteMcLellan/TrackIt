@@ -1,185 +1,228 @@
-# TrackIt Agent Guide
+# CLAUDE.md - AI Development Guide for TrackIt
 
-## Project Overview
-- Monorepo with two npm workspaces:
-  - `frontend/`: Angular app (Angular 21)
-  - `api/`: Azure Functions (TypeScript)
-- Unified build output:
-  - `dist/frontend/`
-  - `dist/api/`
+**Quick Reference:** This doc covers unique patterns specific to TrackIt. For deeper dives, see `docs/architecture/`.
 
-## Key Commands
-- Build all: `npm run build`
-- Build frontend: `npm run build:frontend`
-- Build api: `npm run build:api`
-- Dev frontend: `npm run dev:frontend`
-- Dev frontend (log to file, resets per rebuild): `npm run dev:frontend:log`
-- Dev api: `npm run dev:api`
-- Lint all: `npm run lint`
-- Format: `npm run format`
+## Tech Stack Summary
 
-## Frontend Workflow (Dev Log)
-- When making frontend code changes, verify builds by checking `dist/frontend/dev-frontend.log`.
-- If file is not found, ask user if they are running `npm run dev:frontend:log`
-- If the log shows a build failure (TypeScript/template errors), correct errors and repeat until the log shows a successful build (e.g. "Application bundle generation complete").
+- **Frontend:** Angular 21 (standalone components, signals, zoneless)
+- **Backend:** Azure Functions (Node.js, TypeScript)
+- **Database:** Azure Cosmos DB (NoSQL)
+- **Auth:** Google OAuth → JWT (HMAC signed)
 
-## Multi-Agent Workflow (Coordinator + Workers)
-- **Coordinator session (main worktree):**
-  - Owns planning and decisions: active feature docs in `docs/feature/` and archived completed feature docs in `docs/feature/complete/`.
-  - Breaks work into 1-story-at-a-time tasks and keeps the implementation checklist up to date.
-  - Avoids editing the same code files workers are actively changing.
-- **Worker sessions (separate worktrees):**
-  - Implement code changes for assigned story scope only.
-  - Validate changes locally (frontend via dev log; API via build) and report back what changed + how it was verified.
-  - Minimize overlap: do not have multiple workers edit the same files simultaneously.
+## Critical Patterns Unique to This Codebase
 
-## Worktrees (Recommended for Parallel Agents)
-- Use separate worktrees for parallel agents, grouped under `..\\TrackIt.wt\\<agent-id>\\` (e.g. `..\\TrackIt.wt\\a\\`, `..\\TrackIt.wt\\b\\`).
-- Each worktree has its own `dist/`, so frontend build logs won't collide across worktrees.
-- If multiple dev servers run at the same time, **frontend/API ports must not collide** (use the worker prompt's suggested port mapping or pick any unused ports).
+### 1. Signal-Based State (Not RxJS)
 
-## Coordination Files (Shared Across Worktrees)
-- Use the shared folder `..\\TrackIt.wt\\agents\\` for coordination artifacts (handoffs, scratch notes, per-ticket checklists).
-- This folder lives outside the repo and is not committed.
-- Suggested ticket file naming (grouped by ticket id):
-  - Coordinator-owned: `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-spec.md`
-  - Worker-owned: `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-progress.md`
-  - Include: story/task, files changed, verification evidence, and notes/risks.
+Use Angular Signals for simple state management, NOT RxJS Subjects/BehaviorSubjects.
 
-## Ticket Protocol (One Ticket Per Agent)
-- Each agent may have **at most one active ticket** at a time.
-- Everyone may read all files in `..\\TrackIt.wt\\agents\\`.
-- **Coordinator-owned file for a ticket (only coordinator writes):**
-  - `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-spec.md` (assignee + scope + acceptance + verification steps)
-- **Worker-owned file for a ticket (only assigned worker writes):**
-  - `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-progress.md` (progress notes + final handoff + verification evidence)
-- Coordinator never edits `ticket-<ticket-id>-progress.md`; workers never edit `ticket-<ticket-id>-spec.md`.
-- Optional (recommended): coordinator also maintains `..\\TrackIt.wt\\agents\\active-tickets.md` as an index mapping `agent-id -> active ticket-id`.
-- If you need to change something in a file you don’t own: write the request in your own file and ping the owner.
-- Ticket file layout is enforced by convention: ticket files must follow the templates below so the coordinator can reliably parse status and the worker can reliably hand off.
+```typescript
+// ✅ Correct
+private readonly state = signal(initialValue);
+readonly state = this.state.asReadonly();
 
-### Template: `ticket-<ticket-id>-spec.md` (coordinator-owned)
-```md
----
-ticketId: <ticket-id>
-kind: spec
-owner: coordinator
-assignee: <agent-id>
-status: queued # queued|in_progress|ready_for_review|blocked|done
-createdUtc: <YYYY-MM-DD>
-updatedUtc: <YYYY-MM-DD HH:mm>
----
-
-# Ticket <ticket-id> — <short title>
-
-- Owner: coordinator
-- Assignee: <agent-id> (<worker name>)
-- Status: queued | in_progress | ready_for_review | blocked | done
-- Created (UTC): <YYYY-MM-DD>
-- Last updated (UTC): <YYYY-MM-DD HH:mm>
-
-## Scope Recap
-- <what changes for the user/system>
-
-## Assumptions / Open Questions
-- <anything to resolve before/during implementation>
-
-## Technical Plan
-- <implementation notes at the level needed for this ticket>
-
-### Allowed changes / boundaries
-- Allowed directories/files:
-  - <list>
-- Forbidden:
-  - <list>
-
-### Validation + auth (if applicable)
-- <auth, input validation, data-model constraints>
-
-### Testing approach
-- Frontend: <e.g. dist/frontend/dev-frontend.log contains "Application bundle generation complete">
-- API: <e.g. npm run build:api succeeds>
-
-## Sequencing
-1. <ordered steps (optional)>
-
-## Story-Tracking Checklist
-- [ ] <testable statement (done when all boxes are checked + verification passes)>
+// ❌ Wrong
+private state$ = new BehaviorSubject(initialValue);
 ```
 
-### Template: `ticket-<ticket-id>-progress.md` (worker-owned)
-```md
----
-ticketId: <ticket-id>
-kind: progress
-owner: worker
-agent: <agent-id>
-status: in_progress # in_progress|ready_for_review|blocked|done
-updatedUtc: <YYYY-MM-DD HH:mm>
-branch: agent/<agent-id>
-headCommit: <sha>
-verification:
-  notes: <short string>
----
+Use RxJS only for HTTP operations. Components use signals in templates: `@if (signal()) { }`.
 
-# Ticket <ticket-id> — progress
+### 2. UTC + Local Time Storage
 
-- Owner: worker <agent-id> (<worker name>)
-- Status: in_progress | ready_for_review | blocked | done
-- Last updated (UTC): <YYYY-MM-DD HH:mm>
+**Critical:** Store all timestamps as UTC + separate local context. Never store local times without timezone info.
 
-## Scope Recap
-- <copy from spec for quick reference (optional)>
+```typescript
+// ✅ Correct
+{
+  createdAtUtc: "2026-01-20T12:00:00Z",  // UTC ISO 8601
+  logLocalDate: "2026-01-20",             // User's local date (YYYY-MM-DD)
+  logLocalTime: "07:00",                  // User's local time (HH:mm)
+  logTzOffsetMinutes: 300                 // Offset from UTC
+}
 
-## Progress Log
-- <YYYY-MM-DD HH:mm UTC> <what changed / what you tried>
-
-## Story-Tracking Checklist (copied from spec)
-- [ ] <copy checklist items here and mark off as you go>
-
-## Verification
-- Frontend: <paste key log lines or reference log path>
-- API: <what command ran + outcome>
-
-## Questions / Requests to Coordinator
-- <blocked items or out-of-scope requests>
-
-## Final Handoff (when ready)
-- Story/task:
-- Files changed:
-- Verification:
-- Notes/risks:
+// ❌ Wrong
+{
+  timestamp: "2026-01-20T07:00:00"  // Missing timezone context!
+}
 ```
-- Ticket lifecycle (default):
-  1. Coordinator creates `ticket-<ticket-id>-spec.md` and assigns it (and updates `active-tickets.md` if used).
-  2. Worker implements and keeps `ticket-<ticket-id>-progress.md` updated (mark clearly when “READY FOR REVIEW”).
-  3. Coordinator validates (build/log checks) and marks the ticket “DONE” (and clears `active-tickets.md` if used).
 
-## Conventions
-- Keep workspace outputs under repo `dist/` only.
-- Prefer workspace-relative scripts (`npm --workspace <name> run <script>`).
-- Avoid changing build output paths unless explicitly requested.
-- Frontend updates must follow the most modern Angular 21 approaches.
-    - Use Signals where possible
-    - Use experimental resources such as `httpResource`.
-- Store and process all timestamps in UTC. Any local time display should be derived from UTC.
-- Data modeling conventions (especially time/day fields): see `docs/architecture/data-modeling.md`.
-- Cosmos client/container instances are cached at module scope; restart the function host to pick up env/config changes.
+**See:** `docs/architecture/data-modeling.md` for full details.
 
-## Where to Look
-- Active feature specs/plans: `docs/feature/`
-- Completed feature archive: `docs/feature/complete/`
-- Frontend config: `frontend/angular.json`
-- API TS config: `api/tsconfig.json`
-- Repo scripts: `package.json`
+### 3. Cosmos DB Patterns
 
-## Notes
-- Azure Functions run via `func start --javascript` (see `api/package.json`).
-- If adding new outputs, keep them under `dist/<workspace>/`.
+**Compound IDs:** Use prefixes and colons for relationships
+```typescript
+// Document IDs
+`participant_${uuid}`
+`user_${uuid}`
 
-## Feature Completion Workflow (Archive)
-- When a feature is complete (all items checked in its `## Story-Tracking Checklist` and verification steps pass), the coordinator moves:
-  - `docs/feature/<feature-name>.md` -> `docs/feature/complete/<feature-name>.md`
-  - `docs/feature/<feature-name>.impl.md` -> `docs/feature/complete/<feature-name>.impl.md`
-- Keep filenames stable (only the directory changes) so history and grepability stay consistent.
-- New/active work should never be added under `docs/feature/complete/`.
+// Relationship IDs
+`${userId}:${participantId}`
+```
+
+**Partition Keys:** Match query patterns (e.g., `/userId` for user queries)
+
+**See:** `docs/architecture/data-modeling.md` for schema details.
+
+### 4. Inline Templates & Styles
+
+Keep component templates and styles inline (not separate files). Improves locality.
+
+```typescript
+@Component({
+  selector: 'app-example',
+  template: `<div>Content here</div>`,
+  styles: [`
+    .container { padding: var(--space-4); }
+  `]
+})
+```
+
+### 5. API Error Handling Wrapper
+
+Always use `withErrorHandling` wrapper - it catches errors automatically:
+
+```typescript
+import { withErrorHandling } from '../shared/errors';
+
+export const handler = withErrorHandling(async (req, context) => {
+  // Throw errors directly; wrapper catches and returns 500
+  if (!data) throw new Error('Not found');
+
+  // Or return explicit responses
+  return { status: 200, jsonBody: { success: true } };
+});
+```
+
+### 6. Authorization Pattern
+
+All protected endpoints use `authorize()`:
+
+```typescript
+import { authorize } from '../shared/authorize';
+
+export const handler = withErrorHandling(async (req, context) => {
+  const auth = await authorize(req);
+  if (!auth.ok) return auth.response;
+
+  const { userId } = auth.value; // Use for queries
+});
+```
+
+**See:** `docs/architecture/auth-flow.md` for full flow.
+
+### 7. Result Type Pattern
+
+Use explicit success/failure types (no exceptions for expected failures):
+
+```typescript
+type Result<T> =
+  | { ok: true; value: T }
+  | { ok: false; response: HttpResponseInit };
+```
+
+### 8. Active Participant Context
+
+Most features require an active participant selected:
+- Use `ActiveParticipantGuard` on routes
+- Service exposes `activeParticipantId` signal
+- Components read: `readonly participantId = this.service.activeParticipantId;`
+
+**See:** `docs/architecture/participant-association.md`
+
+## File & Naming Conventions
+
+**Files:** kebab-case (e.g., `behavior-incident.component.ts`)
+**Classes/Types:** PascalCase (e.g., `BehaviorIncident`)
+**Functions/Variables:** camelCase (e.g., `createIncident`)
+**Constants:** UPPERCASE_SNAKE_CASE (e.g., `API_BASE_URL`)
+
+**TypeScript suffixes:**
+- Backend documents: `*Document` (e.g., `ParticipantDocument`)
+- Frontend models: No suffix (e.g., `Participant`)
+- Request/Response: `*Request`, `*Response`
+
+## Key Architecture Decisions
+
+1. **Standalone Components** - No NgModules; each component declares own imports
+2. **Zoneless Change Detection** - All components use `ChangeDetectionStrategy.OnPush`
+3. **Minimal Dependencies** - Intentional; reduces attack surface and bundle size
+4. **JWT-Based API Auth** - Stateless; token in `x-trackit-app-token` header
+5. **Monorepo** - Single npm workspace for coordinated deployment
+
+## Things to Avoid
+
+❌ Don't use NgModules (standalone components only)
+❌ Don't use RxJS for simple state (use Signals)
+❌ Don't store local timestamps without timezone context
+❌ Don't hardcode URLs (use `environment.apiBaseUrl`)
+❌ Don't skip error handling on HTTP calls
+❌ Don't forget `authorize()` in API functions
+❌ Don't use default change detection (always OnPush)
+❌ Don't create separate .html/.css files (inline templates/styles)
+
+## Common Tasks
+
+### Add New API Endpoint
+
+1. Create `api/src/functions/{resource}-{action}.ts`
+2. Use `withErrorHandling` wrapper
+3. Add `authorize()` check if protected
+4. Register with `app.http()` with route
+
+### Add New Component
+
+1. Create inline component in `frontend/src/app/features/{feature}/`
+2. Add to parent's `imports` array or route definition
+3. Use `ChangeDetectionStrategy.OnPush`
+4. Inject services via `inject()`
+
+### Add New Model
+
+1. Backend: Create `*Document` interface in `api/src/models/`
+2. Frontend: Create interface (no suffix) in `frontend/src/app/shared/models/`
+3. Include UTC timestamps + local context fields
+
+## Git Commit Format
+
+```
+<type>(<scope>): <subject>
+```
+
+**Types:** `feat`, `fix`, `docs`, `refactor`, `chore`
+**Examples:**
+- `feat(incidents): add ABC behavior tracking`
+- `fix(auth): resolve Google button race condition`
+- `docs(architecture): update data modeling guide`
+
+## Development Commands
+
+```bash
+npm run dev:all        # Start frontend + API
+npm run lint           # Check code quality
+npm run format         # Apply Prettier
+npm run build          # Production build
+```
+
+## Environment Variables
+
+**Frontend** (`environment.ts`):
+- `apiBaseUrl` - API endpoint (e.g., `http://localhost:7071/api`)
+- `googleClientId` - Google OAuth client ID
+
+**Backend** (`local.settings.json`):
+- `COSMOS_ENDPOINT`, `COSMOS_KEY`, `COSMOS_DATABASE_NAME`
+- `JWT_SECRET_KEY` - Secret for signing JWTs
+- `GOOGLE_CLIENT_ID` - For OAuth validation
+
+## Architecture Documentation
+
+For detailed information on specific areas:
+
+- **`docs/architecture/auth-flow.md`** - Authentication flow, JWT handling
+- **`docs/architecture/data-modeling.md`** - Cosmos schema, UTC+local time, compound IDs
+- **`docs/architecture/participant-association.md`** - Active participant pattern
+- **`docs/architecture/behavior-tracking-abc.md`** - ABC behavior tracking model
+
+---
+
+**Keep this file focused on unique patterns. Add detailed explanations to `docs/architecture/` files.**
