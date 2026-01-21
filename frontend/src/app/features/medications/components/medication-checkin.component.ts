@@ -135,9 +135,11 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        box-sizing: border-box;
         background: var(--color-primary, #0c4a6e);
         color: #fff;
-        padding: 0.55rem 1.1rem;
+        padding: 0.7rem 1.1rem;
+        min-height: 44px;
         border-radius: var(--radius-2, 0.5rem);
         text-decoration: none;
         font-weight: 600;
@@ -171,7 +173,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       }
       @media (min-width: 860px) {
         .item {
-          grid-template-columns: minmax(220px, 1fr) auto auto;
+          grid-template-columns: minmax(220px, 1fr) minmax(0, 1fr) auto;
           align-items: center;
         }
       }
@@ -213,12 +215,25 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       .item-dots {
         display: flex;
         align-items: center;
+        min-width: 0;
       }
       .item-actions {
         display: flex;
         gap: var(--space-2, 0.5rem);
         flex-wrap: wrap;
         align-items: center;
+      }
+      @media (max-width: 520px) {
+        .header-actions,
+        .item-actions {
+          width: 100%;
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .header-actions .button,
+        .item-actions .button {
+          width: 100%;
+        }
       }
     `
   ]
