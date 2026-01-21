@@ -79,8 +79,8 @@
 - [x] Confirm "today" emphasis is clear without extra noise.
 
 ### Story 3: Lighter top chrome
-- [ ] Replace the current header + context bar with a single top bar.
-- [ ] Remove the secondary white header and any duplicate metadata.
+- [x] Replace the current header + context bar with a single top bar.
+- [x] Remove the secondary white header and any duplicate metadata.
 
 ### Story 4: Consistent mobile spacing system
 - [ ] Define spacing tokens and apply them across shared components.
