@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
+import { GoogleIdentityService } from '../../shared/services/google-identity.service';
 import { CardComponent } from '../../shared/ui/card/card.component';
 
 /**
@@ -15,7 +16,13 @@ import { CardComponent } from '../../shared/ui/card/card.component';
       <p class="app-title">TrackIt — ADHD Symptoms</p>
       <h1>Sign in as a Parent</h1>
       <p>Use your Google account to access your child's TrackIt Home.</p>
+      @if (isLoadingGoogle()) {
+        <p class="loading">Loading sign-in...</p>
+      }
       <div id="g_id_signin"></div>
+      @if (googleError()) {
+        <p class="error">{{ googleError() }}</p>
+      }
       @if (error) {
         <p class="error">{{ error }}</p>
       }
@@ -30,6 +37,11 @@ import { CardComponent } from '../../shared/ui/card/card.component';
         color: #64748b;
         margin-bottom: 0.5rem;
       }
+      .loading {
+        margin-top: 1rem;
+        color: #64748b;
+        font-style: italic;
+      }
       .error {
         margin-top: 1rem;
         color: #b91c1c;
@@ -39,10 +51,14 @@ import { CardComponent } from '../../shared/ui/card/card.component';
     ]
 })
 export class LoginComponent implements OnInit, OnDestroy {
-  private buttonRendered = false;
   error?: string;
   private readonly auth = inject(AuthService);
+  private readonly googleIdentity = inject(GoogleIdentityService);
   private readonly router = inject(Router);
+
+  // Expose GoogleIdentityService signals to template
+  readonly isLoadingGoogle = this.googleIdentity.isLoading;
+  readonly googleError = this.googleIdentity.error;
 
   constructor() {
     effect(() => {
@@ -74,18 +90,15 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Initializes the Google sign-in button once per component instance.
+   * Initializes the Google sign-in button once GIS library is ready.
    */
   private async renderButton(): Promise<void> {
-    if (this.buttonRendered) {
-      return;
-    }
-
-    await this.auth.renderGoogleButton('g_id_signin', (err) => {
-      this.error = err;
-    });
-    if (!this.error) {
-      this.buttonRendered = true;
+    try {
+      await this.googleIdentity.waitForGoogleIdentity();
+      this.auth.renderGoogleButton('g_id_signin', (err) => (this.error = err));
+    } catch (err) {
+      console.error('[LoginComponent] Failed to load Google Identity Services:', err);
+      // Error is already displayed via googleError signal
     }
   }
 }

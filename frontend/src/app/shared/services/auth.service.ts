@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { GoogleIdentityService } from './google-identity.service';
 
 interface AppUser {
   sub: string;
@@ -27,10 +28,9 @@ const signedOutUser: AppUser = {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly storageKey = 'trackit.appUser';
-  private readonly googleScriptSrc = 'https://accounts.google.com/gsi/client';
   private readonly http = inject(HttpClient);
+  private readonly googleIdentity = inject(GoogleIdentityService);
   private readonly appUserState = signal<AppUser>(signedOutUser);
-  private googleScriptPromise?: Promise<void>;
   readonly appUser = this.appUserState.asReadonly();
   readonly isAuthenticated = computed(() => this.isTokenValid(this.appUserState().token));
 
@@ -44,34 +44,25 @@ export class AuthService {
 
   /**
    * Initializes Google Identity Services and renders the button.
+   * Waits for GIS library to load before initializing.
    */
   async renderGoogleButton(containerId: string, onError: (msg: string) => void): Promise<void> {
     try {
-      await this.loadGoogleIdentity(onError);
-    } catch {
-      return;
-    }
-
-    const google = (window as any).google;
-    if (!google?.accounts?.id) {
+      await this.googleIdentity.waitForGoogleIdentity();
+    } catch (err) {
       onError('Google Identity Services failed to load.');
       return;
     }
 
-    const container = document.getElementById(containerId);
-    if (!container) {
-      onError('Unable to render Google sign-in button.');
-      return;
-    }
-
+    const google = (window as any).google;
     google.accounts.id.initialize({
       client_id: environment.googleClientId,
       callback: (response: any) => this.exchangeGoogleToken(response.credential, onError),
       ux_mode: 'popup',
-      auto_select: true
+      auto_select: !this.isMobileDevice()
     });
 
-    google.accounts.id.renderButton(container, {
+    google.accounts.id.renderButton(document.getElementById(containerId), {
       type: 'standard',
       theme: 'outline',
       size: 'large'
@@ -164,54 +155,11 @@ export class AuthService {
   }
 
   /**
-   * Ensures the Google Identity Services script is loaded before rendering the button.
+   * Detects if the user is on a mobile device.
+   * Used to disable auto_select which can interfere with mobile UI.
    */
-  private loadGoogleIdentity(onError: (msg: string) => void): Promise<void> {
-    const google = (window as any).google;
-    if (google?.accounts?.id) {
-      return Promise.resolve();
-    }
-
-    if (this.googleScriptPromise) {
-      return this.googleScriptPromise;
-    }
-
-    this.googleScriptPromise = new Promise((resolve, reject) => {
-      const existingScript = document.querySelector<HTMLScriptElement>(
-        `script[src="${this.googleScriptSrc}"]`
-      );
-      const script = existingScript ?? document.createElement('script');
-      script.src = this.googleScriptSrc;
-      script.async = true;
-      script.defer = true;
-      script.id = 'g_id_onload';
-
-      const cleanup = () => {
-        script.removeEventListener('load', onLoad);
-        script.removeEventListener('error', onErrorEvent);
-      };
-
-      const onLoad = () => {
-        cleanup();
-        resolve();
-      };
-
-      const onErrorEvent = () => {
-        cleanup();
-        reject(new Error('Google Identity Services failed to load.'));
-      };
-
-      script.addEventListener('load', onLoad);
-      script.addEventListener('error', onErrorEvent);
-
-      if (!existingScript) {
-        document.head.appendChild(script);
-      }
-    }).catch((err) => {
-      onError('Google Identity Services failed to load.');
-      throw err;
-    });
-
-    return this.googleScriptPromise;
+  private isMobileDevice(): boolean {
+    return window.innerWidth < 768 ||
+      /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 }
