@@ -15,7 +15,7 @@ Use this skill to implement **exactly one** coordinator-issued ticket and hand i
    - `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-spec.md`
 3. Create/open the worker-owned progress file:
    - `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-progress.md`
-   - If it doesn't exist, create it using the template in `AGENTS.md` (Ticket Protocol section).
+   - If it doesn't exist, create it using the template defined below.
 
 ### 2) Confirm boundaries before coding
 1. Read the ticket's "Allowed changes / boundaries".
@@ -46,3 +46,48 @@ Use this skill to implement **exactly one** coordinator-issued ticket and hand i
 ## Output Expectations
 - Keep `..\\TrackIt.wt\\agents\\ticket-<ticket-id>-progress.md` as the source of truth for what you did + verification.
 - Hand back with `status: ready_for_review`, plus files changed and verification evidence.
+
+## Reference Form: ticket-<ticket-id>-progress.md
+
+```md
+---
+ticketId: <ticket-id>
+kind: progress
+owner: worker
+agent: <agent-id>
+status: in_progress # in_progress|ready_for_review|blocked|done
+updatedUtc: <YYYY-MM-DD HH:mm>
+branch: agent/<agent-id>
+headCommit: <sha>
+verification:
+  notes: <short string>
+---
+
+# Ticket <ticket-id> — progress
+
+- Owner: worker <agent-id> (<worker name>)
+- Status: in_progress | ready_for_review | blocked | done
+- Last updated (UTC): <YYYY-MM-DD HH:mm>
+
+## Scope Recap
+- <copy from spec for quick reference (optional)>
+
+## Progress Log
+- <YYYY-MM-DD HH:mm UTC> <what changed / what you tried>
+
+## Story-Tracking Checklist (copied from spec)
+- [ ] <copy checklist items here and mark off as you go>
+
+## Verification
+- Frontend: <paste key log lines or reference log path>
+- API: <what command ran + outcome>
+
+## Questions / Requests to Coordinator
+- <blocked items or out-of-scope requests>
+
+## Final Handoff (when ready)
+- Story/task:
+- Files changed:
+- Verification:
+- Notes/risks:
+```
