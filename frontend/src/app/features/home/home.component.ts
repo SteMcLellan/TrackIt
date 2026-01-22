@@ -6,7 +6,7 @@ import { CollectionResponse } from '../../shared/models/collection';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { CardComponent } from '../../shared/ui/card/card.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton/skeleton.component';
-import { MedicationCheckinComponent } from '../medications/components/medication-checkin.component';
+import { MedicationCheckinComponent } from '../medications/medication-checkin.component';
 import { environment } from '../../../environments/environment';
 
 type IncidentsResponse = CollectionResponse<BehaviorIncident>;

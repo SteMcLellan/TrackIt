@@ -8,7 +8,7 @@ import { MedicationLogService } from '../../shared/services/medication-log.servi
 import { Medication } from '../../shared/models/medication';
 import { MedicationLog } from '../../shared/models/medication-log';
 import { CollectionResponse } from '../../shared/models/collection';
-import { MedicationDotsStripComponent } from './components/medication-dots-strip.component';
+import { MedicationDotsStripComponent } from './medication-dots-strip.component';
 import { environment } from '../../../environments/environment';
 
 type MedicationsResponse = CollectionResponse<Medication>;

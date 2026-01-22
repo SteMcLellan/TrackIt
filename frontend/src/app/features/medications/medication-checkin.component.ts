@@ -1,21 +1,22 @@
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CollectionResponse } from '../../../shared/models/collection';
-import { MedicationLog } from '../../../shared/models/medication-log';
-import { Medication } from '../../../shared/models/medication';
-import { MedicationLogService } from '../../../shared/services/medication-log.service';
-import { ParticipantService } from '../../../shared/services/participant.service';
-import { CardComponent } from '../../../shared/ui/card/card.component';
+import { CollectionResponse } from '../../shared/models/collection';
+import { MedicationLog } from '../../shared/models/medication-log';
+import { Medication } from '../../shared/models/medication';
+import { MedicationLogService } from '../../shared/services/medication-log.service';
+import { ParticipantService } from '../../shared/services/participant.service';
+import { CardComponent } from '../../shared/ui/card/card.component';
+import { SkeletonComponent } from '../../shared/ui/skeleton/skeleton.component';
 import { MedicationDotsStripComponent } from './medication-dots-strip.component';
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 type MedicationsResponse = CollectionResponse<Medication>;
 type MedicationLogsResponse = CollectionResponse<MedicationLog>;
 
 @Component({
   selector: 'app-medication-checkin',
-  imports: [CardComponent, RouterLink, MedicationDotsStripComponent],
+  imports: [CardComponent, RouterLink, MedicationDotsStripComponent, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-card class="card">
@@ -31,7 +32,28 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       </div>
 
       @if (medicationsResource.isLoading() || logsResource.isLoading()) {
-        <p class="muted">Loading medications...</p>
+        <ul class="list skeleton-list" role="list" aria-label="Loading medication check-in">
+          @for (i of [1, 2]; track i) {
+            <li class="item skeleton-item">
+              <div class="item-main">
+                <app-skeleton width="140px" height="1.1rem" />
+                <div class="meta-skeleton">
+                  <app-skeleton width="80px" height="0.9rem" />
+                  <app-skeleton width="60px" height="0.9rem" />
+                </div>
+              </div>
+
+              <div class="item-dots">
+                <app-skeleton width="100%" height="32px" radius="999px" />
+              </div>
+
+              <div class="item-actions">
+                <app-skeleton variant="button" width="90px" height="44px" />
+                <app-skeleton variant="button" width="110px" height="44px" />
+              </div>
+            </li>
+          }
+        </ul>
       } @else if (medicationsResource.error() || logsResource.error()) {
         <p class="error" role="alert">Unable to load medication check-in.</p>
         <a class="button secondary" routerLink="/medications">Open daily log</a>
@@ -183,6 +205,14 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         margin: var(--space-4, 1rem) 0 0;
         display: grid;
         gap: var(--space-4, 1rem);
+      }
+      .meta-skeleton {
+        display: flex;
+        gap: var(--space-2, 0.5rem);
+        align-items: center;
+      }
+      .skeleton-item {
+        padding: var(--space-4, 1rem);
       }
       .item {
         border: 1px solid #e2e8f0;
