@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 import { BehaviorIncident, BehaviorFunction } from '../../shared/models/behavior-incident';
 import { BehaviorIncidentService, UpdateBehaviorIncidentRequest } from '../../shared/services/behavior-incident.service';
-import { ChipSelectorComponent } from '../../shared/components/chip-selector.component';
+import { ChipSelectorComponent } from '../../shared/ui/chip-selector.component';
 import {
   antecedentChipCategories,
   behaviorChipCategories,

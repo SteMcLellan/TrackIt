@@ -3,7 +3,7 @@ import { httpResource } from '@angular/common/http';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { startWith } from 'rxjs';
-import { CardComponent } from '../../shared/ui/card/card.component';
+import { CardComponent } from '../../shared/ui/card.component';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { MedicationService } from '../../shared/services/medication.service';
 import { Medication } from '../../shared/models/medication';

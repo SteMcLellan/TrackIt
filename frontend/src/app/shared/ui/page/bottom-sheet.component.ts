@@ -10,9 +10,11 @@ import {
   AfterViewInit,
   OnDestroy
 } from '@angular/core';
+import { CloseIconComponent } from '../icons';
 
 @Component({
   selector: 'app-bottom-sheet',
+  imports: [CloseIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (open()) {
@@ -38,9 +40,7 @@ import {
             <div class="header">
               <h3 class="title">{{ title() }}</h3>
               <button type="button" class="close-btn" (click)="close(); $event.stopPropagation()" aria-label="Close">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M15 5L5 15M5 5l10 10" />
-                </svg>
+                <app-icon-close class="close-icon" />
               </button>
             </div>
           }
@@ -133,6 +133,9 @@ import {
     .close-btn:hover {
       background: #f1f5f9;
       color: #0f172a;
+    }
+    .close-icon {
+      font-size: 20px;
     }
     .content {
       flex: 1;

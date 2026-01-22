@@ -1,22 +1,17 @@
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { BehaviorIncident } from '../../shared/models/behavior-incident';
 import { CollectionResponse } from '../../shared/models/collection';
 import { ParticipantService } from '../../shared/services/participant.service';
-import { CardComponent } from '../../shared/ui/card/card.component';
-import { SkeletonComponent } from '../../shared/ui/skeleton/skeleton.component';
+import { CardComponent } from '../../shared/ui/card.component';
+import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import { ChevronRightIconComponent } from '../../shared/ui/icons';
 import { MedicationCheckinComponent } from '../medications/medication-checkin.component';
+import { IncidentListItemComponent } from '../incidents/incident-list-item.component';
 import { environment } from '../../../environments/environment';
 
 type IncidentsResponse = CollectionResponse<BehaviorIncident>;
-
-const functionLabels: Record<BehaviorIncident['function'], string> = {
-  sensory: 'Sensory',
-  tangible: 'Tangible',
-  escape: 'Escape',
-  attention: 'Attention'
-};
 
 type RangeOption = {
   value: 7 | 14 | 30;
@@ -25,7 +20,7 @@ type RangeOption = {
 
 @Component({
   selector: 'app-home',
-  imports: [CardComponent, RouterLink, MedicationCheckinComponent, SkeletonComponent],
+  imports: [CardComponent, RouterLink, MedicationCheckinComponent, SkeletonComponent, IncidentListItemComponent, ChevronRightIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
@@ -52,9 +47,7 @@ type RangeOption = {
           <h2>Incidents</h2>
           <a class="manage-link" routerLink="/incidents">
             View all
-            <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-            </svg>
+            <app-icon-chevron-right class="link-arrow" />
           </a>
           @if (incidentsCount() > 0) {
             <p class="muted">{{ incidentsCount() }} in the last {{ rangeDays() }} days</p>
@@ -86,17 +79,12 @@ type RangeOption = {
           </div>
         } @else {
           <ul class="incidents" role="list">
-            @for (incident of recentIncidents(); track incident.id; let i = $index) {
-              <li class="incident stagger-item">
-                <div class="incident-main">
-                  <div class="title">{{ formatDateTime(incident.occurredAtUtc) }}</div>
-                  <div class="meta">
-                    <span>{{ functionLabels[incident.function] }}</span>
-                    <span class="dot">&middot;</span>
-                    <span>{{ incident.place }}</span>
-                  </div>
-                </div>
-                <a class="link-pill" [routerLink]="['/incidents', incident.id]">View</a>
+            @for (incident of recentIncidents(); track incident.id) {
+              <li>
+                <app-incident-list-item
+                  [incident]="incident"
+                  (selected)="navigateToIncident($event)"
+                />
               </li>
             }
           </ul>
@@ -170,8 +158,7 @@ type RangeOption = {
       color: var(--color-primary, #0c4a6e);
     }
     .link-arrow {
-      width: 16px;
-      height: 16px;
+      font-size: 16px;
     }
     h2 {
       margin: 0 0 var(--space-1, 0.25rem);
@@ -193,62 +180,16 @@ type RangeOption = {
       color: #b91c1c;
       font-weight: 600;
     }
-    .link-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.3rem 0.7rem;
-      border-radius: var(--radius-full, 999px);
-      border: 1px solid var(--color-border, #e2e8f0);
-      text-decoration: none;
-      color: #0f172a;
-      font-weight: 600;
-      font-size: var(--font-size-sm, 0.8125rem);
-      background: #fff;
-      transition: border-color var(--transition-fast, 120ms ease);
-    }
-    .link-pill:hover {
-      border-color: var(--color-primary, #0c4a6e);
-    }
     .incidents {
       list-style: none;
       padding: 0;
       margin: 0;
       display: grid;
-      gap: var(--space-3, 0.75rem);
-    }
-    .incident {
-      border: 1px solid var(--color-border, #e2e8f0);
-      border-radius: var(--radius-2, 0.5rem);
-      padding: var(--space-3, 0.75rem);
-      display: flex;
-      justify-content: space-between;
-      gap: var(--space-3, 0.75rem);
-      flex-wrap: wrap;
-      align-items: center;
-      background: #fff;
-    }
-    .incident-main {
-      display: grid;
-      gap: 0.25rem;
-    }
-    .title {
-      font-weight: 600;
-    }
-    .meta {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      color: var(--color-text-muted, #64748b);
-      font-size: var(--font-size-sm, 0.8125rem);
-      flex-wrap: wrap;
+      gap: var(--space-2, 0.5rem);
     }
     .meta-skeleton {
       display: flex;
       gap: var(--space-2, 0.5rem);
-    }
-    .dot {
-      color: #94a3b8;
     }
     .skeleton-item {
       padding: var(--space-4, 1rem);
@@ -258,6 +199,7 @@ type RangeOption = {
 })
 export class HomeComponent {
   private readonly participants = inject(ParticipantService);
+  private readonly router = inject(Router);
 
   readonly activeParticipantId = this.participants.activeParticipantId;
   private readonly refreshTick = signal(0);
@@ -295,14 +237,11 @@ export class HomeComponent {
   readonly incidentsCount = computed(() => this.incidents().length);
   readonly recentIncidents = computed(() => this.incidents().slice(0, 3));
 
-  readonly functionLabels = functionLabels;
-
   setRange(value: 7 | 14 | 30) {
     this.rangeDays.set(value);
   }
 
-  formatDateTime(value: string): string {
-    const parsed = new Date(value);
-    return parsed.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  navigateToIncident(incident: BehaviorIncident): void {
+    this.router.navigate(['/incidents', incident.id]);
   }
 }

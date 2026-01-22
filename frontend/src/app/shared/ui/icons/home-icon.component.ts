@@ -1,0 +1,17 @@
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+
+@Component({
+  selector: 'app-icon-home',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  `,
+  styles: [`
+    :host { display: inline-flex; }
+    svg { width: 1em; height: 1em; }
+  `]
+})
+export class HomeIconComponent {}

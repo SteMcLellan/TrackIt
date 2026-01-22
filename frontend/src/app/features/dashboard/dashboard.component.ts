@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
-import { CardComponent } from '../../shared/ui/card/card.component';
+import { CardComponent } from '../../shared/ui/card.component';
 
 /**
  * Dashboard landing page for authenticated users.

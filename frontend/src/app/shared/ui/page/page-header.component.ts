@@ -3,7 +3,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { TrackItLogoIconComponent } from '../icons/trackit-logo-icon.component';
+import { TrackItLogoIconComponent } from '../icons';
 
 /**
  * Minimal top header bar showing app branding.

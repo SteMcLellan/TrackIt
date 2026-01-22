@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { httpResource } from '@angular/common/http';
-import { CardComponent } from '../../shared/ui/card/card.component';
+import { CardComponent } from '../../shared/ui/card.component';
 import { ArrowRightIconComponent } from '../../shared/ui/icons/arrow-right-icon.component';
 import { Participant } from '../../shared/models/participant';
 import { ParticipantService } from '../../shared/services/participant.service';

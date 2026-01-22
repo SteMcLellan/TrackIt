@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
-import { CardComponent } from '../../shared/ui/card/card.component';
+import { CardComponent } from '../../shared/ui/card.component';
 import { ParticipantInviteService } from '../../shared/services/participant-invite.service';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { AcceptInviteResponse } from '../../shared/models/participant-invite';

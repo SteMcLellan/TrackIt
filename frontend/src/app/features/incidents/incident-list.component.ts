@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, in
 import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { CardComponent } from '../../shared/ui/card/card.component';
-import { SkeletonComponent } from '../../shared/ui/skeleton/skeleton.component';
-import { BottomSheetComponent } from '../../shared/components/bottom-sheet.component';
+import { CardComponent } from '../../shared/ui/card.component';
+import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import { BottomSheetComponent } from '../../shared/ui/page/bottom-sheet.component';
 import { FunctionAttentionIconComponent } from '../../shared/ui/icons/function-attention-icon.component';
 import { FunctionEscapeIconComponent } from '../../shared/ui/icons/function-escape-icon.component';
 import { FunctionSensoryIconComponent } from '../../shared/ui/icons/function-sensory-icon.component';
@@ -14,6 +14,7 @@ import { ParticipantService } from '../../shared/services/participant.service';
 import { BehaviorIncidentService } from '../../shared/services/behavior-incident.service';
 import { environment } from '../../../environments/environment';
 import { IncidentEditFormComponent } from './incident-edit-form.component';
+import { IncidentListItemComponent } from './incident-list-item.component';
 
 type IncidentsResponse = {
   items: BehaviorIncident[];
@@ -27,13 +28,6 @@ const functionLabels: Record<BehaviorFunction, string> = {
   attention: 'Attention'
 };
 
-const functionColors: Record<BehaviorFunction, string> = {
-  escape: '#ef4444',     // red
-  attention: '#eab308',  // yellow
-  sensory: '#3b82f6',    // blue
-  tangible: '#22c55e'    // green
-};
-
 @Component({
   selector: 'app-incident-list',
   imports: [
@@ -43,6 +37,7 @@ const functionColors: Record<BehaviorFunction, string> = {
     ReactiveFormsModule,
     BottomSheetComponent,
     IncidentEditFormComponent,
+    IncidentListItemComponent,
     FunctionAttentionIconComponent,
     FunctionEscapeIconComponent,
     FunctionSensoryIconComponent,
@@ -165,30 +160,11 @@ const functionColors: Record<BehaviorFunction, string> = {
         } @else {
           <ul class="list" role="list">
             @for (incident of incidents(); track incident.id) {
-              <li
-                class="compact-item"
-                [style.--function-color]="getFunctionColor(incident.function)"
-                (click)="openEditSheet(incident)"
-                role="button"
-                tabindex="0"
-                (keydown.enter)="openEditSheet(incident)"
-                (keydown.space)="openEditSheet(incident)"
-              >
-                <div class="compact-meta">
-                  <span class="compact-time">{{ formatShortTime(incident.occurredAtUtc) }}</span>
-                  <span class="compact-dot">&middot;</span>
-                  <span class="compact-place">{{ incident.placeChip || incident.place }}</span>
-                  @if (hasNotes(incident)) {
-                    <span class="notes-indicator" title="Has additional notes">
-                      <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v2H7V5zm0 4h6v2H7V9zm0 4h4v2H7v-2z"/>
-                      </svg>
-                    </span>
-                  }
-                </div>
-                <div class="compact-summary">
-                  {{ getChipSummary(incident) }}
-                </div>
+              <li>
+                <app-incident-list-item
+                  [incident]="incident"
+                  (selected)="openEditSheet($event)"
+                />
               </li>
             }
           </ul>
@@ -412,56 +388,6 @@ const functionColors: Record<BehaviorFunction, string> = {
         display: grid;
         gap: var(--space-2, 0.5rem);
       }
-      .compact-item {
-        border: 1px solid #e2e8f0;
-        border-left: 4px solid var(--function-color, #0c4a6e);
-        border-radius: var(--radius-2, 0.5rem);
-        padding: var(--space-3, 0.75rem);
-        background: #fff;
-        cursor: pointer;
-        transition: box-shadow var(--transition-fast, 120ms ease),
-                    border-color var(--transition-fast, 120ms ease);
-        min-width: 0; /* Prevent flexbox overflow */
-      }
-      .compact-item:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border-color: #cbd5e1;
-      }
-      .compact-item:active {
-        background: #f8fafc;
-      }
-      .compact-meta {
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-        margin-bottom: 0.25rem;
-        font-size: var(--font-size-sm, 0.8125rem);
-        color: var(--color-text-muted, #64748b);
-      }
-      .compact-time {
-        font-weight: 600;
-      }
-      .compact-dot {
-        color: #cbd5e1;
-      }
-      .compact-place {
-        font-weight: 500;
-      }
-      .notes-indicator {
-        display: inline-flex;
-        color: var(--color-primary, #0c4a6e);
-        opacity: 0.7;
-        margin-left: auto;
-      }
-      .compact-summary {
-        font-size: 0.9375rem;
-        color: #1f2937;
-        line-height: 1.4;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
       .skeleton-item {
         padding: var(--space-3, 0.75rem);
         border-left-color: #e2e8f0;
@@ -609,53 +535,6 @@ export class IncidentListComponent {
     return functionLabels[value];
   }
 
-  getFunctionColor(fn: BehaviorFunction): string {
-    return functionColors[fn];
-  }
-
-  getChipSummary(incident: BehaviorIncident): string {
-    const parts: string[] = [];
-
-    // Use chips if available, otherwise fall back to first part of text
-    const antecedent = incident.antecedentChips?.[0] || this.getFirstPart(incident.antecedent);
-    const behavior = incident.behaviorChips?.[0] || this.getFirstPart(incident.behavior);
-    const consequence = incident.consequenceChips?.[0] || this.getFirstPart(incident.consequence);
-
-    if (antecedent) parts.push(antecedent);
-    if (behavior) parts.push(behavior);
-    if (consequence) parts.push(consequence);
-
-    return parts.join(' → ') || 'No details';
-  }
-
-  hasNotes(incident: BehaviorIncident): boolean {
-    // Check if there's additional text beyond what chips would provide
-    const hasAntecedentNotes = incident.antecedent && (
-      !incident.antecedentChips?.length ||
-      incident.antecedent !== incident.antecedentChips.join(', ')
-    );
-    const hasBehaviorNotes = incident.behavior && (
-      !incident.behaviorChips?.length ||
-      incident.behavior !== incident.behaviorChips.join(', ')
-    );
-    const hasConsequenceNotes = incident.consequence && (
-      !incident.consequenceChips?.length ||
-      incident.consequence !== incident.consequenceChips.join(', ')
-    );
-
-    return !!(hasAntecedentNotes || hasBehaviorNotes || hasConsequenceNotes);
-  }
-
-  formatShortTime(value: string): string {
-    const date = new Date(value);
-    return date.toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    });
-  }
-
   openEditSheet(incident: BehaviorIncident): void {
     this.selectedIncident.set(incident);
     this.editSheetOpen.set(true);
@@ -750,17 +629,6 @@ export class IncidentListComponent {
       endDate: '',
       function: 'all'
     });
-  }
-
-  private getFirstPart(text: string): string {
-    if (!text) return '';
-    const commaIndex = text.indexOf(',');
-    const periodIndex = text.indexOf('.');
-    let endIndex = text.length;
-    if (commaIndex > 0) endIndex = Math.min(endIndex, commaIndex);
-    if (periodIndex > 0) endIndex = Math.min(endIndex, periodIndex);
-    const part = text.slice(0, endIndex).trim();
-    return part.length > 30 ? part.slice(0, 30) + '...' : part;
   }
 
   private initCustomRange() {

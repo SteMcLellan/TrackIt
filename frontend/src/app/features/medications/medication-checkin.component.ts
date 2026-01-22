@@ -6,8 +6,9 @@ import { MedicationLog } from '../../shared/models/medication-log';
 import { Medication } from '../../shared/models/medication';
 import { MedicationLogService } from '../../shared/services/medication-log.service';
 import { ParticipantService } from '../../shared/services/participant.service';
-import { CardComponent } from '../../shared/ui/card/card.component';
-import { SkeletonComponent } from '../../shared/ui/skeleton/skeleton.component';
+import { CardComponent } from '../../shared/ui/card.component';
+import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import { CheckmarkIconComponent, ChevronRightIconComponent, XIconComponent } from '../../shared/ui/icons';
 import { MedicationDotsStripComponent } from './medication-dots-strip.component';
 import { environment } from '../../../environments/environment';
 
@@ -16,7 +17,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
 
 @Component({
   selector: 'app-medication-checkin',
-  imports: [CardComponent, RouterLink, MedicationDotsStripComponent, SkeletonComponent],
+  imports: [CardComponent, RouterLink, MedicationDotsStripComponent, SkeletonComponent, CheckmarkIconComponent, ChevronRightIconComponent, XIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-card class="card">
@@ -24,9 +25,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         <h2>Medication check-in</h2>
         <a class="manage-link" routerLink="/medications">
           Manage medications
-          <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-          </svg>
+          <app-icon-chevron-right class="link-arrow" />
         </a>
         <p class="muted">Today: {{ todayLocalDate() }}</p>
       </div>
@@ -94,9 +93,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
                       [disabled]="isSaving(medication.id)"
                       (click)="markMedication(medication, 'not_taken')"
                     >
-                      <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                      </svg>
+                      <app-icon-checkmark class="status-icon" />
                       Taken
                     </button>
                   }
@@ -107,9 +104,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
                       [disabled]="isSaving(medication.id)"
                       (click)="markMedication(medication, 'taken')"
                     >
-                      <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                      </svg>
+                      <app-icon-x class="status-icon" />
                       Skipped
                     </button>
                   }
@@ -120,9 +115,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
                       [disabled]="isSaving(medication.id)"
                       (click)="markMedication(medication, 'taken')"
                     >
-                      <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                      </svg>
+                      <app-icon-checkmark class="status-icon" />
                       Take
                     </button>
                   }
@@ -160,8 +153,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         color: var(--color-primary, #0c4a6e);
       }
       .link-arrow {
-        width: 16px;
-        height: 16px;
+        font-size: 16px;
       }
       h2 {
         margin: 0 0 var(--space-1, 0.25rem);
@@ -282,8 +274,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         cursor: not-allowed;
       }
       .status-icon {
-        width: 16px;
-        height: 16px;
+        font-size: 16px;
         flex-shrink: 0;
       }
       .status-button.pending {

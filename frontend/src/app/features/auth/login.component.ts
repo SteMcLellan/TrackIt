@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { AuthService } from '../../shared/services/auth.service';
 import { GoogleIdentityService } from '../../shared/services/google-identity.service';
-import { CardComponent } from '../../shared/ui/card/card.component';
+import { CardComponent } from '../../shared/ui/card.component';
 import { TrackItLogoIconComponent } from '../../shared/ui/icons/trackit-logo-icon.component';
 
 /**

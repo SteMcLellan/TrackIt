@@ -3,7 +3,7 @@ import { httpResource } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
-import { CardComponent } from '../../shared/ui/card/card.component';
+import { CardComponent } from '../../shared/ui/card.component';
 import { BehaviorIncident, BehaviorFunction } from '../../shared/models/behavior-incident';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { environment } from '../../../environments/environment';

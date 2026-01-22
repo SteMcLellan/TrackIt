@@ -7,10 +7,22 @@ import { AuthService } from '../../services/auth.service';
 import { ParticipantService } from '../../services/participant.service';
 import { Participant } from '../../models/participant';
 import { environment } from '../../../../environments/environment';
+import {
+  HomeIconComponent,
+  MedicationsIconComponent,
+  IncidentsIconComponent,
+  ParticipantsIconComponent
+} from '../icons';
 
 @Component({
   selector: 'app-top-sheet-menu',
-  imports: [RouterLink],
+  imports: [
+    RouterLink,
+    HomeIconComponent,
+    MedicationsIconComponent,
+    IncidentsIconComponent,
+    ParticipantsIconComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isAuthenticated() && !hideOnAuthPage()) {
@@ -69,35 +81,19 @@ import { environment } from '../../../../environments/environment';
           <div class="section-label">Navigate</div>
           <div class="nav-grid">
             <a class="nav-link" routerLink="/home" (click)="closeMenu()">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
+              <app-icon-home class="nav-icon" />
               <span>Home</span>
             </a>
             <a class="nav-link" routerLink="/medications" (click)="closeMenu()">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10.5 20.5L3.5 13.5a4.95 4.95 0 1 1 7-7l7 7a4.95 4.95 0 0 1-7 7z"/>
-                <path d="M8.5 8.5l7 7"/>
-              </svg>
+              <app-icon-medications class="nav-icon" />
               <span>Medications</span>
             </a>
             <a class="nav-link" routerLink="/incidents" (click)="closeMenu()">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
+              <app-icon-incidents class="nav-icon" />
               <span>Incidents</span>
             </a>
             <a class="nav-link" routerLink="/participants" (click)="closeMenu()">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
+              <app-icon-participants class="nav-icon" />
               <span>Participants</span>
             </a>
           </div>
@@ -235,8 +231,7 @@ import { environment } from '../../../../environments/environment';
     }
 
     .nav-icon {
-      width: 24px;
-      height: 24px;
+      font-size: 24px;
       color: var(--color-primary, #0c4a6e);
     }
 

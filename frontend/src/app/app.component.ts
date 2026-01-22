@@ -1,8 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { PageHeaderComponent } from './shared/ui/page-header/page-header.component';
-import { TopSheetMenuComponent } from './shared/ui/top-sheet-menu/top-sheet-menu.component';
-import { BottomNavComponent } from './shared/ui/bottom-nav/bottom-nav.component';
+import { PageHeaderComponent, TopSheetMenuComponent, BottomNavComponent } from './shared/ui/page';
 
 /**
  * Root application shell that hosts the router outlet and navigation.

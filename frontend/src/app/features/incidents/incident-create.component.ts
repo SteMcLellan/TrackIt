@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CardComponent } from '../../shared/ui/card/card.component';
-import { ChipSelectorComponent } from '../../shared/components/chip-selector.component';
+import { CardComponent } from '../../shared/ui/card.component';
+import { ChipSelectorComponent } from '../../shared/ui/chip-selector.component';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { BehaviorIncidentService } from '../../shared/services/behavior-incident.service';
 import { BehaviorFunction } from '../../shared/models/behavior-incident';
