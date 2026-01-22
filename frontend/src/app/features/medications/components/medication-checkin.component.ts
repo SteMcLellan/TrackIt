@@ -37,7 +37,6 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         <a class="button secondary" routerLink="/medications">Open daily log</a>
       } @else if (activeMedicationsForToday().length === 0) {
         <p class="muted">No active medications for today.</p>
-        <a class="button" routerLink="/medications/list">Add medication</a>
       } @else {
         @if (saveError()) {
           <p class="error" role="alert">{{ saveError() }}</p>
@@ -49,7 +48,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
                 <div class="title">{{ medication.name }}</div>
                 <div class="meta">
                   <span>{{ medication.dosageText }}</span>
-                  <span class="dot">·</span>
+                  <span class="dot">&middot;</span>
                   <span>{{ frequencyLabel(medication.frequencyText) }}</span>
                 </div>
                 </div>

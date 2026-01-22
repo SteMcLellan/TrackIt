@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { CardComponent } from '../../shared/ui/card/card.component';
@@ -51,36 +51,49 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
                 <button
                   type="button"
                   class="date-button"
-                  [class.active]="logLocalDate() === day.date && !showCustomPicker()"
+                  [class.active]="logLocalDate() === day.date"
                   (click)="selectQuickDate(day.date)"
                 >
-                  <span class="date-label">{{ day.label }}</span>
-                  <span class="date-value">{{ day.shortDate }}</span>
+                  <span class="calendar-month">{{ day.monthShort }}</span>
+                  <span class="calendar-day">{{ day.dayOfMonth }}</span>
+                  <span class="calendar-label">{{ day.label }}</span>
                 </button>
               }
+            </div>
+            <div class="custom-row">
               <button
                 type="button"
-                class="date-button custom"
-                [class.active]="showCustomPicker() || isCustomDate()"
-                (click)="openCustomPicker()"
+                class="custom-trigger"
+                [class.active]="isCustomDate()"
+                (click)="openNativeDatePicker()"
+                aria-controls="logDate"
+                aria-label="Select another date"
               >
-                <span class="date-label">Custom</span>
-                <span class="date-value">{{ isCustomDate() ? formatShortDate(logLocalDate()) : '...' }}</span>
+                <svg class="custom-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path
+                    fill-rule="evenodd"
+                    d="M6 1a1 1 0 011 1v1h6V2a1 1 0 112 0v1h.5A2.5 2.5 0 0118 5.5v11A2.5 2.5 0 0115.5 19h-11A2.5 2.5 0 012 16.5v-11A2.5 2.5 0 014.5 3H5V2a1 1 0 011-1zm9 6H5a1 1 0 100 2h10a1 1 0 100-2z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span>Other date</span>
+                @if (isCustomDate()) {
+                  <span class="custom-selected">{{ formatMonthDay(logLocalDate()) }}</span>
+                }
               </button>
+              <input
+                #logDateInput
+                id="logDate"
+                class="date-input-hidden"
+                type="date"
+                [min]="minLogDate()"
+                [max]="maxLogDate()"
+                [value]="logLocalDate()"
+                (change)="onCustomDateChange($event)"
+                aria-hidden="true"
+                tabindex="-1"
+              />
             </div>
-            @if (showCustomPicker()) {
-              <div class="custom-picker">
-                <input
-                  id="logDate"
-                  type="date"
-                  [min]="minLogDate()"
-                  [max]="maxLogDate()"
-                  [value]="logLocalDate()"
-                  (change)="onCustomDateChange($event)"
-                />
-                <span class="hint">Up to 30 days back</span>
-              </div>
-            }
           </div>
         }
       </app-card>
@@ -115,8 +128,17 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         } @else if (medicationsResource.error()) {
           <p class="error" role="alert">Unable to load medications.</p>
         } @else if (activeMedicationsForDate().length === 0) {
-          <p class="muted">No active medications for this date.</p>
-          <a class="add-button" routerLink="/medications/list">Add medication</a>
+          @if (medications().length === 0) {
+            <p class="muted">
+              You don't have any medications assigned.
+              <a class="text-link" routerLink="/medications/list">Add a medication</a> to get started tracking.
+            </p>
+          } @else {
+            <p class="muted">
+              No active medications for this date.
+              <a class="text-link" routerLink="/medications/list">Review your medication list</a>.
+            </p>
+          }
         } @else if (logsResource.isLoading()) {
           <ul class="list" role="list" aria-label="Loading log entries">
             @for (i of [1, 2, 3]; track i) {
@@ -251,20 +273,14 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         margin: 0;
         color: var(--color-text-muted, #64748b);
       }
-      .add-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
-        background: var(--color-primary, #0c4a6e);
-        color: #fff;
-        padding: 0.6rem 1rem;
-        border-radius: var(--radius-full, 999px);
-        text-decoration: none;
-        font-weight: 600;
-        font-size: var(--font-size-sm, 0.8125rem);
-        border: none;
-        cursor: pointer;
+      .text-link {
+        color: var(--color-primary, #0c4a6e);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        font-weight: 650;
+      }
+      .text-link:hover {
+        text-decoration-thickness: 2px;
       }
       .select-link {
         display: inline-flex;
@@ -287,21 +303,46 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       }
       .quick-dates {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: var(--space-2, 0.5rem);
       }
       .date-button {
         border: 1px solid #e2e8f0;
-        background: #fff;
+        background: #fffef8;
         border-radius: var(--radius-2, 0.5rem);
         padding: 0.65rem 0.75rem;
         text-align: left;
         cursor: pointer;
         display: grid;
-        gap: 0.15rem;
+        gap: 0.1rem;
+        position: relative;
+        overflow: hidden;
         transition: border-color var(--transition-fast, 120ms ease),
                     box-shadow var(--transition-fast, 120ms ease),
                     background var(--transition-fast, 120ms ease);
+      }
+      .date-button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 10px;
+        background: linear-gradient(to bottom, #f1f5f9, #fff);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+      }
+      .date-button::after {
+        content: '';
+        position: absolute;
+        top: 5px;
+        left: 12px;
+        width: 26px;
+        height: 6px;
+        background:
+          radial-gradient(circle at 4px 3px, rgba(148, 163, 184, 0.7) 0 2px, transparent 2.5px),
+          radial-gradient(circle at 22px 3px, rgba(148, 163, 184, 0.7) 0 2px, transparent 2.5px);
+        pointer-events: none;
+        opacity: 0.9;
       }
       .date-button:hover {
         border-color: #cbd5f5;
@@ -312,30 +353,77 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         background: rgba(12, 74, 110, 0.08);
         box-shadow: 0 4px 10px rgba(12, 74, 110, 0.18);
       }
-      .date-button.custom {
-        border-style: dashed;
+      .custom-row {
+        display: flex;
+        justify-content: flex-end;
       }
-      .date-label {
+      .custom-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.75rem;
+        border-radius: var(--radius-full, 999px);
+        border: 1px dashed #cbd5f5;
+        background: #fffef8;
+        color: #0f172a;
+        font-weight: 650;
         font-size: var(--font-size-sm, 0.8125rem);
-        font-weight: 600;
-        color: var(--color-text-muted, #64748b);
+        cursor: pointer;
+        transition: border-color var(--transition-fast, 120ms ease),
+                    box-shadow var(--transition-fast, 120ms ease),
+                    background var(--transition-fast, 120ms ease);
       }
-      .date-value {
-        font-size: 1rem;
+      .custom-trigger:hover {
+        border-color: #94a3b8;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+      }
+      .custom-trigger.active {
+        border-style: solid;
+        border-color: var(--color-primary, #0c4a6e);
+        background: rgba(12, 74, 110, 0.08);
+        box-shadow: 0 4px 10px rgba(12, 74, 110, 0.18);
+      }
+      .date-input-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      .custom-icon {
+        width: 16px;
+        height: 16px;
+        color: rgba(71, 85, 105, 0.85);
+        flex-shrink: 0;
+      }
+      .custom-selected {
+        padding: 0.15rem 0.5rem;
+        border-radius: var(--radius-full, 999px);
+        background: rgba(15, 23, 42, 0.06);
+        font-weight: 750;
+      }
+      .calendar-month {
+        margin-top: 8px;
+        font-size: 0.75rem;
         font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgba(71, 85, 105, 0.85);
+      }
+      .calendar-day {
+        font-size: 1.65rem;
+        line-height: 1.1;
+        font-weight: 800;
         color: #0f172a;
       }
-      .custom-picker {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2, 0.5rem);
-        align-items: center;
-      }
-      .custom-picker input[type='date'] {
-        padding: 0.5rem 0.6rem;
-        border-radius: var(--radius-2, 0.5rem);
-        border: 1px solid #cbd5f5;
-        font-family: inherit;
+      .calendar-label {
+        font-size: 0.78rem;
+        font-weight: 650;
+        color: var(--color-text-muted, #64748b);
       }
       .field label {
         display: block;
@@ -477,6 +565,8 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
   ]
 })
 export class MedicationLogComponent {
+  @ViewChild('logDateInput') private logDateInput?: ElementRef<HTMLInputElement>;
+
   private readonly participants = inject(ParticipantService);
   private readonly medicationsApi = inject(MedicationService);
   private readonly logsApi = inject(MedicationLogService);
@@ -485,18 +575,18 @@ export class MedicationLogComponent {
   private readonly refreshTick = signal(0);
   readonly logLocalDate = signal(this.formatLocalDate(new Date()));
   readonly savingMap = signal<Record<string, boolean>>({});
-  readonly showCustomPicker = signal(false);
 
   readonly quickDates = computed(() => {
     const today = new Date();
-    const offsets = [0, 1, 2];
+    const offsets = [2, 1, 0];
     return offsets.map((offset) => {
       const date = new Date(today);
       date.setDate(today.getDate() - offset);
       return {
         date: this.formatLocalDate(date),
         label: offset === 0 ? 'Today' : offset === 1 ? 'Yesterday' : 'Two days ago',
-        shortDate: this.formatShortDate(date)
+        monthShort: this.formatMonthShort(date),
+        dayOfMonth: String(date.getDate())
       };
     });
   });
@@ -580,11 +670,24 @@ export class MedicationLogComponent {
 
   selectQuickDate(date: string) {
     this.logLocalDate.set(date);
-    this.showCustomPicker.set(false);
   }
 
-  openCustomPicker() {
-    this.showCustomPicker.set(true);
+  openNativeDatePicker() {
+    const input = this.logDateInput?.nativeElement;
+    if (!input) {
+      return;
+    }
+
+    input.value = this.logLocalDate();
+
+    const inputWithPicker = input as HTMLInputElement & { showPicker?: () => void };
+    if (typeof inputWithPicker.showPicker === 'function') {
+      inputWithPicker.showPicker();
+      return;
+    }
+
+    input.focus();
+    input.click();
   }
 
   onCustomDateChange(event: Event) {
@@ -593,7 +696,6 @@ export class MedicationLogComponent {
       return;
     }
     this.logLocalDate.set(target.value);
-    this.showCustomPicker.set(false);
   }
 
   isCustomDate() {
@@ -670,5 +772,13 @@ export class MedicationLogComponent {
       );
     }
     return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(date);
+  }
+
+  formatMonthDay(date: string) {
+    return this.formatShortDate(date);
+  }
+
+  private formatMonthShort(date: Date) {
+    return new Intl.DateTimeFormat(undefined, { month: 'short' }).format(date);
   }
 }

@@ -83,12 +83,6 @@ type RangeOption = {
         } @else if (recentIncidents().length === 0) {
           <div class="empty-state">
             <p class="muted">No incidents recorded yet.</p>
-            <a class="log-button" routerLink="/incidents/new">
-              <svg class="log-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-              </svg>
-              Log incident
-            </a>
           </div>
         } @else {
           <ul class="incidents" role="list">
@@ -98,7 +92,7 @@ type RangeOption = {
                   <div class="title">{{ formatDateTime(incident.occurredAtUtc) }}</div>
                   <div class="meta">
                     <span>{{ functionLabels[incident.function] }}</span>
-                    <span class="dot">·</span>
+                    <span class="dot">&middot;</span>
                     <span>{{ incident.place }}</span>
                   </div>
                 </div>
@@ -106,12 +100,6 @@ type RangeOption = {
               </li>
             }
           </ul>
-          <a class="log-button" routerLink="/incidents/new">
-            <svg class="log-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-            Log incident
-          </a>
         }
       </app-card>
     </div>
@@ -204,31 +192,6 @@ type RangeOption = {
       margin: 0;
       color: #b91c1c;
       font-weight: 600;
-    }
-    .log-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      background: var(--color-primary, #0c4a6e);
-      color: #fff;
-      padding: 0.6rem 1rem;
-      border-radius: var(--radius-full, 999px);
-      text-decoration: none;
-      font-weight: 600;
-      font-size: var(--font-size-sm, 0.8125rem);
-      margin-top: var(--space-3, 0.75rem);
-      transition: transform var(--transition-fast, 120ms ease), box-shadow var(--transition-fast, 120ms ease);
-    }
-    .log-button:hover {
-      box-shadow: 0 2px 8px rgba(12, 74, 110, 0.25);
-    }
-    .log-button:active {
-      transform: scale(0.97);
-    }
-    .log-icon {
-      width: 16px;
-      height: 16px;
     }
     .link-pill {
       display: inline-flex;
