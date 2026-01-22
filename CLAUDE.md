@@ -9,6 +9,49 @@
 - **Database:** Azure Cosmos DB (NoSQL)
 - **Auth:** Google OAuth → JWT (HMAC signed)
 
+## UI/UX Design Principles
+
+**Philosophy:** Modern, mobile-first web application prioritizing quick information access and low-friction data entry.
+
+### Core Principles
+
+1. **Mobile-First Design** - Design for small screens first, then scale up for larger viewports
+2. **Quick Access** - Surface important information immediately; minimize taps/clicks to reach key data
+3. **Low-Friction Recording** - Streamline entry of events, medications, and incidents; prefer single-tap actions where possible
+4. **Thumb-Friendly** - Place primary actions within easy thumb reach on mobile
+
+### Mobile Layout Rules
+
+- **No horizontal scrolling** - Content must fit within viewport width at all screen sizes
+- **Nothing off-screen** - All interactive elements must be fully visible and accessible
+- **Use `max-width: 100%`** - Prevent elements from overflowing their containers
+- **Responsive text** - Avoid fixed pixel widths that break on small screens
+- **Touch targets** - Minimum 44x44px for tappable elements
+
+```css
+/* ✅ Correct - Responsive container */
+.container {
+  width: 100%;
+  max-width: 600px;
+  padding: var(--space-4);
+}
+
+/* ❌ Wrong - Fixed width breaks mobile */
+.container {
+  width: 600px;
+}
+```
+
+### Testing UI Changes
+
+**Target Device:** iPhone 14 and later models (390px viewport width)
+
+Always verify UI changes at mobile viewport sizes (375px width minimum). Check for:
+- Horizontal overflow causing scrollbars
+- Elements clipped or hidden off-screen
+- Text wrapping correctly
+- Touch targets adequately sized
+
 ## Critical Patterns Unique to This Codebase
 
 ### 1. Signal-Based State (Not RxJS)
@@ -159,6 +202,10 @@ Most features require an active participant selected:
 ❌ Don't forget `authorize()` in API functions
 ❌ Don't use default change detection (always OnPush)
 ❌ Don't create separate .html/.css files (inline templates/styles)
+❌ Don't use fixed pixel widths that break mobile layouts
+❌ Don't create UI that causes horizontal scrolling on mobile
+❌ Don't make touch targets smaller than 44x44px
+❌ Don't skip mobile viewport testing for UI changes
 
 ## Common Tasks
 
