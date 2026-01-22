@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { AuthService } from '../../shared/services/auth.service';
 import { GoogleIdentityService } from '../../shared/services/google-identity.service';
 import { CardComponent } from '../../shared/ui/card/card.component';
+import { TrackItLogoIconComponent } from '../../shared/ui/icons/trackit-logo-icon.component';
 
 /**
  * Sign-in screen that initializes the Google Identity Services button.
@@ -12,42 +13,145 @@ import { CardComponent } from '../../shared/ui/card/card.component';
  */
 @Component({
   selector: 'app-login',
-  imports: [CardComponent],
+  imports: [CardComponent, TrackItLogoIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-card style="max-width: 420px; margin: 2rem auto;">
-      <p class="app-title">TrackIt — ADHD Symptoms</p>
-      <h1>Sign in as a Parent</h1>
-      <p>Use your Google account to access your child's TrackIt Home.</p>
-      @if (isLoadingGoogle()) {
-        <p class="loading">Loading sign-in...</p>
-      }
-      <div id="g_id_signin"></div>
-      @if (googleError()) {
-        <p class="error">{{ googleError() }}</p>
-      }
-      @if (error) {
-        <p class="error">{{ error }}</p>
-      }
-    </app-card>
+    <div class="page">
+      <main class="shell">
+        <header class="hero">
+          <div class="brand">
+            <div class="logo-badge" aria-hidden="true">
+              <app-icon-trackit-logo class="logo" />
+            </div>
+            <div class="brand-text">
+              <div class="brand-name">TrackIt</div>
+              <div class="brand-tagline">Caregiver tools for daily tracking</div>
+            </div>
+          </div>
+        </header>
+
+        <app-card class="card">
+          <h1>Sign in</h1>
+          <p class="subhead">Use your Google account to continue.</p>
+
+          <div class="signin-panel" aria-label="Google sign-in" aria-live="polite">
+            @if (isLoadingGoogle()) {
+              <p class="loading">Loading sign-in...</p>
+            }
+            <div id="g_id_signin"></div>
+          </div>
+
+          @if (googleError()) {
+            <p class="error" role="alert">{{ googleError() }}</p>
+          }
+          @if (error) {
+            <p class="error" role="alert">{{ error }}</p>
+          }
+
+          <p class="fineprint">Secure sign-in via Google.</p>
+        </app-card>
+      </main>
+    </div>
   `,
   styles: [`
-    .app-title {
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #64748b;
-      margin-bottom: 0.5rem;
+    .page {
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: calc(var(--space-5, 1.5rem) + env(safe-area-inset-top, 0px))
+        var(--container-padding, var(--space-3, 0.75rem))
+        calc(var(--space-5, 1.5rem) + env(safe-area-inset-bottom, 0px));
+      background:
+        radial-gradient(900px circle at 50% 0%, rgba(12, 74, 110, 0.14), transparent 55%),
+        var(--color-bg, #f1f5f9);
+    }
+    .shell {
+      width: 100%;
+      max-width: 420px;
+      display: grid;
+      gap: var(--space-5, 1.5rem);
+    }
+    .hero {
+      display: grid;
+      gap: var(--space-4, 1rem);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3, 0.75rem);
+    }
+    .logo-badge {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: rgba(12, 74, 110, 0.12);
+      color: var(--color-primary, #0c4a6e);
+      box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
+      border: 1px solid rgba(12, 74, 110, 0.18);
+    }
+    .logo {
+      width: 28px;
+      height: 28px;
+    }
+    .brand-text {
+      display: grid;
+      gap: 0.1rem;
+    }
+    .brand-name {
+      font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+    .brand-tagline {
+      color: var(--color-text-muted, #64748b);
+      font-weight: 600;
+      font-size: var(--font-size-sm, 0.8125rem);
+    }
+    .card {
+      display: grid;
+      gap: var(--space-3, 0.75rem);
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .subhead {
+      margin: 0;
+      color: var(--color-text-muted, #64748b);
+      font-weight: 550;
+    }
+    .signin-panel {
+      display: grid;
+      gap: var(--space-2, 0.5rem);
+      padding: var(--space-3, 0.75rem);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: var(--radius-2, 0.5rem);
+      background: #f8fafc;
+    }
+    #g_id_signin {
+      display: flex;
+      justify-content: center;
     }
     .loading {
-      margin-top: 1rem;
-      color: #64748b;
+      margin: 0;
+      color: var(--color-text-muted, #64748b);
       font-style: italic;
     }
     .error {
-      margin-top: 1rem;
+      margin: 0;
       color: #b91c1c;
-      font-weight: 600;
+      font-weight: 650;
+    }
+    .fineprint {
+      margin: 0;
+      color: var(--color-text-muted, #64748b);
+      font-size: var(--font-size-xs, 0.75rem);
     }
   `]
 })
