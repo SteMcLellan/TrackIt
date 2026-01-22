@@ -6,77 +6,99 @@ type LogStatus = 'taken' | 'not_taken' | null;
   selector: 'app-medication-dots-strip',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (showRangeLabels()) {
-      <div class="labels" aria-hidden="true">
-        <span>{{ leftLabel() }}</span>
-        <span>{{ rightLabel() }}</span>
+    <div class="container">
+      <div class="strip" role="list">
+        @for (day of dates(); track day; let isLast = $last) {
+          <span
+            class="dot"
+            [class.taken]="status(day) === 'taken'"
+            [class.skipped]="status(day) === 'not_taken'"
+            [class.pending]="!status(day) && isActiveOn(day)"
+            [class.inactive]="!isActiveOn(day)"
+            [class.today]="isLast"
+            [attr.aria-label]="day + ': ' + ariaStatusLabel(day)"
+            role="listitem"
+          ></span>
+        }
       </div>
-    }
-    <div class="strip" role="list">
-      @for (day of dates(); track day) {
-        <span
-          class="day"
-          [class.taken]="status(day) === 'taken'"
-          [class.not-taken]="status(day) === 'not_taken'"
-          [class.not-logged]="!status(day)"
-          [class.inactive]="!isActiveOn(day)"
-          [attr.aria-label]="day + ': ' + ariaStatusLabel(day)"
-          role="listitem"
-        ></span>
+      @if (showRangeLabels()) {
+        <div class="labels" aria-hidden="true">
+          <span class="label-left">{{ leftLabel() }}</span>
+          <span class="label-right">{{ rightLabel() }}</span>
+        </div>
       }
     </div>
   `,
   styles: [
     `
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        min-width: 0;
+      }
+      .strip {
+        display: flex;
+        gap: 3px;
+        align-items: center;
+        padding: 6px 8px;
+        background: #f8fafc;
+        border-radius: var(--radius-2, 0.5rem);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .strip::-webkit-scrollbar {
+        display: none;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        min-width: 10px;
+        border-radius: 3px;
+        background: #e2e8f0;
+        transition: transform var(--transition-fast, 120ms ease);
+      }
+      .dot.today {
+        width: 12px;
+        height: 12px;
+        min-width: 12px;
+      }
+      .dot.taken {
+        background: #86efac;
+      }
+      .dot.taken.today {
+        background: #4ade80;
+        box-shadow: 0 0 0 2px #f8fafc, 0 0 0 3px #4ade80;
+      }
+      .dot.skipped {
+        background: #fcd34d;
+      }
+      .dot.skipped.today {
+        background: #fbbf24;
+        box-shadow: 0 0 0 2px #f8fafc, 0 0 0 3px #fbbf24;
+      }
+      .dot.pending {
+        background: #cbd5e1;
+      }
+      .dot.pending.today {
+        background: #94a3b8;
+        box-shadow: 0 0 0 2px #f8fafc, 0 0 0 3px #94a3b8;
+      }
+      .dot.inactive {
+        background: transparent;
+        border: 1px dashed #e2e8f0;
+      }
       .labels {
         display: flex;
         justify-content: space-between;
-        gap: 0.5rem;
-        margin-bottom: 0.25rem;
-        color: var(--color-text-muted, #64748b);
-        font-size: 0.85rem;
-        font-weight: 600;
+        padding: 0 2px;
       }
-      .strip {
-        display: grid;
-        grid-auto-flow: column;
-        gap: 0.35rem;
-        align-items: center;
-        justify-content: start;
-      }
-      .day {
-        width: 0.75rem;
-        height: 0.75rem;
-        border-radius: 999px;
-        background: #e2e8f0;
-        border: 1px solid transparent;
-      }
-      .day.taken {
-        background: #22c55e;
-        border-color: #16a34a;
-      }
-      .day.not-taken {
-        background: #fff;
-        border-color: #ef4444;
-        position: relative;
-      }
-      .day.not-taken::after {
-        content: '';
-        position: absolute;
-        width: 120%;
-        height: 2px;
-        background: #ef4444;
-        top: 50%;
-        left: -10%;
-        transform: rotate(-35deg);
-      }
-      .day.not-logged {
-        background: #f1f5f9;
-      }
-      .day.inactive {
-        background: transparent;
-        border-color: #e2e8f0;
-        opacity: 0.5;
+      .label-left,
+      .label-right {
+        font-size: 0.7rem;
+        color: var(--color-text-muted, #94a3b8);
+        font-weight: 500;
+        letter-spacing: 0.01em;
       }
     `
   ]

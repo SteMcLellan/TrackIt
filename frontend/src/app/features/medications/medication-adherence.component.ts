@@ -27,19 +27,28 @@ type RangeOption = {
     <div class="layout">
       <app-card class="card">
         <div class="header">
-          <div>
-            <h2>Adherence history</h2>
-            <p class="muted">Review recent medication adherence by day.</p>
+          <h2>Adherence history</h2>
+          <div class="header-links">
+            <a class="manage-link" routerLink="/medications">
+              Daily log
+              <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+              </svg>
+            </a>
+            <span class="link-sep">·</span>
+            <a class="manage-link" routerLink="/medications/list">
+              Medication list
+              <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+              </svg>
+            </a>
           </div>
-          <div class="header-actions">
-            <a class="button secondary" routerLink="/medications">Daily log</a>
-            <a class="button secondary" routerLink="/medications/list">Medication list</a>
-          </div>
+          <p class="muted">Review recent medication adherence by day.</p>
         </div>
 
         @if (!activeParticipantId()) {
           <p class="error" role="alert">Select a participant to view adherence.</p>
-          <a class="button secondary" routerLink="/participants">Select participant</a>
+          <a class="select-link" routerLink="/participants">Select participant →</a>
         } @else {
           <div class="filters">
             <div class="range">
@@ -64,10 +73,8 @@ type RangeOption = {
 
       <app-card class="card">
         <div class="header">
-          <div>
-            <h2>Medication summary</h2>
-            <p class="muted">Dots represent each day in the selected range.</p>
-          </div>
+          <h2>Medication summary</h2>
+          <p class="muted">Dots represent each day in the selected range.</p>
         </div>
 
         @if (!activeParticipantId()) {
@@ -78,7 +85,7 @@ type RangeOption = {
           <p class="error" role="alert">Unable to load adherence history.</p>
         } @else if (visibleMedications().length === 0) {
           <p class="muted">No medications to display.</p>
-          <a class="button" routerLink="/medications/list">Add medication</a>
+          <a class="add-button" routerLink="/medications/list">Add medication</a>
         } @else {
           <div class="dots-header" aria-hidden="true" [style.--dot-count]="rangeDates().length">
             <span>{{ dotsHeader().left }}</span>
@@ -120,42 +127,68 @@ type RangeOption = {
         box-sizing: border-box;
       }
       .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--space-3, 0.75rem);
-        flex-wrap: wrap;
+        display: grid;
+        gap: var(--space-1, 0.25rem);
         margin-bottom: var(--space-3, 0.75rem);
       }
-      .header-actions {
+      .header-links {
         display: flex;
+        align-items: center;
         gap: var(--space-2, 0.5rem);
         flex-wrap: wrap;
       }
+      .manage-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: var(--color-text-muted, #64748b);
+        text-decoration: none;
+        font-size: var(--font-size-sm, 0.8125rem);
+        font-weight: 500;
+        transition: color var(--transition-fast, 120ms ease);
+      }
+      .manage-link:hover {
+        color: var(--color-primary, #0c4a6e);
+      }
+      .link-arrow {
+        width: 16px;
+        height: 16px;
+      }
+      .link-sep {
+        color: var(--color-text-muted, #94a3b8);
+      }
       h2 {
-        margin: 0 0 var(--space-1, 0.25rem);
+        margin: 0;
+        font-size: var(--font-size-lg, 1.125rem);
+        font-weight: 600;
       }
       .muted {
         margin: 0;
         color: var(--color-text-muted, #64748b);
+        font-size: var(--font-size-sm, 0.8125rem);
       }
-      .button {
+      .add-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         background: var(--color-primary, #0c4a6e);
         color: #fff;
-        padding: 0.55rem 1.1rem;
-        border-radius: var(--radius-2, 0.5rem);
+        padding: 0.6rem 1rem;
+        border-radius: var(--radius-full, 999px);
         text-decoration: none;
         font-weight: 600;
+        font-size: var(--font-size-sm, 0.8125rem);
         border: none;
         cursor: pointer;
       }
-      .button.secondary {
-        background: #fff;
+      .select-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
         color: var(--color-primary, #0c4a6e);
-        border: 1px solid var(--color-primary, #0c4a6e);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: var(--font-size-sm, 0.8125rem);
       }
       .filters {
         display: flex;

@@ -13,12 +13,14 @@ import { ParticipantCreateComponent } from './features/participants/participant-
 import { ParticipantDetailComponent } from './features/participants/participant-detail.component';
 import { ParticipantListComponent } from './features/participants/participant-list.component';
 import { ParticipantStartComponent } from './features/participants/participant-start.component';
+import { InviteAcceptComponent } from './features/invites/invite-accept.component';
 
 /**
  * Application routes for the TrackIt frontend.
  */
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
+  { path: 'invite/:participantId/:inviteId', component: InviteAcceptComponent, canActivate: [AuthGuard] },
   { path: 'home', component: HomeComponent, canActivate: [AuthGuard, ActiveParticipantGuard] },
   { path: 'incidents', component: IncidentListComponent, canActivate: [AuthGuard] },
   { path: 'incidents/new', component: IncidentCreateComponent, canActivate: [AuthGuard] },

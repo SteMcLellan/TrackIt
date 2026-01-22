@@ -216,17 +216,17 @@ Auth / redirect behavior (required for invite acceptance):
 - [x] UI: Expiration is displayed (friendly) based on `expiresAt`.
 
 ### Story 2: Accept an invite
-- [ ] Frontend: invite route exists (`/invite/:participantId/:inviteId`) and calls accept endpoint.
-- [ ] Auth: unauthenticated users are redirected to login and returned to the invite route after login.
-- [ ] API: accept is idempotent for already-linked users (no duplicates).
-- [ ] UI: success state offers “Set as active participant” and navigation actions.
-- [ ] UI: invalid/expired/used invites show a clear error + next action.
+- [x] Frontend: invite route exists (`/invite/:participantId/:inviteId`) and calls accept endpoint.
+- [x] Auth: unauthenticated users are redirected to login and returned to the invite route after login.
+- [x] API: accept is idempotent for already-linked users (no duplicates).
+- [x] UI: success state offers "Set as active participant" and navigation actions.
+- [x] UI: invalid/expired/used invites show a clear error + next action.
 
 ### Story 3: View participant members
-- [ ] API: `GET /participants/{participantId}/members` returns member list for managers only.
-- [ ] UI: Participant detail shows members list, marks “me”, and avoids showing emails by default.
+- [x] API: `GET /participants/{participantId}/members` returns member list for managers only.
+- [x] UI: Participant detail shows members list, marks "me", and avoids showing emails by default.
 
 ### Story 4: Revoke access
-- [ ] API: `DELETE /participants/{participantId}/members/{userId}` removes association from both link containers.
-- [ ] UI: revoke is a secondary action with a confirmation step.
-- [ ] Safety: cannot revoke self (MVP) and cannot remove the last manager (MVP).
+- [x] API: `DELETE /participants/{participantId}/members/{userId}` removes association from both link containers.
+- [x] UI: revoke is a secondary action with a confirmation step.
+- [x] Safety: cannot revoke self (MVP) and cannot remove the last manager (MVP).

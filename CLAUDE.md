@@ -203,6 +203,18 @@ npm run format         # Apply Prettier
 npm run build          # Production build
 ```
 
+### Verifying Frontend Builds
+
+The user may have `npm run dev:frontend:log` running in the background. This runs the Angular dev server and writes build output to `dist/frontend/dev-frontend.log`.
+
+To check for compilation errors, read this log file instead of running a full build:
+```bash
+# Check the log file for build status
+cat dist/frontend/dev-frontend.log
+```
+
+Look for "Application bundle generation complete" to confirm success, or TypeScript errors if the build failed.
+
 ## Environment Variables
 
 **Frontend** (`environment.ts`):

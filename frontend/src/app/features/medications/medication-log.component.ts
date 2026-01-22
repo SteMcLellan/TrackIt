@@ -22,43 +22,73 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
     <div class="layout">
       <app-card class="card">
         <div class="header">
-          <div>
-            <h2>Medication log</h2>
-            <p class="muted">Quickly log today’s medications for the active participant.</p>
+          <h2>Medication log</h2>
+          <div class="header-links">
+            <a class="manage-link" routerLink="/medications/history">
+              Adherence
+              <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+              </svg>
+            </a>
+            <span class="link-sep">&middot;</span>
+            <a class="manage-link" routerLink="/medications/list">
+              Medication list
+              <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+              </svg>
+            </a>
           </div>
-          <div class="header-actions">
-            <a class="button secondary" routerLink="/medications/history">Adherence</a>
-            <a class="button secondary" routerLink="/medications/list">Medication list</a>
-          </div>
+          <p class="muted">Quickly log medications for the active participant.</p>
         </div>
 
         @if (!activeParticipantId()) {
           <p class="error" role="alert">Select a participant to log medications.</p>
-          <a class="button secondary" routerLink="/participants">Select participant</a>
+          <a class="select-link" routerLink="/participants">Select participant &rarr;</a>
         } @else {
-          <div class="filters">
-            <div class="field">
-              <label for="logDate">Log date</label>
-              <input
-                id="logDate"
-                type="date"
-                [min]="minLogDate()"
-                [max]="maxLogDate()"
-                [value]="logLocalDate()"
-                (change)="onDateChange($event)"
-              />
+          <div class="date-picker">
+            <div class="quick-dates" role="group" aria-label="Quick date selection">
+              @for (day of quickDates(); track day.date) {
+                <button
+                  type="button"
+                  class="date-button"
+                  [class.active]="logLocalDate() === day.date && !showCustomPicker()"
+                  (click)="selectQuickDate(day.date)"
+                >
+                  <span class="date-label">{{ day.label }}</span>
+                  <span class="date-value">{{ day.shortDate }}</span>
+                </button>
+              }
+              <button
+                type="button"
+                class="date-button custom"
+                [class.active]="showCustomPicker() || isCustomDate()"
+                (click)="openCustomPicker()"
+              >
+                <span class="date-label">Custom</span>
+                <span class="date-value">{{ isCustomDate() ? formatShortDate(logLocalDate()) : '...' }}</span>
+              </button>
             </div>
-            <div class="hint">You can edit logs up to the last 30 days.</div>
+            @if (showCustomPicker()) {
+              <div class="custom-picker">
+                <input
+                  id="logDate"
+                  type="date"
+                  [min]="minLogDate()"
+                  [max]="maxLogDate()"
+                  [value]="logLocalDate()"
+                  (change)="onCustomDateChange($event)"
+                />
+                <span class="hint">Up to 30 days back</span>
+              </div>
+            }
           </div>
         }
       </app-card>
 
       <app-card class="card">
         <div class="header">
-          <div>
-            <h2>Daily checklist</h2>
-            <p class="muted">Tap once to mark Taken or Not taken.</p>
-          </div>
+          <h2>Daily checklist</h2>
+          <p class="muted">Tap to mark medications as taken or skipped.</p>
         </div>
 
         @if (!activeParticipantId()) {
@@ -86,7 +116,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
           <p class="error" role="alert">Unable to load medications.</p>
         } @else if (activeMedicationsForDate().length === 0) {
           <p class="muted">No active medications for this date.</p>
-          <a class="button" routerLink="/medications/list">Add medication</a>
+          <a class="add-button" routerLink="/medications/list">Add medication</a>
         } @else if (logsResource.isLoading()) {
           <ul class="list" role="list" aria-label="Loading log entries">
             @for (i of [1, 2, 3]; track i) {
@@ -116,37 +146,52 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
                   <div class="title">{{ medication.name }}</div>
                   <div class="meta">
                     <span>{{ medication.dosageText }}</span>
-                    <span class="dot">·</span>
+                    <span class="dot">&middot;</span>
                     <span>{{ frequencyLabel(medication.frequencyText) }}</span>
-                  </div>
-                  <div class="status">
-                    <span
-                      class="badge"
-                      [class.taken]="logStatus(medication.id) === 'taken'"
-                      [class.not-taken]="logStatus(medication.id) === 'not_taken'"
-                      [class.not-logged]="!logStatus(medication.id)"
-                    >
-                      {{ statusLabel(logStatus(medication.id)) }}
-                    </span>
                   </div>
                 </div>
                 <div class="item-actions">
-                  <button
-                    class="button"
-                    type="button"
-                    [disabled]="isSaving(medication.id)"
-                    (click)="markMedication(medication, 'taken')"
-                  >
-                    Taken
-                  </button>
-                  <button
-                    class="button secondary"
-                    type="button"
-                    [disabled]="isSaving(medication.id)"
-                    (click)="markMedication(medication, 'not_taken')"
-                  >
-                    Not taken
-                  </button>
+                  @switch (logStatus(medication.id)) {
+                    @case ('taken') {
+                      <button
+                        class="status-button taken"
+                        type="button"
+                        [disabled]="isSaving(medication.id)"
+                        (click)="markMedication(medication, 'not_taken')"
+                      >
+                        <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        Taken
+                      </button>
+                    }
+                    @case ('not_taken') {
+                      <button
+                        class="status-button skipped"
+                        type="button"
+                        [disabled]="isSaving(medication.id)"
+                        (click)="markMedication(medication, 'taken')"
+                      >
+                        <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                        Skipped
+                      </button>
+                    }
+                    @default {
+                      <button
+                        class="status-button pending"
+                        type="button"
+                        [disabled]="isSaving(medication.id)"
+                        (click)="markMedication(medication, 'taken')"
+                      >
+                        <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        Take
+                      </button>
+                    }
+                  }
                 </div>
               </li>
             }
@@ -167,54 +212,130 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         box-sizing: border-box;
       }
       .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--space-3, 0.75rem);
-        flex-wrap: wrap;
+        display: grid;
+        gap: var(--space-1, 0.25rem);
         margin-bottom: var(--space-4, 1rem);
       }
-      .header-actions {
+      .header-links {
         display: flex;
+        align-items: center;
         gap: var(--space-2, 0.5rem);
         flex-wrap: wrap;
       }
+      .manage-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: var(--color-text-muted, #64748b);
+        text-decoration: none;
+        font-size: var(--font-size-sm, 0.8125rem);
+        font-weight: 500;
+        transition: color var(--transition-fast, 120ms ease);
+      }
+      .manage-link:hover {
+        color: var(--color-primary, #0c4a6e);
+      }
+      .link-arrow {
+        width: 16px;
+        height: 16px;
+      }
+      .link-sep {
+        color: var(--color-text-muted, #94a3b8);
+      }
       h2 {
-        margin: 0 0 var(--space-2, 0.5rem);
-        font-size: 1.35rem;
+        margin: 0;
+        font-size: var(--font-size-lg, 1.125rem);
+        font-weight: 600;
       }
       .muted {
         margin: 0;
         color: var(--color-text-muted, #64748b);
       }
-      .button {
+      .add-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         box-sizing: border-box;
         background: var(--color-primary, #0c4a6e);
         color: #fff;
-        padding: 0.7rem 1.1rem;
-        min-height: 44px;
-        border-radius: var(--radius-2, 0.5rem);
+        padding: 0.6rem 1rem;
+        border-radius: var(--radius-full, 999px);
         text-decoration: none;
         font-weight: 600;
+        font-size: var(--font-size-sm, 0.8125rem);
         border: none;
         cursor: pointer;
       }
-      .button.secondary {
-        background: #fff;
+      .select-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
         color: var(--color-primary, #0c4a6e);
-        border: 1px solid var(--color-primary, #0c4a6e);
-      }
-      .button[disabled] {
-        opacity: 0.55;
-        cursor: not-allowed;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: var(--font-size-sm, 0.8125rem);
       }
       .filters {
         display: grid;
         gap: var(--space-2, 0.5rem);
         margin-top: var(--space-2, 0.5rem);
+      }
+      .date-picker {
+        display: grid;
+        gap: var(--space-3, 0.75rem);
+        margin-top: var(--space-2, 0.5rem);
+      }
+      .quick-dates {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: var(--space-2, 0.5rem);
+      }
+      .date-button {
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        border-radius: var(--radius-2, 0.5rem);
+        padding: 0.65rem 0.75rem;
+        text-align: left;
+        cursor: pointer;
+        display: grid;
+        gap: 0.15rem;
+        transition: border-color var(--transition-fast, 120ms ease),
+                    box-shadow var(--transition-fast, 120ms ease),
+                    background var(--transition-fast, 120ms ease);
+      }
+      .date-button:hover {
+        border-color: #cbd5f5;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+      }
+      .date-button.active {
+        border-color: var(--color-primary, #0c4a6e);
+        background: rgba(12, 74, 110, 0.08);
+        box-shadow: 0 4px 10px rgba(12, 74, 110, 0.18);
+      }
+      .date-button.custom {
+        border-style: dashed;
+      }
+      .date-label {
+        font-size: var(--font-size-sm, 0.8125rem);
+        font-weight: 600;
+        color: var(--color-text-muted, #64748b);
+      }
+      .date-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .custom-picker {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2, 0.5rem);
+        align-items: center;
+      }
+      .custom-picker input[type='date'] {
+        padding: 0.5rem 0.6rem;
+        border-radius: var(--radius-2, 0.5rem);
+        border: 1px solid #cbd5f5;
+        font-family: inherit;
       }
       .field label {
         display: block;
@@ -264,37 +385,66 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         color: var(--color-text-muted, #64748b);
         flex-wrap: wrap;
       }
-      .status {
-        margin-top: 0.5rem;
-      }
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.2rem 0.6rem;
-        border-radius: 999px;
-        font-weight: 700;
-        font-size: 0.75rem;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-        background: #e2e8f0;
-        color: #334155;
-      }
-      .badge.taken {
-        background: rgba(34, 197, 94, 0.16);
-        color: #166534;
-      }
-      .badge.not-taken {
-        background: rgba(239, 68, 68, 0.16);
-        color: #991b1b;
-      }
-      .badge.not-logged {
-        background: rgba(148, 163, 184, 0.2);
-        color: #475569;
-      }
       .item-actions {
         display: flex;
         gap: 0.75rem;
         align-items: center;
+      }
+      .status-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.55rem 1rem;
+        min-height: 40px;
+        min-width: 100px;
+        border-radius: var(--radius-full, 999px);
+        font-weight: 600;
+        font-size: var(--font-size-sm, 0.8125rem);
+        border: none;
+        cursor: pointer;
+        transition: transform var(--transition-fast, 120ms ease),
+                    box-shadow var(--transition-fast, 120ms ease),
+                    background var(--transition-fast, 120ms ease);
+      }
+      .status-button:active:not([disabled]) {
+        transform: scale(0.97);
+      }
+      .status-button[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .status-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      .status-button.pending {
+        background: var(--color-primary, #0c4a6e);
+        color: #fff;
+        box-shadow: 0 1px 3px rgba(12, 74, 110, 0.2);
+      }
+      .status-button.pending:hover:not([disabled]) {
+        background: #0a3d5c;
+        box-shadow: 0 2px 6px rgba(12, 74, 110, 0.25);
+      }
+      .status-button.taken {
+        background: #dcfce7;
+        color: #166534;
+        box-shadow: 0 1px 3px rgba(22, 101, 52, 0.1);
+      }
+      .status-button.taken:hover:not([disabled]) {
+        background: #bbf7d0;
+        box-shadow: 0 2px 6px rgba(22, 101, 52, 0.15);
+      }
+      .status-button.skipped {
+        background: #fef3c7;
+        color: #92400e;
+        box-shadow: 0 1px 3px rgba(146, 64, 14, 0.1);
+      }
+      .status-button.skipped:hover:not([disabled]) {
+        background: #fde68a;
+        box-shadow: 0 2px 6px rgba(146, 64, 14, 0.15);
       }
       .dot {
         color: var(--color-text-muted, #94a3b8);
@@ -318,15 +468,9 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         }
       }
       @media (max-width: 520px) {
-        .header-actions,
-        .item-actions {
-          width: 100%;
-          flex-direction: column;
-          align-items: stretch;
-        }
-        .header-actions .button,
-        .item-actions .button {
-          width: 100%;
+        .status-button {
+          flex: 1;
+          min-width: 0;
         }
       }
     `
@@ -341,6 +485,21 @@ export class MedicationLogComponent {
   private readonly refreshTick = signal(0);
   readonly logLocalDate = signal(this.formatLocalDate(new Date()));
   readonly savingMap = signal<Record<string, boolean>>({});
+  readonly showCustomPicker = signal(false);
+
+  readonly quickDates = computed(() => {
+    const today = new Date();
+    const offsets = [0, 1, 2];
+    return offsets.map((offset) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - offset);
+      return {
+        date: this.formatLocalDate(date),
+        label: offset === 0 ? 'Today' : offset === 1 ? 'Yesterday' : 'Two days ago',
+        shortDate: this.formatShortDate(date)
+      };
+    });
+  });
 
   readonly minLogDate = computed(() => {
     const date = new Date();
@@ -419,12 +578,27 @@ export class MedicationLogComponent {
     this.frequencyOptions.map((option) => [option.value, option.label])
   );
 
-  onDateChange(event: Event) {
+  selectQuickDate(date: string) {
+    this.logLocalDate.set(date);
+    this.showCustomPicker.set(false);
+  }
+
+  openCustomPicker() {
+    this.showCustomPicker.set(true);
+  }
+
+  onCustomDateChange(event: Event) {
     const target = event.target as HTMLInputElement | null;
     if (!target?.value) {
       return;
     }
     this.logLocalDate.set(target.value);
+    this.showCustomPicker.set(false);
+  }
+
+  isCustomDate() {
+    const current = this.logLocalDate();
+    return !this.quickDates().some((day) => day.date === current);
   }
 
   markMedication(medication: Medication, status: 'taken' | 'not_taken') {
@@ -483,5 +657,18 @@ export class MedicationLogComponent {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private formatShortDate(date: Date | string): string {
+    if (typeof date === 'string') {
+      const [year, month, day] = date.split('-').map(Number);
+      if (!year || !month || !day) {
+        return date;
+      }
+      return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(
+        new Date(year, month - 1, day)
+      );
+    }
+    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(date);
   }
 }

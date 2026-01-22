@@ -20,15 +20,14 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
   template: `
     <app-card class="card">
       <div class="header">
-        <div>
-          <h2>Medication check-in</h2>
-          <p class="muted">Today: {{ todayLocalDate() }}</p>
-        </div>
-        <div class="header-actions">
-          <a class="button secondary" routerLink="/medications">Daily log</a>
-          <a class="button secondary" routerLink="/medications/history">Adherence</a>
-          <a class="button secondary" routerLink="/medications/list">Medication list</a>
-        </div>
+        <h2>Medication check-in</h2>
+        <a class="manage-link" routerLink="/medications">
+          Manage medications
+          <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+          </svg>
+        </a>
+        <p class="muted">Today: {{ todayLocalDate() }}</p>
       </div>
 
       @if (medicationsResource.isLoading() || logsResource.isLoading()) {
@@ -53,17 +52,7 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
                   <span class="dot">·</span>
                   <span>{{ frequencyLabel(medication.frequencyText) }}</span>
                 </div>
-                <div class="status">
-                  <span
-                    class="badge"
-                    [class.taken]="logStatus(medication.id, todayLocalDate()) === 'taken'"
-                    [class.not-taken]="logStatus(medication.id, todayLocalDate()) === 'not_taken'"
-                    [class.not-logged]="!logStatus(medication.id, todayLocalDate())"
-                  >
-                    {{ statusLabel(logStatus(medication.id, todayLocalDate())) }}
-                  </span>
                 </div>
-              </div>
 
               <div class="item-dots">
                 <app-medication-dots-strip
@@ -76,22 +65,47 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
               </div>
 
               <div class="item-actions">
-                <button
-                  class="button"
-                  type="button"
-                  [disabled]="isSaving(medication.id)"
-                  (click)="markMedication(medication, 'taken')"
-                >
-                  Taken
-                </button>
-                <button
-                  class="button secondary"
-                  type="button"
-                  [disabled]="isSaving(medication.id)"
-                  (click)="markMedication(medication, 'not_taken')"
-                >
-                  Not taken
-                </button>
+                @switch (logStatus(medication.id, todayLocalDate())) {
+                  @case ('taken') {
+                    <button
+                      class="status-button taken"
+                      type="button"
+                      [disabled]="isSaving(medication.id)"
+                      (click)="markMedication(medication, 'not_taken')"
+                    >
+                      <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      </svg>
+                      Taken
+                    </button>
+                  }
+                  @case ('not_taken') {
+                    <button
+                      class="status-button skipped"
+                      type="button"
+                      [disabled]="isSaving(medication.id)"
+                      (click)="markMedication(medication, 'taken')"
+                    >
+                      <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                      Skipped
+                    </button>
+                  }
+                  @default {
+                    <button
+                      class="status-button pending"
+                      type="button"
+                      [disabled]="isSaving(medication.id)"
+                      (click)="markMedication(medication, 'taken')"
+                    >
+                      <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      </svg>
+                      Take
+                    </button>
+                  }
+                }
               </div>
             </li>
           }
@@ -107,17 +121,26 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         box-sizing: border-box;
       }
       .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--space-3, 0.75rem);
-        flex-wrap: wrap;
+        display: grid;
+        gap: var(--space-1, 0.25rem);
         margin-bottom: var(--space-4, 1rem);
       }
-      .header-actions {
-        display: flex;
-        gap: var(--space-2, 0.5rem);
-        flex-wrap: wrap;
+      .manage-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: var(--color-text-muted, #64748b);
+        text-decoration: none;
+        font-size: var(--font-size-sm, 0.8125rem);
+        font-weight: 500;
+        transition: color var(--transition-fast, 120ms ease);
+      }
+      .manage-link:hover {
+        color: var(--color-primary, #0c4a6e);
+      }
+      .link-arrow {
+        width: 16px;
+        height: 16px;
       }
       h2 {
         margin: 0 0 var(--space-1, 0.25rem);
@@ -194,24 +217,6 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       .dot {
         color: var(--color-text-muted, #94a3b8);
       }
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.2rem 0.55rem;
-        border-radius: 999px;
-        font-weight: 700;
-        font-size: 0.85rem;
-        background: #f1f5f9;
-        color: #0f172a;
-      }
-      .badge.taken {
-        background: #dcfce7;
-        color: #166534;
-      }
-      .badge.not-taken {
-        background: #fee2e2;
-        color: #991b1b;
-      }
       .item-dots {
         display: flex;
         align-items: center;
@@ -223,16 +228,66 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
         flex-wrap: wrap;
         align-items: center;
       }
+      .status-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.55rem 1rem;
+        min-height: 40px;
+        min-width: 100px;
+        border-radius: var(--radius-full, 999px);
+        font-weight: 600;
+        font-size: var(--font-size-sm, 0.8125rem);
+        border: none;
+        cursor: pointer;
+        transition: transform var(--transition-fast, 120ms ease),
+                    box-shadow var(--transition-fast, 120ms ease),
+                    background var(--transition-fast, 120ms ease);
+      }
+      .status-button:active:not([disabled]) {
+        transform: scale(0.97);
+      }
+      .status-button[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .status-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      .status-button.pending {
+        background: var(--color-primary, #0c4a6e);
+        color: #fff;
+        box-shadow: 0 1px 3px rgba(12, 74, 110, 0.2);
+      }
+      .status-button.pending:hover:not([disabled]) {
+        background: #0a3d5c;
+        box-shadow: 0 2px 6px rgba(12, 74, 110, 0.25);
+      }
+      .status-button.taken {
+        background: #dcfce7;
+        color: #166534;
+        box-shadow: 0 1px 3px rgba(22, 101, 52, 0.1);
+      }
+      .status-button.taken:hover:not([disabled]) {
+        background: #bbf7d0;
+        box-shadow: 0 2px 6px rgba(22, 101, 52, 0.15);
+      }
+      .status-button.skipped {
+        background: #fef3c7;
+        color: #92400e;
+        box-shadow: 0 1px 3px rgba(146, 64, 14, 0.1);
+      }
+      .status-button.skipped:hover:not([disabled]) {
+        background: #fde68a;
+        box-shadow: 0 2px 6px rgba(146, 64, 14, 0.15);
+      }
       @media (max-width: 520px) {
-        .header-actions,
-        .item-actions {
-          width: 100%;
-          flex-direction: column;
-          align-items: stretch;
-        }
-        .header-actions .button,
-        .item-actions .button {
-          width: 100%;
+        .status-button {
+          flex: 1;
+          min-width: 0;
         }
       }
     `

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { PageHeaderComponent } from './shared/ui/page-header/page-header.component';
 import { TopSheetMenuComponent } from './shared/ui/top-sheet-menu/top-sheet-menu.component';
 import { BottomNavComponent } from './shared/ui/bottom-nav/bottom-nav.component';
 
@@ -8,9 +9,10 @@ import { BottomNavComponent } from './shared/ui/bottom-nav/bottom-nav.component'
  */
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, TopSheetMenuComponent, BottomNavComponent],
+  imports: [RouterOutlet, PageHeaderComponent, TopSheetMenuComponent, BottomNavComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <app-page-header />
     <app-top-sheet-menu [isOpenExternal]="menuOpen()" (closed)="closeMenu()" />
     <main>
       <router-outlet></router-outlet>

@@ -1,7 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
-import { ParticipantInviteResponse } from '../models/participant-invite';
+import {
+  ParticipantInviteResponse,
+  AcceptInviteResponse,
+  ParticipantMember
+} from '../models/participant-invite';
+import { CollectionResponse } from '../models/collection';
 
 @Injectable({ providedIn: 'root' })
 export class ParticipantInviteService {
@@ -11,6 +16,25 @@ export class ParticipantInviteService {
     return this.http.post<ParticipantInviteResponse>(
       `${environment.apiBaseUrl}/participants/${participantId}/invites`,
       {}
+    );
+  }
+
+  acceptInvite(participantId: string, inviteId: string) {
+    return this.http.post<AcceptInviteResponse>(
+      `${environment.apiBaseUrl}/participants/${participantId}/invites/${inviteId}/accept`,
+      {}
+    );
+  }
+
+  listMembers(participantId: string) {
+    return this.http.get<CollectionResponse<ParticipantMember>>(
+      `${environment.apiBaseUrl}/participants/${participantId}/members`
+    );
+  }
+
+  revokeMember(participantId: string, userId: string) {
+    return this.http.delete<void>(
+      `${environment.apiBaseUrl}/participants/${participantId}/members/${userId}`
     );
   }
 }

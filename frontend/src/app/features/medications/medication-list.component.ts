@@ -20,10 +20,8 @@ type MedicationsResponse = CollectionResponse<Medication>;
     <div class="layout">
       <app-card class="card">
         <div class="header">
-          <div>
-            <h2>Medication list</h2>
-            <p class="muted">Manage medications for the active participant.</p>
-          </div>
+          <h2>Medication list</h2>
+          <p class="muted">Manage medications for the active participant.</p>
         </div>
 
         @if (!activeParticipantId()) {
@@ -116,8 +114,8 @@ type MedicationsResponse = CollectionResponse<Medication>;
       </app-card>
 
       <app-card class="card">
-        <div class="header">
-          <div>
+        <div class="header-row">
+          <div class="header">
             <h2>Active medications</h2>
             <p class="muted">Archived medications are hidden by default.</p>
           </div>
@@ -170,10 +168,8 @@ type MedicationsResponse = CollectionResponse<Medication>;
       @if (includeArchived() && archivedMedications().length > 0) {
         <app-card class="card">
           <div class="header">
-            <div>
-              <h2>Archived medications</h2>
-              <p class="muted">Restore to move back into the active list.</p>
-            </div>
+            <h2>Archived medications</h2>
+            <p class="muted">Restore to move back into the active list.</p>
           </div>
           <ul class="list" role="list">
             @for (medication of archivedMedications(); track medication.id) {
@@ -208,21 +204,25 @@ type MedicationsResponse = CollectionResponse<Medication>;
         box-sizing: border-box;
       }
       .header {
+        display: grid;
+        gap: var(--space-1, 0.25rem);
+        margin-bottom: var(--space-4, 1rem);
+      }
+      .header-row {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         gap: var(--space-3, 0.75rem);
         flex-wrap: wrap;
         margin-bottom: var(--space-4, 1rem);
       }
-      .header-actions {
-        display: flex;
-        gap: var(--space-2, 0.5rem);
-        flex-wrap: wrap;
+      .header-row .header {
+        margin-bottom: 0;
       }
       h2 {
-        margin: 0 0 var(--space-2, 0.5rem);
-        font-size: 1.35rem;
+        margin: 0;
+        font-size: var(--font-size-lg, 1.125rem);
+        font-weight: 600;
       }
       h3 {
         margin: 0 0 var(--space-3, 0.75rem);
@@ -231,6 +231,7 @@ type MedicationsResponse = CollectionResponse<Medication>;
       .muted {
         margin: 0;
         color: var(--color-text-muted, #64748b);
+        font-size: var(--font-size-sm, 0.8125rem);
       }
       .button {
         display: inline-flex;
@@ -238,13 +239,21 @@ type MedicationsResponse = CollectionResponse<Medication>;
         justify-content: center;
         background: var(--color-primary, #0c4a6e);
         color: #fff;
-        padding: 0.7rem 1.1rem;
+        padding: 0.6rem 1rem;
         min-height: 44px;
-        border-radius: var(--radius-2, 0.5rem);
+        border-radius: var(--radius-full, 999px);
         text-decoration: none;
         font-weight: 600;
+        font-size: var(--font-size-sm, 0.8125rem);
         border: none;
         cursor: pointer;
+        transition: transform var(--transition-fast, 120ms ease), box-shadow var(--transition-fast, 120ms ease);
+      }
+      .button:hover:not([disabled]) {
+        box-shadow: 0 2px 8px rgba(12, 74, 110, 0.25);
+      }
+      .button:active:not([disabled]) {
+        transform: scale(0.97);
       }
       .button[disabled] {
         opacity: 0.55;
@@ -254,7 +263,11 @@ type MedicationsResponse = CollectionResponse<Medication>;
       .button.secondary {
         background: #fff;
         color: var(--color-primary, #0c4a6e);
-        border: 1px solid var(--color-primary, #0c4a6e);
+        border: 1px solid var(--color-border, #e2e8f0);
+      }
+      .button.secondary:hover:not([disabled]) {
+        border-color: var(--color-primary, #0c4a6e);
+        box-shadow: none;
       }
       .toggle {
         display: inline-flex;
@@ -374,14 +387,12 @@ type MedicationsResponse = CollectionResponse<Medication>;
         font-weight: 600;
       }
       @media (max-width: 520px) {
-        .header-actions,
         .actions,
         .item-actions {
           width: 100%;
           flex-direction: column;
           align-items: stretch;
         }
-        .header-actions .button,
         .actions .button,
         .item-actions .link {
           width: 100%;

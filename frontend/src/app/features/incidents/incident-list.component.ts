@@ -40,16 +40,13 @@ const functionLabels: Record<BehaviorFunction, string> = {
   template: `
     <app-card class="card">
       <div class="header">
-        <div>
-          <h2>Incidents</h2>
-          <p class="muted">Review behavior incidents for the active participant.</p>
-        </div>
-        <a class="button" routerLink="/incidents/new">Log incident</a>
+        <h2>Incidents</h2>
+        <p class="muted">Review behavior incidents for the active participant.</p>
       </div>
 
       @if (!activeParticipantId()) {
         <p class="error" role="alert">Select a participant to view incidents.</p>
-        <a class="button secondary" routerLink="/participants">Select participant</a>
+        <a class="select-link" routerLink="/participants">Select participant →</a>
       } @else if (incidentsResource.isLoading()) {
         <ul class="list" role="list" aria-label="Loading incidents">
           @for (i of [1, 2, 3]; track i) {
@@ -84,6 +81,14 @@ const functionLabels: Record<BehaviorFunction, string> = {
       } @else if (incidentsResource.error()) {
         <p class="error" role="alert">Unable to load incidents.</p>
       } @else {
+        <div class="toolbar">
+          <a class="log-button" routerLink="/incidents/new">
+            <svg class="log-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Log incident
+          </a>
+        </div>
         <form class="filters" [formGroup]="filters">
           <div class="filter">
             <label for="timeRange">Time range</label>
@@ -105,7 +110,7 @@ const functionLabels: Record<BehaviorFunction, string> = {
               }
             </select>
           </div>
-          <button type="button" class="link reset" (click)="resetFilters()">Clear filters</button>
+          <button type="button" class="clear-link" (click)="resetFilters()">Clear filters</button>
         </form>
 
         @if (incidents().length === 0) {
@@ -114,7 +119,12 @@ const functionLabels: Record<BehaviorFunction, string> = {
               <p class="muted">No incidents match these filters.</p>
             } @else {
               <p class="muted">No incidents yet. Log the first one to get started.</p>
-              <a class="button" routerLink="/incidents/new">Log incident</a>
+              <a class="log-button" routerLink="/incidents/new">
+                <svg class="log-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                Log incident
+              </a>
             }
           </div>
         } @else {
@@ -177,36 +187,55 @@ const functionLabels: Record<BehaviorFunction, string> = {
         box-sizing: border-box;
       }
       .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--space-3, 0.75rem);
-        flex-wrap: wrap;
+        display: grid;
+        gap: var(--space-1, 0.25rem);
         margin-bottom: var(--space-4, 1rem);
       }
       h2 {
-        margin: 0 0 var(--space-1, 0.25rem);
+        margin: 0;
+        font-size: var(--font-size-lg, 1.125rem);
+        font-weight: 600;
       }
       .muted {
         margin: 0;
         color: var(--color-text-muted, #64748b);
+        font-size: var(--font-size-sm, 0.8125rem);
       }
-      .button {
+      .toolbar {
+        margin-bottom: var(--space-4, 1rem);
+      }
+      .log-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        gap: 0.4rem;
         background: var(--color-primary, #0c4a6e);
         color: #fff;
-        padding: 0.55rem 1.1rem;
-        border-radius: var(--radius-2, 0.5rem);
+        padding: 0.6rem 1rem;
+        border-radius: var(--radius-full, 999px);
         text-decoration: none;
         font-weight: 600;
-        border: none;
+        font-size: var(--font-size-sm, 0.8125rem);
+        transition: transform var(--transition-fast, 120ms ease), box-shadow var(--transition-fast, 120ms ease);
       }
-      .button.secondary {
-        background: #fff;
+      .log-button:hover {
+        box-shadow: 0 2px 8px rgba(12, 74, 110, 0.25);
+      }
+      .log-button:active {
+        transform: scale(0.97);
+      }
+      .log-icon {
+        width: 16px;
+        height: 16px;
+      }
+      .select-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
         color: var(--color-primary, #0c4a6e);
-        border: 1px solid var(--color-primary, #0c4a6e);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: var(--font-size-sm, 0.8125rem);
       }
       .error {
         margin: 0 0 var(--space-3, 0.75rem);
@@ -235,16 +264,19 @@ const functionLabels: Record<BehaviorFunction, string> = {
         border: 1px solid #cbd5f5;
         font-family: inherit;
       }
-      .reset {
+      .clear-link {
         align-self: flex-start;
-      }
-      .link {
         background: none;
         border: none;
-        color: var(--color-primary, #0c4a6e);
-        font-weight: 600;
+        color: var(--color-text-muted, #64748b);
+        font-weight: 500;
+        font-size: var(--font-size-sm, 0.8125rem);
         cursor: pointer;
         padding: 0;
+        transition: color var(--transition-fast, 120ms ease);
+      }
+      .clear-link:hover {
+        color: var(--color-primary, #0c4a6e);
       }
       .list {
         list-style: none;
@@ -347,7 +379,7 @@ const functionLabels: Record<BehaviorFunction, string> = {
           grid-template-columns: repeat(3, minmax(0, 1fr));
           align-items: end;
         }
-        .reset {
+        .clear-link {
           grid-column: 1 / -1;
         }
       }

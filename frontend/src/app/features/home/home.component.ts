@@ -29,43 +29,38 @@ type RangeOption = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
-      <app-card class="card">
-        <div class="header">
-          <div>
-            <h2>Home</h2>
-            <p class="muted">Quick actions and today's check-in.</p>
-          </div>
-          <div class="header-actions">
-            <div class="range-buttons" role="group" aria-label="Date range">
-              @for (option of rangeOptions; track option.value) {
-                <button
-                  type="button"
-                  class="range-button"
-                  [class.active]="rangeDays() === option.value"
-                  (click)="setRange(option.value)"
-                >
-                  {{ option.label }}
-                </button>
-              }
-            </div>
-          </div>
+      <div class="context-bar">
+        <span class="context-label">Showing last</span>
+        <div class="range-buttons" role="group" aria-label="Date range">
+          @for (option of rangeOptions; track option.value) {
+            <button
+              type="button"
+              class="range-button"
+              [class.active]="rangeDays() === option.value"
+              (click)="setRange(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          }
         </div>
-      </app-card>
+      </div>
 
       <app-medication-checkin [rangeDays]="rangeDays()" />
 
       <app-card class="card">
         <div class="header">
-          <div>
-            <h2>Incidents (last {{ rangeDays() }} days)</h2>
-            @if (incidentsCount() > 0) {
-              <p class="muted">{{ incidentsCount() }} in the last {{ rangeDays() }} days.</p>
-            }
-          </div>
-          <div class="header-actions">
-            <a class="button" routerLink="/incidents/new">Log incident</a>
-            <a class="button secondary" routerLink="/incidents">View incidents</a>
-          </div>
+          <h2>Incidents</h2>
+          <a class="manage-link" routerLink="/incidents">
+            View all
+            <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+          </a>
+          @if (incidentsCount() > 0) {
+            <p class="muted">{{ incidentsCount() }} in the last {{ rangeDays() }} days</p>
+          } @else {
+            <p class="muted">Last {{ rangeDays() }} days</p>
+          }
         </div>
 
         @if (incidentsResource.isLoading()) {
@@ -86,7 +81,15 @@ type RangeOption = {
         } @else if (incidentsResource.error()) {
           <p class="error" role="alert">Unable to load incidents.</p>
         } @else if (recentIncidents().length === 0) {
-          <p class="muted">No incidents in the last {{ rangeDays() }} days.</p>
+          <div class="empty-state">
+            <p class="muted">No incidents recorded yet.</p>
+            <a class="log-button" routerLink="/incidents/new">
+              <svg class="log-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+              </svg>
+              Log incident
+            </a>
+          </div>
         } @else {
           <ul class="incidents" role="list">
             @for (incident of recentIncidents(); track incident.id; let i = $index) {
@@ -103,6 +106,12 @@ type RangeOption = {
               </li>
             }
           </ul>
+          <a class="log-button" routerLink="/incidents/new">
+            <svg class="log-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Log incident
+          </a>
         }
       </app-card>
     </div>
@@ -112,28 +121,21 @@ type RangeOption = {
       display: grid;
       gap: var(--space-4, 1rem);
     }
-    .card {
-      width: 100%;
-      margin: 0;
-      box-sizing: border-box;
-    }
-    .header {
+    .context-bar {
       display: flex;
-      justify-content: space-between;
       align-items: center;
       gap: var(--space-3, 0.75rem);
-      flex-wrap: wrap;
-      margin-bottom: var(--space-4, 1rem);
+      padding: var(--space-2, 0.5rem) 0;
     }
-    .header-actions {
-      display: flex;
-      gap: var(--space-2, 0.5rem);
-      flex-wrap: wrap;
+    .context-label {
+      color: var(--color-text-muted, #64748b);
+      font-size: var(--font-size-sm, 0.8125rem);
+      font-weight: 500;
     }
     .range-buttons {
       display: inline-flex;
       align-items: center;
-      gap: var(--space-1, 0.25rem);
+      gap: 2px;
       padding: 3px;
       background: #f1f5f9;
       border-radius: var(--radius-full, 999px);
@@ -141,7 +143,7 @@ type RangeOption = {
     .range-button {
       border: none;
       background: transparent;
-      padding: 0.35rem 0.75rem;
+      padding: 0.3rem 0.65rem;
       border-radius: var(--radius-full, 999px);
       font-weight: 600;
       font-size: var(--font-size-sm, 0.8125rem);
@@ -156,6 +158,33 @@ type RangeOption = {
       background: var(--color-primary, #0c4a6e);
       color: #fff;
     }
+    .card {
+      width: 100%;
+      margin: 0;
+      box-sizing: border-box;
+    }
+    .header {
+      display: grid;
+      gap: var(--space-1, 0.25rem);
+      margin-bottom: var(--space-4, 1rem);
+    }
+    .manage-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--color-text-muted, #64748b);
+      text-decoration: none;
+      font-size: var(--font-size-sm, 0.8125rem);
+      font-weight: 500;
+      transition: color var(--transition-fast, 120ms ease);
+    }
+    .manage-link:hover {
+      color: var(--color-primary, #0c4a6e);
+    }
+    .link-arrow {
+      width: 16px;
+      height: 16px;
+    }
     h2 {
       margin: 0 0 var(--space-1, 0.25rem);
       font-size: var(--font-size-lg, 1.125rem);
@@ -166,29 +195,40 @@ type RangeOption = {
       color: var(--color-text-muted, #64748b);
       font-size: var(--font-size-sm, 0.8125rem);
     }
+    .empty-state {
+      display: grid;
+      gap: var(--space-3, 0.75rem);
+      padding: var(--space-3, 0.75rem) 0;
+    }
     .error {
       margin: 0;
       color: #b91c1c;
       font-weight: 600;
     }
-    .button {
+    .log-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      gap: 0.4rem;
       background: var(--color-primary, #0c4a6e);
       color: #fff;
-      padding: 0.5rem 1rem;
-      border-radius: var(--radius-2, 0.5rem);
+      padding: 0.6rem 1rem;
+      border-radius: var(--radius-full, 999px);
       text-decoration: none;
       font-weight: 600;
       font-size: var(--font-size-sm, 0.8125rem);
-      border: none;
-      cursor: pointer;
+      margin-top: var(--space-3, 0.75rem);
+      transition: transform var(--transition-fast, 120ms ease), box-shadow var(--transition-fast, 120ms ease);
     }
-    .button.secondary {
-      background: #fff;
-      color: var(--color-primary, #0c4a6e);
-      border: 1px solid var(--color-primary, #0c4a6e);
+    .log-button:hover {
+      box-shadow: 0 2px 8px rgba(12, 74, 110, 0.25);
+    }
+    .log-button:active {
+      transform: scale(0.97);
+    }
+    .log-icon {
+      width: 16px;
+      height: 16px;
     }
     .link-pill {
       display: inline-flex;
@@ -251,17 +291,6 @@ type RangeOption = {
       padding: var(--space-4, 1rem);
     }
 
-    @media (max-width: 520px) {
-      .header-actions {
-        width: 100%;
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .header-actions .button {
-        width: 100%;
-        justify-content: center;
-      }
-    }
   `]
 })
 export class HomeComponent {
@@ -271,9 +300,9 @@ export class HomeComponent {
   private readonly refreshTick = signal(0);
   readonly rangeDays = signal<7 | 14 | 30>(7);
   readonly rangeOptions: RangeOption[] = [
-    { value: 7, label: '7d' },
-    { value: 14, label: '14d' },
-    { value: 30, label: '30d' }
+    { value: 7, label: '7 days' },
+    { value: 14, label: '14 days' },
+    { value: 30, label: '30 days' }
   ];
 
   readonly incidentsResource = httpResource<IncidentsResponse>(() => {
