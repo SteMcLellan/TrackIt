@@ -15,4 +15,10 @@ export type BehaviorIncident = {
   createdAtUtc: string;           // Renamed from createdAt
   updatedAtUtc?: string;          // Renamed from updatedAt
   createdByUserId: string;
+
+  // Chip-based quick entry fields (optional, backward compatible)
+  antecedentChips?: string[];
+  behaviorChips?: string[];
+  consequenceChips?: string[];
+  placeChip?: string;
 };

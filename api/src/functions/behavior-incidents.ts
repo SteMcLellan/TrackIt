@@ -26,6 +26,10 @@ type CreateBehaviorIncidentRequest = {
   logTzOffsetMinutes: number;
   place: string;
   function: BehaviorFunction;
+  antecedentChips?: string[];
+  behaviorChips?: string[];
+  consequenceChips?: string[];
+  placeChip?: string;
 };
 
 const behaviorFunctionOptions: BehaviorFunction[] = ['sensory', 'tangible', 'escape', 'attention'];
@@ -191,7 +195,11 @@ const createBehaviorIncidentHandler = withErrorHandling(
       place: parsed.value.place.trim(),
       function: parsed.value.function,
       createdAtUtc: now,
-      createdByUserId: user.sub
+      createdByUserId: user.sub,
+      antecedentChips: parsed.value.antecedentChips,
+      behaviorChips: parsed.value.behaviorChips,
+      consequenceChips: parsed.value.consequenceChips,
+      placeChip: parsed.value.placeChip
     };
 
     await containers.behaviorIncidents.items.create(incident);
