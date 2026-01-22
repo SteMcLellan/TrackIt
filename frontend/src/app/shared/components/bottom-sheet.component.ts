@@ -30,19 +30,21 @@ import {
         [attr.aria-label]="title()"
         aria-modal="true"
       >
-        <div class="handle-area" (pointerdown)="onHandleDown($event)">
-          <div class="handle"></div>
-        </div>
-        @if (title()) {
-          <div class="header">
-            <h3 class="title">{{ title() }}</h3>
-            <button type="button" class="close-btn" (click)="close()" aria-label="Close">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M15 5L5 15M5 5l10 10" />
-              </svg>
-            </button>
+        <div class="drag-zone" (pointerdown)="onHandleDown($event)">
+          <div class="handle-area">
+            <div class="handle"></div>
           </div>
-        }
+          @if (title()) {
+            <div class="header">
+              <h3 class="title">{{ title() }}</h3>
+              <button type="button" class="close-btn" (click)="close(); $event.stopPropagation()" aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 5L5 15M5 5l10 10" />
+                </svg>
+              </button>
+            </div>
+          }
+        </div>
         <div class="content">
           <ng-content></ng-content>
         </div>
@@ -81,18 +83,22 @@ import {
     .sheet.visible {
       transform: translateY(0);
     }
+    .drag-zone {
+      flex-shrink: 0;
+      cursor: grab;
+      touch-action: none;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .drag-zone:active {
+      cursor: grabbing;
+    }
     .handle-area {
       display: flex;
       justify-content: center;
-      padding: 0.75rem;
-      cursor: grab;
-      flex-shrink: 0;
-    }
-    .handle-area:active {
-      cursor: grabbing;
+      padding: 1rem 0.75rem 0.5rem;
     }
     .handle {
-      width: 36px;
+      width: 40px;
       height: 5px;
       background: #d1d5db;
       border-radius: 999px;
@@ -102,7 +108,6 @@ import {
       align-items: center;
       justify-content: space-between;
       padding: 0 var(--space-4, 1rem) var(--space-3, 0.75rem);
-      border-bottom: 1px solid #e5e7eb;
       flex-shrink: 0;
     }
     .title {
