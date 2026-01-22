@@ -7,7 +7,7 @@ type LogStatus = 'taken' | 'not_taken' | null;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="container">
-      <div class="strip" role="list">
+      <div class="strip" [class.grid-30]="dates().length === 30" role="list">
         @for (day of dates(); track day; let isLast = $last) {
           <span
             class="dot"
@@ -31,6 +31,11 @@ type LogStatus = 'taken' | 'not_taken' | null;
   `,
   styles: [
     `
+      :host {
+        display: block;
+        min-width: 0;
+        max-width: 100%;
+      }
       .container {
         display: flex;
         flex-direction: column;
@@ -44,11 +49,16 @@ type LogStatus = 'taken' | 'not_taken' | null;
         padding: 6px 8px;
         background: #f8fafc;
         border-radius: var(--radius-2, 0.5rem);
-        overflow-x: auto;
-        scrollbar-width: none;
+        max-width: 100%;
+        overflow: hidden;
       }
-      .strip::-webkit-scrollbar {
-        display: none;
+      .strip.grid-30 {
+        display: grid;
+        grid-template-columns: repeat(15, max-content);
+        grid-auto-flow: row;
+        column-gap: 3px;
+        row-gap: 6px;
+        align-items: center;
       }
       .dot {
         width: 10px;
