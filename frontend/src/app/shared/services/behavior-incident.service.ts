@@ -13,6 +13,10 @@ export type CreateBehaviorIncidentRequest = {
   logTzOffsetMinutes: number;
   place: string;
   function: BehaviorFunction;
+  antecedentChips?: string[];
+  behaviorChips?: string[];
+  consequenceChips?: string[];
+  placeChip?: string;
 };
 
 export type ListBehaviorIncidentsOptions = {
@@ -32,6 +36,10 @@ export type UpdateBehaviorIncidentRequest = {
   logTzOffsetMinutes?: number;
   place?: string;
   function?: BehaviorFunction;
+  antecedentChips?: string[];
+  behaviorChips?: string[];
+  consequenceChips?: string[];
+  placeChip?: string;
 };
 
 @Injectable({ providedIn: 'root' })

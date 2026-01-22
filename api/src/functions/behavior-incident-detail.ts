@@ -25,6 +25,10 @@ type UpdateBehaviorIncidentRequest = {
   logTzOffsetMinutes?: number;
   place?: string;
   function?: BehaviorFunction;
+  antecedentChips?: string[];
+  behaviorChips?: string[];
+  consequenceChips?: string[];
+  placeChip?: string;
 };
 
 const behaviorFunctionOptions: BehaviorFunction[] = ['sensory', 'tangible', 'escape', 'attention'];
@@ -192,7 +196,11 @@ const updateBehaviorIncidentHandler = withErrorHandling(
       logTzOffsetMinutes,
       place: typeof parsed.value.place === 'string' ? parsed.value.place.trim() : existing.place,
       function: typeof parsed.value.function === 'string' ? parsed.value.function : existing.function,
-      updatedAtUtc: new Date().toISOString()
+      updatedAtUtc: new Date().toISOString(),
+      antecedentChips: Array.isArray(parsed.value.antecedentChips) ? parsed.value.antecedentChips : existing.antecedentChips,
+      behaviorChips: Array.isArray(parsed.value.behaviorChips) ? parsed.value.behaviorChips : existing.behaviorChips,
+      consequenceChips: Array.isArray(parsed.value.consequenceChips) ? parsed.value.consequenceChips : existing.consequenceChips,
+      placeChip: typeof parsed.value.placeChip === 'string' ? parsed.value.placeChip : existing.placeChip
     };
 
     await containers.behaviorIncidents.items.upsert(updated);

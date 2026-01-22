@@ -4,13 +4,16 @@ import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { CardComponent } from '../../shared/ui/card/card.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton/skeleton.component';
+import { BottomSheetComponent } from '../../shared/components/bottom-sheet.component';
 import { FunctionAttentionIconComponent } from '../../shared/ui/icons/function-attention-icon.component';
 import { FunctionEscapeIconComponent } from '../../shared/ui/icons/function-escape-icon.component';
 import { FunctionSensoryIconComponent } from '../../shared/ui/icons/function-sensory-icon.component';
 import { FunctionTangibleIconComponent } from '../../shared/ui/icons/function-tangible-icon.component';
 import { BehaviorIncident, BehaviorFunction } from '../../shared/models/behavior-incident';
 import { ParticipantService } from '../../shared/services/participant.service';
+import { BehaviorIncidentService } from '../../shared/services/behavior-incident.service';
 import { environment } from '../../../environments/environment';
+import { IncidentEditFormComponent } from './incident-edit-form.component';
 
 type IncidentsResponse = {
   items: BehaviorIncident[];
@@ -18,10 +21,17 @@ type IncidentsResponse = {
 };
 
 const functionLabels: Record<BehaviorFunction, string> = {
-  sensory: 'Automatically Rewarding (Sensory)',
-  tangible: 'Get What They Want',
-  escape: 'Avoid',
+  sensory: 'Sensory',
+  tangible: 'Tangible',
+  escape: 'Escape',
   attention: 'Attention'
+};
+
+const functionColors: Record<BehaviorFunction, string> = {
+  escape: '#ef4444',     // red
+  attention: '#eab308',  // yellow
+  sensory: '#3b82f6',    // blue
+  tangible: '#22c55e'    // green
 };
 
 @Component({
@@ -31,6 +41,8 @@ const functionLabels: Record<BehaviorFunction, string> = {
     CardComponent,
     SkeletonComponent,
     ReactiveFormsModule,
+    BottomSheetComponent,
+    IncidentEditFormComponent,
     FunctionAttentionIconComponent,
     FunctionEscapeIconComponent,
     FunctionSensoryIconComponent,
@@ -50,30 +62,10 @@ const functionLabels: Record<BehaviorFunction, string> = {
       } @else if (incidentsResource.isLoading()) {
         <ul class="list" role="list" aria-label="Loading incidents">
           @for (i of [1, 2, 3]; track i) {
-            <li class="item skeleton-item">
-              <div class="summary">
-                <div class="summary-top">
-                  <app-skeleton width="140px" height="1rem" />
-                  <app-skeleton width="50px" height="28px" radius="999px" />
-                </div>
-                <div class="meta-skeleton">
-                  <app-skeleton width="100px" height="0.9rem" />
-                  <app-skeleton width="60px" height="0.9rem" />
-                </div>
-              </div>
-              <div class="abc">
-                <div class="preview-skeleton">
-                  <app-skeleton variant="circle" width="22px" height="22px" />
-                  <app-skeleton width="90%" height="0.9rem" />
-                </div>
-                <div class="preview-skeleton">
-                  <app-skeleton variant="circle" width="22px" height="22px" />
-                  <app-skeleton width="85%" height="0.9rem" />
-                </div>
-                <div class="preview-skeleton">
-                  <app-skeleton variant="circle" width="22px" height="22px" />
-                  <app-skeleton width="80%" height="0.9rem" />
-                </div>
+            <li class="compact-item skeleton-item">
+              <div class="compact-content">
+                <app-skeleton width="100px" height="0.85rem" />
+                <app-skeleton width="200px" height="0.9rem" />
               </div>
             </li>
           }
@@ -173,47 +165,29 @@ const functionLabels: Record<BehaviorFunction, string> = {
         } @else {
           <ul class="list" role="list">
             @for (incident of incidents(); track incident.id) {
-              <li class="item">
-              <div class="summary">
-                <div class="summary-top">
-                  <div class="title">{{ formatDate(incident.occurredAtUtc) }}</div>
-                  <a
-                    class="detail-link"
-                    [routerLink]="['/incidents', incident.id]"
-                    [queryParams]="{ edit: true }"
-                  >
-                    <span>Edit</span>
-                  </a>
-                </div>
-                <div class="meta">
-                  <span class="function">
-                    <span class="icon" aria-hidden="true">
-                      @switch (incident.function) {
-                          @case ('sensory') { <app-icon-function-sensory /> }
-                          @case ('tangible') { <app-icon-function-tangible /> }
-                          @case ('escape') { <app-icon-function-escape /> }
-                          @case ('attention') { <app-icon-function-attention /> }
-                        }
-                      </span>
-                      <span>{{ functionLabels[incident.function] }}</span>
+              <li
+                class="compact-item"
+                [style.--function-color]="getFunctionColor(incident.function)"
+                (click)="openEditSheet(incident)"
+                role="button"
+                tabindex="0"
+                (keydown.enter)="openEditSheet(incident)"
+                (keydown.space)="openEditSheet(incident)"
+              >
+                <div class="compact-meta">
+                  <span class="compact-time">{{ formatShortTime(incident.occurredAtUtc) }}</span>
+                  <span class="compact-dot">&middot;</span>
+                  <span class="compact-place">{{ incident.placeChip || incident.place }}</span>
+                  @if (hasNotes(incident)) {
+                    <span class="notes-indicator" title="Has additional notes">
+                      <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v2H7V5zm0 4h6v2H7V9zm0 4h4v2H7v-2z"/>
+                      </svg>
                     </span>
-                    <span class="dot">&middot;</span>
-                    <span>{{ incident.place }}</span>
-                  </div>
+                  }
                 </div>
-              <div class="abc">
-                <div class="preview">
-                  <span class="tag">A</span>
-                  <span>{{ incident.antecedent }}</span>
-                </div>
-                  <div class="preview">
-                    <span class="tag">B</span>
-                    <span>{{ incident.behavior }}</span>
-                  </div>
-                  <div class="preview">
-                    <span class="tag">C</span>
-                    <span>{{ incident.consequence }}</span>
-                  </div>
+                <div class="compact-summary">
+                  {{ getChipSummary(incident) }}
                 </div>
               </li>
             }
@@ -221,6 +195,23 @@ const functionLabels: Record<BehaviorFunction, string> = {
         }
       }
     </app-card>
+
+    @if (editSheetOpen()) {
+      <app-bottom-sheet
+        [open]="editSheetOpen()"
+        [title]="'Edit Incident'"
+        (closed)="closeEditSheet()"
+      >
+        @if (selectedIncident()) {
+          <app-incident-edit-form
+            [incident]="selectedIncident()!"
+            (cancel)="closeEditSheet()"
+            (saved)="onIncidentSaved($event)"
+            (remove)="onIncidentRemove()"
+          />
+        }
+      </app-bottom-sheet>
+    }
   `,
   styles: [
     `
@@ -419,96 +410,63 @@ const functionLabels: Record<BehaviorFunction, string> = {
         padding: 0;
         margin: 0;
         display: grid;
-        gap: var(--space-3, 0.75rem);
+        gap: var(--space-2, 0.5rem);
       }
-      .item {
+      .compact-item {
         border: 1px solid #e2e8f0;
+        border-left: 4px solid var(--function-color, #0c4a6e);
         border-radius: var(--radius-2, 0.5rem);
         padding: var(--space-3, 0.75rem);
         background: #fff;
+        cursor: pointer;
+        transition: box-shadow var(--transition-fast, 120ms ease),
+                    border-color var(--transition-fast, 120ms ease);
       }
-      .summary {
+      .compact-item:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
+      }
+      .compact-item:active {
+        background: #f8fafc;
+      }
+      .compact-meta {
         display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-        margin-bottom: var(--space-2, 0.5rem);
-      }
-      .summary-top {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--space-2, 0.5rem);
-        flex-wrap: wrap;
-      }
-      .title {
-        font-weight: 600;
-      }
-      .meta {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        color: var(--color-text-muted, #64748b);
-      }
-      .detail-link {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.25rem 0.7rem;
-        border-radius: 999px;
-        border: 1px solid var(--color-primary, #0c4a6e);
-        color: var(--color-primary, #0c4a6e);
-        font-weight: 600;
-        text-decoration: none;
-        white-space: nowrap;
-      }
-      .function {
-        display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        font-weight: 600;
-        color: #1f2937;
+        margin-bottom: 0.25rem;
+        font-size: var(--font-size-sm, 0.8125rem);
+        color: var(--color-text-muted, #64748b);
       }
-      .icon {
+      .compact-time {
+        font-weight: 600;
+      }
+      .compact-dot {
+        color: #cbd5e1;
+      }
+      .compact-place {
+        font-weight: 500;
+      }
+      .notes-indicator {
         display: inline-flex;
         color: var(--color-primary, #0c4a6e);
+        opacity: 0.7;
+        margin-left: auto;
       }
-      .dot {
-        color: var(--color-text-muted, #94a3b8);
-      }
-      .preview {
+      .compact-summary {
+        font-size: 0.9375rem;
         color: #1f2937;
-        display: flex;
-        gap: var(--space-2, 0.5rem);
-        align-items: flex-start;
-      }
-      .abc {
-        display: grid;
-        gap: 0.5rem;
-      }
-      .meta-skeleton {
-        display: flex;
-        gap: var(--space-2, 0.5rem);
-      }
-      .preview-skeleton {
-        display: flex;
-        gap: var(--space-2, 0.5rem);
-        align-items: center;
+        line-height: 1.4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .skeleton-item {
-        padding: var(--space-4, 1rem);
+        padding: var(--space-3, 0.75rem);
+        border-left-color: #e2e8f0;
       }
-      .tag {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 1.4rem;
-        height: 1.4rem;
-        border-radius: 999px;
-        background: rgba(12, 74, 110, 0.12);
-        color: var(--color-primary, #0c4a6e);
-        font-weight: 700;
-        font-size: 0.8rem;
-        flex: 0 0 auto;
+      .compact-content {
+        display: grid;
+        gap: 0.35rem;
       }
       @media (min-width: 900px) {
         .filters {
@@ -525,6 +483,7 @@ export class IncidentListComponent {
 
   private readonly participants = inject(ParticipantService);
   private readonly fb = inject(FormBuilder);
+  private readonly incidentService = inject(BehaviorIncidentService);
 
   readonly activeParticipantId = this.participants.activeParticipantId;
   readonly filters = this.fb.group({
@@ -535,6 +494,10 @@ export class IncidentListComponent {
   });
 
   readonly filterSnapshot = signal(this.filters.getRawValue());
+
+  // Edit sheet state
+  readonly editSheetOpen = signal(false);
+  readonly selectedIncident = signal<BehaviorIncident | null>(null);
 
   constructor() {
     this.filters.valueChanges.subscribe((value) => {
@@ -641,10 +604,87 @@ export class IncidentListComponent {
   }
 
   functionShortLabel(value: BehaviorFunction) {
-    if (value === 'sensory') return 'Sensory';
-    if (value === 'tangible') return 'Tangible';
-    if (value === 'escape') return 'Escape';
-    return 'Attention';
+    return functionLabels[value];
+  }
+
+  getFunctionColor(fn: BehaviorFunction): string {
+    return functionColors[fn];
+  }
+
+  getChipSummary(incident: BehaviorIncident): string {
+    const parts: string[] = [];
+
+    // Use chips if available, otherwise fall back to first part of text
+    const antecedent = incident.antecedentChips?.[0] || this.getFirstPart(incident.antecedent);
+    const behavior = incident.behaviorChips?.[0] || this.getFirstPart(incident.behavior);
+    const consequence = incident.consequenceChips?.[0] || this.getFirstPart(incident.consequence);
+
+    if (antecedent) parts.push(antecedent);
+    if (behavior) parts.push(behavior);
+    if (consequence) parts.push(consequence);
+
+    return parts.join(' → ') || 'No details';
+  }
+
+  hasNotes(incident: BehaviorIncident): boolean {
+    // Check if there's additional text beyond what chips would provide
+    const hasAntecedentNotes = incident.antecedent && (
+      !incident.antecedentChips?.length ||
+      incident.antecedent !== incident.antecedentChips.join(', ')
+    );
+    const hasBehaviorNotes = incident.behavior && (
+      !incident.behaviorChips?.length ||
+      incident.behavior !== incident.behaviorChips.join(', ')
+    );
+    const hasConsequenceNotes = incident.consequence && (
+      !incident.consequenceChips?.length ||
+      incident.consequence !== incident.consequenceChips.join(', ')
+    );
+
+    return !!(hasAntecedentNotes || hasBehaviorNotes || hasConsequenceNotes);
+  }
+
+  formatShortTime(value: string): string {
+    const date = new Date(value);
+    return date.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  }
+
+  openEditSheet(incident: BehaviorIncident): void {
+    this.selectedIncident.set(incident);
+    this.editSheetOpen.set(true);
+  }
+
+  closeEditSheet(): void {
+    this.editSheetOpen.set(false);
+    setTimeout(() => this.selectedIncident.set(null), 300);
+  }
+
+  onIncidentSaved(updated: BehaviorIncident): void {
+    this.closeEditSheet();
+    this.incidentsResource.reload();
+  }
+
+  onIncidentRemove(): void {
+    const incident = this.selectedIncident();
+    if (!incident) return;
+
+    if (confirm('Are you sure you want to delete this incident?')) {
+      this.incidentService.deleteIncident(incident.participantId, incident.id)
+        .subscribe({
+          next: () => {
+            this.closeEditSheet();
+            this.incidentsResource.reload();
+          },
+          error: () => {
+            alert('Failed to delete incident. Please try again.');
+          }
+        });
+    }
   }
 
   maxDate() {
@@ -701,11 +741,6 @@ export class IncidentListComponent {
     this.filters.controls.endDate.setValue(target.value);
   }
 
-  formatDate(value: string): string {
-    const parsed = new Date(value);
-    return parsed.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-  }
-
   resetFilters() {
     this.filters.reset({
       timeRange: 'all',
@@ -713,6 +748,17 @@ export class IncidentListComponent {
       endDate: '',
       function: 'all'
     });
+  }
+
+  private getFirstPart(text: string): string {
+    if (!text) return '';
+    const commaIndex = text.indexOf(',');
+    const periodIndex = text.indexOf('.');
+    let endIndex = text.length;
+    if (commaIndex > 0) endIndex = Math.min(endIndex, commaIndex);
+    if (periodIndex > 0) endIndex = Math.min(endIndex, periodIndex);
+    const part = text.slice(0, endIndex).trim();
+    return part.length > 30 ? part.slice(0, 30) + '...' : part;
   }
 
   private initCustomRange() {
