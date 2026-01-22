@@ -421,6 +421,7 @@ const functionColors: Record<BehaviorFunction, string> = {
         cursor: pointer;
         transition: box-shadow var(--transition-fast, 120ms ease),
                     border-color var(--transition-fast, 120ms ease);
+        min-width: 0; /* Prevent flexbox overflow */
       }
       .compact-item:hover {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -456,9 +457,10 @@ const functionColors: Record<BehaviorFunction, string> = {
         font-size: 0.9375rem;
         color: #1f2937;
         line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
       }
       .skeleton-item {
         padding: var(--space-3, 0.75rem);
