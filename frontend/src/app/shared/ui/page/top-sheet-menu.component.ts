@@ -11,7 +11,8 @@ import {
   HomeIconComponent,
   MedicationsIconComponent,
   IncidentsIconComponent,
-  ParticipantsIconComponent
+  ParticipantsIconComponent,
+  AnalyticsIconComponent
 } from '../icons';
 
 @Component({
@@ -21,7 +22,8 @@ import {
     HomeIconComponent,
     MedicationsIconComponent,
     IncidentsIconComponent,
-    ParticipantsIconComponent
+    ParticipantsIconComponent,
+    AnalyticsIconComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -91,6 +93,10 @@ import {
             <a class="nav-link" routerLink="/incidents" (click)="closeMenu()">
               <app-icon-incidents class="nav-icon" />
               <span>Incidents</span>
+            </a>
+            <a class="nav-link" routerLink="/analytics" (click)="closeMenu()">
+              <app-icon-analytics class="nav-icon" />
+              <span>Analytics</span>
             </a>
             <a class="nav-link" routerLink="/participants" (click)="closeMenu()">
               <app-icon-participants class="nav-icon" />
@@ -248,7 +254,7 @@ import {
 
     @media (min-width: 480px) {
       .nav-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
       }
     }
   `]

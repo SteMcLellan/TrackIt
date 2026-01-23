@@ -3,6 +3,7 @@ import { AuthGuard } from './shared/guards/auth.guard';
 import { ActiveParticipantGuard } from './shared/guards/active-participant.guard';
 import { HomeComponent } from './features/home/home.component';
 import { LoginComponent } from './features/auth/login.component';
+import { AnalyticsComponent } from './features/analytics/analytics.component';
 import { IncidentCreateComponent } from './features/incidents/incident-create.component';
 import { IncidentDetailComponent } from './features/incidents/incident-detail.component';
 import { IncidentListComponent } from './features/incidents/incident-list.component';
@@ -22,6 +23,7 @@ export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'invite/:participantId/:inviteId', component: InviteAcceptComponent, canActivate: [AuthGuard] },
   { path: 'home', component: HomeComponent, canActivate: [AuthGuard, ActiveParticipantGuard] },
+  { path: 'analytics', component: AnalyticsComponent, canActivate: [AuthGuard, ActiveParticipantGuard] },
   { path: 'incidents', component: IncidentListComponent, canActivate: [AuthGuard] },
   { path: 'incidents/new', component: IncidentCreateComponent, canActivate: [AuthGuard] },
   { path: 'incidents/:id', component: IncidentDetailComponent, canActivate: [AuthGuard] },
