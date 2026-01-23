@@ -28,7 +28,9 @@ api/functions/
 .env.*
 authconfig.json
 api/local.settings.json
+proxy.conf.json
 
 # Editor/OS
 **/.vscode/
+.claude/settings.local.json
 .DS_Store
