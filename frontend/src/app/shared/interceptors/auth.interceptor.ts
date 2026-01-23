@@ -1,19 +1,12 @@
-import { HttpInterceptorFn, HttpRequest } from '@angular/common/http';
+import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
+import { isSameOriginApiRequest } from './api-request.util';
 
 /**
  * Adds the app JWT to outgoing requests for authenticated users.
  */
 const APP_TOKEN_HEADER = 'x-trackit-app-token';
-
-function isSameOriginApiRequest(req: HttpRequest<unknown>): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  const resolved = new URL(req.url, window.location.origin);
-  return resolved.origin === window.location.origin && resolved.pathname.startsWith('/api/');
-}
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);

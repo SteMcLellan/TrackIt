@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -31,6 +31,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly googleIdentity = inject(GoogleIdentityService);
   private readonly appUserState = signal<AppUser>(signedOutUser);
+  private logoutTimerId: number | null = null;
   readonly appUser = this.appUserState.asReadonly();
   readonly isAuthenticated = computed(() => this.isTokenValid(this.appUserState().token));
 
@@ -40,6 +41,10 @@ export class AuthService {
   constructor() {
     const stored = this.readStoredUser();
     this.appUserState.set(stored);
+
+    effect(() => {
+      this.scheduleTokenExpiry(this.appUserState().token);
+    });
   }
 
   /**
@@ -75,6 +80,7 @@ export class AuthService {
   logout(): void {
     this.appUserState.set(signedOutUser);
     localStorage.removeItem(this.storageKey);
+    this.clearLogoutTimer();
   }
 
   /**
@@ -151,6 +157,30 @@ export class AuthService {
       return typeof json.exp === 'number' ? json.exp : null;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Schedules a logout when the JWT expires.
+   */
+  private scheduleTokenExpiry(token: string): void {
+    this.clearLogoutTimer();
+    const exp = this.readJwtExp(token);
+    if (!exp || typeof window === 'undefined') {
+      return;
+    }
+    const msUntilExpiry = exp * 1000 - Date.now();
+    if (msUntilExpiry <= 0) {
+      this.logout();
+      return;
+    }
+    this.logoutTimerId = window.setTimeout(() => this.logout(), msUntilExpiry);
+  }
+
+  private clearLogoutTimer(): void {
+    if (this.logoutTimerId !== null && typeof window !== 'undefined') {
+      window.clearTimeout(this.logoutTimerId);
+      this.logoutTimerId = null;
     }
   }
 
