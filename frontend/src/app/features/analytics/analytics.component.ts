@@ -8,14 +8,11 @@ import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 import { BarChartComponent } from '../../shared/ui/charts/bar-chart.component';
 import { DonutChartComponent } from '../../shared/ui/charts/donut-chart.component';
 import { HorizontalBarChartComponent } from '../../shared/ui/charts/horizontal-bar-chart.component';
+import { PageTitleComponent } from '../../shared/ui/page/page-title.component';
+import { DateRangeSelectorComponent, DateRangeOption } from '../../shared/ui/filters/date-range-selector.component';
 import { environment } from '../../../environments/environment';
 
 type IncidentsResponse = CollectionResponse<BehaviorIncident>;
-
-type RangeOption = {
-  value: 7 | 14 | 30;
-  label: string;
-};
 
 @Component({
   selector: 'app-analytics',
@@ -25,32 +22,22 @@ type RangeOption = {
     SkeletonComponent,
     BarChartComponent,
     DonutChartComponent,
-    HorizontalBarChartComponent
+    HorizontalBarChartComponent,
+    PageTitleComponent,
+    DateRangeSelectorComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
-      <!-- Header with date range selector -->
-      <div class="header">
-        <h1>Analytics</h1>
-        <p class="subtitle">Behavior incident trends and patterns</p>
-      </div>
+      <app-page-title
+        title="Analytics"
+        subtitle="Behavior incident trends and patterns"
+      />
 
-      <div class="context-bar">
-        <span class="context-label">Showing last</span>
-        <div class="range-buttons" role="group" aria-label="Date range">
-          @for (option of rangeOptions; track option.value) {
-            <button
-              type="button"
-              class="range-button"
-              [class.active]="rangeDays() === option.value"
-              (click)="setRange(option.value)"
-            >
-              {{ option.label }}
-            </button>
-          }
-        </div>
-      </div>
+      <app-date-range-selector
+        [selectedRange]="rangeDays()"
+        (rangeChanged)="setRange($event)"
+      />
 
       @if (incidentsResource.isLoading()) {
         <!-- Loading state -->
@@ -124,67 +111,6 @@ type RangeOption = {
       display: grid;
       gap: var(--space-4);
       padding-bottom: var(--space-6);
-    }
-
-    .header {
-      display: grid;
-      gap: var(--space-1);
-    }
-
-    h1 {
-      margin: 0;
-      font-size: var(--font-size-xl);
-      font-weight: 600;
-      color: var(--color-gray-900);
-    }
-
-    .subtitle {
-      margin: 0;
-      color: var(--color-gray-600);
-      font-size: var(--font-size-sm);
-    }
-
-    .context-bar {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-      padding: var(--space-2) 0;
-    }
-
-    .context-label {
-      color: var(--color-gray-600);
-      font-size: var(--font-size-sm);
-      font-weight: 500;
-    }
-
-    .range-buttons {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
-      padding: 3px;
-      background: var(--color-gray-100);
-      border-radius: var(--radius-full);
-    }
-
-    .range-button {
-      border: none;
-      background: transparent;
-      padding: 0.3rem 0.65rem;
-      border-radius: var(--radius-full);
-      font-weight: 600;
-      font-size: var(--font-size-sm);
-      cursor: pointer;
-      color: var(--color-gray-700);
-      transition: background var(--transition-fast), color var(--transition-fast);
-    }
-
-    .range-button:hover {
-      background: var(--color-gray-200);
-    }
-
-    .range-button.active {
-      background: var(--color-primary);
-      color: white;
     }
 
     .stats-grid {
@@ -261,12 +187,7 @@ export class AnalyticsComponent {
   private readonly participants = inject(ParticipantService);
 
   readonly activeParticipantId = this.participants.activeParticipantId;
-  readonly rangeDays = signal<7 | 14 | 30>(30);
-  readonly rangeOptions: RangeOption[] = [
-    { value: 7, label: '7 days' },
-    { value: 14, label: '14 days' },
-    { value: 30, label: '30 days' }
-  ];
+  readonly rangeDays = signal<DateRangeOption>(30);
 
   readonly incidentsResource = httpResource<IncidentsResponse>(() => {
     const participantId = this.activeParticipantId();
@@ -401,7 +322,7 @@ export class AnalyticsComponent {
     return max.label;
   });
 
-  setRange(value: 7 | 14 | 30) {
+  setRange(value: DateRangeOption) {
     this.rangeDays.set(value);
   }
 }

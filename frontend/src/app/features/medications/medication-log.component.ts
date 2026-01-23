@@ -3,6 +3,7 @@ import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { CardComponent } from '../../shared/ui/card.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import { PageTitleComponent } from '../../shared/ui/page/page-title.component';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { MedicationService } from '../../shared/services/medication.service';
 import { MedicationLogService } from '../../shared/services/medication-log.service';
@@ -16,31 +17,16 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
 
 @Component({
   selector: 'app-medication-log',
-  imports: [CardComponent, RouterLink, SkeletonComponent],
+  imports: [CardComponent, RouterLink, SkeletonComponent, PageTitleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
-      <app-card class="card">
-        <div class="header">
-          <h2>Medication log</h2>
-          <div class="header-links">
-            <a class="manage-link" routerLink="/medications/history">
-              Adherence
-              <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-              </svg>
-            </a>
-            <span class="link-sep">&middot;</span>
-            <a class="manage-link" routerLink="/medications/list">
-              Medication list
-              <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-              </svg>
-            </a>
-          </div>
-          <p class="muted">Quickly log medications for the active participant.</p>
-        </div>
+      <app-page-title
+        title="Medication Log"
+        subtitle="Record daily medication administration"
+      />
 
+      <app-card class="card">
         @if (!activeParticipantId()) {
           <p class="error" role="alert">Select a participant to log medications.</p>
           <a class="select-link" routerLink="/participants">Select participant &rarr;</a>
@@ -99,11 +85,6 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
       </app-card>
 
       <app-card class="card">
-        <div class="header">
-          <h2>Daily checklist</h2>
-          <p class="muted">Tap to mark medications as taken or skipped.</p>
-        </div>
-
         @if (!activeParticipantId()) {
           <p class="error" role="alert">Select a participant to view the checklist.</p>
         } @else if (medicationsResource.isLoading()) {
@@ -226,48 +207,13 @@ type MedicationLogsResponse = CollectionResponse<MedicationLog>;
     `
       .layout {
         display: grid;
-        gap: var(--space-5, 1.5rem);
+        gap: var(--space-4);
+        padding-bottom: var(--space-6);
       }
       .card {
         width: 100%;
         margin: 0;
         box-sizing: border-box;
-      }
-      .header {
-        display: grid;
-        gap: var(--space-1, 0.25rem);
-        margin-bottom: var(--space-4, 1rem);
-      }
-      .header-links {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2, 0.5rem);
-        flex-wrap: wrap;
-      }
-      .manage-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        color: var(--color-text-muted, #64748b);
-        text-decoration: none;
-        font-size: var(--font-size-sm, 0.8125rem);
-        font-weight: 500;
-        transition: color var(--transition-fast, 120ms ease);
-      }
-      .manage-link:hover {
-        color: var(--color-primary, #0c4a6e);
-      }
-      .link-arrow {
-        width: 16px;
-        height: 16px;
-      }
-      .link-sep {
-        color: var(--color-text-muted, #94a3b8);
-      }
-      h2 {
-        margin: 0;
-        font-size: var(--font-size-lg, 1.125rem);
-        font-weight: 600;
       }
       .muted {
         margin: 0;

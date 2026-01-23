@@ -9,36 +9,36 @@ import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 import { ChevronRightIconComponent } from '../../shared/ui/icons';
 import { MedicationCheckinComponent } from '../medications/medication-checkin.component';
 import { IncidentListItemComponent } from '../incidents/incident-list-item.component';
+import { PageTitleComponent } from '../../shared/ui/page/page-title.component';
+import { DateRangeSelectorComponent, DateRangeOption } from '../../shared/ui/filters/date-range-selector.component';
 import { environment } from '../../../environments/environment';
 
 type IncidentsResponse = CollectionResponse<BehaviorIncident>;
 
-type RangeOption = {
-  value: 7 | 14 | 30;
-  label: string;
-};
-
 @Component({
   selector: 'app-home',
-  imports: [CardComponent, RouterLink, MedicationCheckinComponent, SkeletonComponent, IncidentListItemComponent, ChevronRightIconComponent],
+  imports: [
+    CardComponent,
+    RouterLink,
+    MedicationCheckinComponent,
+    SkeletonComponent,
+    IncidentListItemComponent,
+    ChevronRightIconComponent,
+    PageTitleComponent,
+    DateRangeSelectorComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
-      <div class="context-bar">
-        <span class="context-label">Showing last</span>
-        <div class="range-buttons" role="group" aria-label="Date range">
-          @for (option of rangeOptions; track option.value) {
-            <button
-              type="button"
-              class="range-button"
-              [class.active]="rangeDays() === option.value"
-              (click)="setRange(option.value)"
-            >
-              {{ option.label }}
-            </button>
-          }
-        </div>
-      </div>
+      <app-page-title
+        title="Activity"
+        subtitle="Quick overview of recent activity"
+      />
+
+      <app-date-range-selector
+        [selectedRange]="rangeDays()"
+        (rangeChanged)="setRange($event)"
+      />
 
       <app-medication-checkin [rangeDays]="rangeDays()" />
 
@@ -96,43 +96,7 @@ type RangeOption = {
     .layout {
       display: grid;
       gap: var(--space-4, 1rem);
-    }
-    .context-bar {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3, 0.75rem);
-      padding: var(--space-2, 0.5rem) 0;
-    }
-    .context-label {
-      color: var(--color-text-muted, #64748b);
-      font-size: var(--font-size-sm, 0.8125rem);
-      font-weight: 500;
-    }
-    .range-buttons {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
-      padding: 3px;
-      background: #f1f5f9;
-      border-radius: var(--radius-full, 999px);
-    }
-    .range-button {
-      border: none;
-      background: transparent;
-      padding: 0.3rem 0.65rem;
-      border-radius: var(--radius-full, 999px);
-      font-weight: 600;
-      font-size: var(--font-size-sm, 0.8125rem);
-      cursor: pointer;
-      color: #475569;
-      transition: background var(--transition-fast, 120ms ease), color var(--transition-fast, 120ms ease);
-    }
-    .range-button:hover {
-      background: #e2e8f0;
-    }
-    .range-button.active {
-      background: var(--color-primary, #0c4a6e);
-      color: #fff;
+      padding-bottom: var(--space-6);
     }
     .card {
       width: 100%;
@@ -203,12 +167,7 @@ export class HomeComponent {
 
   readonly activeParticipantId = this.participants.activeParticipantId;
   private readonly refreshTick = signal(0);
-  readonly rangeDays = signal<7 | 14 | 30>(7);
-  readonly rangeOptions: RangeOption[] = [
-    { value: 7, label: '7 days' },
-    { value: 14, label: '14 days' },
-    { value: 30, label: '30 days' }
-  ];
+  readonly rangeDays = signal<DateRangeOption>(7);
 
   readonly incidentsResource = httpResource<IncidentsResponse>(() => {
     const participantId = this.activeParticipantId();
@@ -237,7 +196,7 @@ export class HomeComponent {
   readonly incidentsCount = computed(() => this.incidents().length);
   readonly recentIncidents = computed(() => this.incidents().slice(0, 3));
 
-  setRange(value: 7 | 14 | 30) {
+  setRange(value: DateRangeOption) {
     this.rangeDays.set(value);
   }
 

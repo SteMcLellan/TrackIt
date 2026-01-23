@@ -23,10 +23,10 @@ function integerValidator(): ValidatorFn {
       @if (created()) {
         <h2>Participant created</h2>
         <p class="muted">
-          You're all set. Jump to Home or review your participants.
+          You're all set. Jump to Activity or review your participants.
         </p>
         <div class="actions">
-          <a class="button" routerLink="/home">Go to Home</a>
+          <a class="button" routerLink="/home">Go to Activity</a>
           <a class="button secondary" routerLink="/participants">View participants</a>
         </div>
       } @else {

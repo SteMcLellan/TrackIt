@@ -29,10 +29,10 @@ import {
           class="nav-item"
           routerLink="/home"
           [class.active]="isActive('/home')"
-          aria-label="Home"
+          aria-label="Activity"
         >
           <app-icon-home class="nav-icon" />
-          <span class="nav-label">Home</span>
+          <span class="nav-label">Activity</span>
         </a>
 
         <a

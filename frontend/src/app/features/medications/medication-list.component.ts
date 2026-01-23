@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { startWith } from 'rxjs';
 import { CardComponent } from '../../shared/ui/card.component';
+import { PageTitleComponent } from '../../shared/ui/page/page-title.component';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { MedicationService } from '../../shared/services/medication.service';
 import { Medication } from '../../shared/models/medication';
@@ -14,16 +15,16 @@ type MedicationsResponse = CollectionResponse<Medication>;
 
 @Component({
   selector: 'app-medication-list',
-  imports: [CardComponent, ReactiveFormsModule],
+  imports: [CardComponent, ReactiveFormsModule, PageTitleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
-      <app-card class="card">
-        <div class="header">
-          <h2>Medication list</h2>
-          <p class="muted">Manage medications for the active participant.</p>
-        </div>
+      <app-page-title
+        title="Medication List"
+        subtitle="Manage medications for the active participant"
+      />
 
+      <app-card class="card">
         @if (!activeParticipantId()) {
           <p class="error" role="alert">Select a participant to manage medications.</p>
         } @else {
@@ -196,7 +197,8 @@ type MedicationsResponse = CollectionResponse<Medication>;
     `
       .layout {
         display: grid;
-        gap: var(--space-5, 1.5rem);
+        gap: var(--space-4);
+        padding-bottom: var(--space-6);
       }
       .card {
         width: 100%;

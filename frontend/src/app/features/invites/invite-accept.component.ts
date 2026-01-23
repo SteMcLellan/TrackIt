@@ -79,7 +79,7 @@ type AcceptStatus = 'loading' | 'success' | 'already-linked' | 'error';
                 Go to participants
               </a>
               <a class="button secondary" routerLink="/home">
-                Go to Home
+                Go to Activity
               </a>
             </div>
           </div>

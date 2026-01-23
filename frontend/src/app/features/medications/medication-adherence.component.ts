@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { CardComponent } from '../../shared/ui/card.component';
+import { PageTitleComponent } from '../../shared/ui/page/page-title.component';
+import { DateRangeSelectorComponent, DateRangeOption } from '../../shared/ui/filters/date-range-selector.component';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { MedicationService } from '../../shared/services/medication.service';
 import { MedicationLogService } from '../../shared/services/medication-log.service';
@@ -14,72 +16,44 @@ import { environment } from '../../../environments/environment';
 type MedicationsResponse = CollectionResponse<Medication>;
 type MedicationLogsResponse = CollectionResponse<MedicationLog>;
 
-type RangeOption = {
-  value: number;
-  label: string;
-};
-
 @Component({
   selector: 'app-medication-adherence',
-  imports: [CardComponent, RouterLink, MedicationDotsStripComponent],
+  imports: [
+    CardComponent,
+    RouterLink,
+    MedicationDotsStripComponent,
+    PageTitleComponent,
+    DateRangeSelectorComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
-      <app-card class="card">
-        <div class="header">
-          <h2>Adherence history</h2>
-          <div class="header-links">
-            <a class="manage-link" routerLink="/medications">
-              Daily log
-              <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-              </svg>
-            </a>
-            <span class="link-sep">·</span>
-            <a class="manage-link" routerLink="/medications/list">
-              Medication list
-              <svg class="link-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-              </svg>
-            </a>
-          </div>
-          <p class="muted">Review recent medication adherence by day.</p>
-        </div>
+      <app-page-title
+        title="Adherence History"
+        subtitle="View medication adherence over time"
+      />
 
-        @if (!activeParticipantId()) {
+      <app-date-range-selector
+        [selectedRange]="rangeDays()"
+        (rangeChanged)="setRange($event)"
+      />
+
+      <div class="actions">
+        <label class="toggle">
+          <input type="checkbox" [checked]="includeArchived()" (change)="toggleArchived($event)" />
+          <span>Show archived</span>
+        </label>
+      </div>
+
+      @if (!activeParticipantId()) {
+        <app-card class="card">
           <p class="error" role="alert">Select a participant to view adherence.</p>
           <a class="select-link" routerLink="/participants">Select participant →</a>
-        } @else {
-          <div class="filters">
-            <div class="range">
-              @for (option of rangeOptions; track option.value) {
-                <button
-                  type="button"
-                  class="range-button"
-                  [class.active]="rangeDays() === option.value"
-                  (click)="setRange(option.value)"
-                >
-                  {{ option.label }}
-                </button>
-              }
-            </div>
-            <label class="toggle">
-              <input type="checkbox" [checked]="includeArchived()" (change)="toggleArchived($event)" />
-              <span>Show archived</span>
-            </label>
-          </div>
-        }
-      </app-card>
+        </app-card>
+      } @else {
 
-      <app-card class="card">
-        <div class="header">
-          <h2>Medication summary</h2>
-          <p class="muted">Dots represent each day in the selected range.</p>
-        </div>
-
-        @if (!activeParticipantId()) {
-          <p class="error" role="alert">Select a participant to view adherence.</p>
-        } @else if (medicationsResource.isLoading() || logsResource.isLoading()) {
+        <app-card class="card">
+          @if (medicationsResource.isLoading() || logsResource.isLoading()) {
           <p class="muted">Loading adherence...</p>
         } @else if (medicationsResource.error() || logsResource.error()) {
           <p class="error" role="alert">Unable to load adherence history.</p>
@@ -112,7 +86,8 @@ type RangeOption = {
             }
           </ul>
         }
-      </app-card>
+        </app-card>
+      }
     </div>
   `,
   styles: [
@@ -120,46 +95,22 @@ type RangeOption = {
       .layout {
         display: grid;
         gap: var(--space-4, 1rem);
+        padding-bottom: var(--space-6);
       }
       .card {
         width: 100%;
         margin: 0;
         box-sizing: border-box;
       }
-      .header {
-        display: grid;
-        gap: var(--space-1, 0.25rem);
-        margin-bottom: var(--space-3, 0.75rem);
-      }
-      .header-links {
+      .actions {
         display: flex;
         align-items: center;
-        gap: var(--space-2, 0.5rem);
-        flex-wrap: wrap;
+        gap: var(--space-3, 0.75rem);
       }
-      .manage-link {
+      .toggle {
         display: inline-flex;
         align-items: center;
-        gap: 0.25rem;
-        color: var(--color-text-muted, #64748b);
-        text-decoration: none;
-        font-size: var(--font-size-sm, 0.8125rem);
-        font-weight: 500;
-        transition: color var(--transition-fast, 120ms ease);
-      }
-      .manage-link:hover {
-        color: var(--color-primary, #0c4a6e);
-      }
-      .link-arrow {
-        width: 16px;
-        height: 16px;
-      }
-      .link-sep {
-        color: var(--color-text-muted, #94a3b8);
-      }
-      h2 {
-        margin: 0;
-        font-size: var(--font-size-lg, 1.125rem);
+        gap: 0.5rem;
         font-weight: 600;
       }
       .muted {
@@ -189,39 +140,6 @@ type RangeOption = {
         text-decoration: none;
         font-weight: 600;
         font-size: var(--font-size-sm, 0.8125rem);
-      }
-      .filters {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3, 0.75rem);
-        flex-wrap: wrap;
-      }
-      .range {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--space-2, 0.5rem);
-        padding: 0.25rem;
-        background: #f1f5f9;
-        border-radius: 999px;
-      }
-      .range-button {
-        border: none;
-        background: transparent;
-        padding: 0.4rem 0.9rem;
-        border-radius: 999px;
-        font-weight: 600;
-        cursor: pointer;
-        color: #0f172a;
-      }
-      .range-button.active {
-        background: #0c4a6e;
-        color: #fff;
-      }
-      .toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
       }
       .list {
         list-style: none;
@@ -325,13 +243,7 @@ export class MedicationAdherenceComponent {
 
   readonly activeParticipantId = this.participants.activeParticipantId;
   readonly includeArchived = signal(false);
-  readonly rangeDays = signal(7);
-
-  readonly rangeOptions: RangeOption[] = [
-    { value: 7, label: '7 days' },
-    { value: 14, label: '14 days' },
-    { value: 30, label: '30 days' }
-  ];
+  readonly rangeDays = signal<DateRangeOption>(7);
 
   readonly medicationsResource = httpResource<MedicationsResponse>(() => {
     const participantId = this.activeParticipantId();
@@ -425,7 +337,7 @@ export class MedicationAdherenceComponent {
     this.frequencyOptions.map((option) => [option.value, option.label])
   );
 
-  setRange(value: number) {
+  setRange(value: DateRangeOption) {
     this.rangeDays.set(value);
   }
 

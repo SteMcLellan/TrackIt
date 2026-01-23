@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink } from '@angular/router';
 import { httpResource } from '@angular/common/http';
 import { CardComponent } from '../../shared/ui/card.component';
+import { PageTitleComponent } from '../../shared/ui/page/page-title.component';
 import { ArrowRightIconComponent } from '../../shared/ui/icons/arrow-right-icon.component';
 import { Participant } from '../../shared/models/participant';
 import { ParticipantService } from '../../shared/services/participant.service';
@@ -9,19 +10,19 @@ import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-participant-list',
-  imports: [RouterLink, CardComponent, ArrowRightIconComponent],
+  imports: [RouterLink, CardComponent, PageTitleComponent, ArrowRightIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-card class="card">
-      <div class="header">
-        <div>
-          <h2>Your participants</h2>
-          <p class="muted">
-            This list lets you choose who you want to track. Select a participant to set them as active.
-          </p>
+    <div class="layout">
+      <app-page-title
+        title="Your Participants"
+        subtitle="Manage the individuals you're tracking"
+      />
+
+      <app-card class="card">
+        <div class="header">
+          <a class="button" routerLink="/participants/new">Create participant</a>
         </div>
-        <a class="button" routerLink="/participants/new">Create participant</a>
-      </div>
 
       @if (participantsResource.isLoading()) {
         <p class="muted">Loading participants...</p>
@@ -64,7 +65,7 @@ import { environment } from '../../../environments/environment';
                     View details
                   </a>
                   <a class="link" routerLink="/home" (click)="$event.stopPropagation()">
-                    <span>Go to Home</span>
+                    <span>Go to Activity</span>
                     <app-icon-arrow-right />
                   </a>
                 </div>
@@ -73,24 +74,26 @@ import { environment } from '../../../environments/environment';
           }
         </ul>
       }
-    </app-card>
+      </app-card>
+    </div>
   `,
   styles: [
     `
+      .layout {
+        display: grid;
+        gap: var(--space-4);
+        padding-bottom: var(--space-6);
+      }
       .card {
-        max-width: var(--layout-card-max, 36rem);
-        margin: var(--space-6, 2rem) auto;
+        width: 100%;
+        margin: 0;
+        box-sizing: border-box;
       }
       .header {
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-end;
         gap: var(--space-4, 1rem);
-        align-items: center;
         margin-bottom: var(--space-4, 1rem);
-        flex-wrap: wrap;
-      }
-      h2 {
-        margin: 0 0 var(--space-1, 0.25rem);
       }
       .muted {
         margin: 0;

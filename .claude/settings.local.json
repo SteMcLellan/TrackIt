@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git -C C:UsersmclelreposTrackIt.wta log --oneline -20)",
+      "Bash(dir:*)",
+      "Bash(git -C \"C:\\\\Users\\\\mclel\\\\repos\\\\TrackIt.wt\\\\a\" diff HEAD frontend/src/proxy.conf.json)",
+      "Bash(git -C \"C:\\\\Users\\\\mclel\\\\repos\\\\TrackIt.wt\\\\a\" log --stat -5)",
+      "Bash(git -C \"C:\\\\Users\\\\mclel\\\\repos\\\\TrackIt.wt\\\\a\" log --all --oneline --decorate)",
+      "Bash(git add:*)"
     ]
   }
 }
