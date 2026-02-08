@@ -7,7 +7,7 @@
 - **Frontend:** Angular 21 (standalone components, signals, zoneless)
 - **Backend:** Azure Functions (Node.js, TypeScript)
 - **Database:** Azure Cosmos DB (NoSQL)
-- **Auth:** Google OAuth → JWT (HMAC signed)
+- **Auth:** Google OAuth -> JWT (HMAC signed)
 
 ## UI/UX Design Principles
 
@@ -29,14 +29,14 @@
 - **Touch targets** - Minimum 44x44px for tappable elements
 
 ```css
-/* ✅ Correct - Responsive container */
+/* Correct - Responsive container */
 .container {
   width: 100%;
   max-width: 600px;
   padding: var(--space-4);
 }
 
-/* ❌ Wrong - Fixed width breaks mobile */
+/* Wrong - Fixed width breaks mobile */
 .container {
   width: 600px;
 }
@@ -59,11 +59,11 @@ Always verify UI changes at mobile viewport sizes (375px width minimum). Check f
 Use Angular Signals for simple state management, NOT RxJS Subjects/BehaviorSubjects.
 
 ```typescript
-// ✅ Correct
+// Correct
 private readonly state = signal(initialValue);
 readonly state = this.state.asReadonly();
 
-// ❌ Wrong
+// Wrong
 private state$ = new BehaviorSubject(initialValue);
 ```
 
@@ -74,17 +74,17 @@ Use RxJS only for HTTP operations. Components use signals in templates: `@if (si
 **Critical:** Store all timestamps as UTC + separate local context. Never store local times without timezone info.
 
 ```typescript
-// ✅ Correct
+// Correct
 {
   createdAtUtc: "2026-01-20T12:00:00Z",  // UTC ISO 8601
   logLocalDate: "2026-01-20",             // User's local date (YYYY-MM-DD)
   logLocalTime: "07:00",                  // User's local time (HH:mm)
-  logTzOffsetMinutes: 300                 // Offset from UTC
+  logTzOffsetMinutes: 300                  // Offset from UTC
 }
 
-// ❌ Wrong
+// Wrong
 {
-  timestamp: "2026-01-20T07:00:00"  // Missing timezone context!
+  timestamp: "2026-01-20T07:00:00"  // Missing timezone context
 }
 ```
 
@@ -102,7 +102,7 @@ Use RxJS only for HTTP operations. Components use signals in templates: `@if (si
 `${userId}:${participantId}`
 ```
 
-**Partition Keys:** Match query patterns (e.g., `/userId` for user queries)
+**Partition Keys:** Match query patterns (for example `/userId` for user queries and `/participantId` for timeline/event reads)
 
 **See:** `docs/architecture/data-modeling.md` for schema details.
 
@@ -122,16 +122,13 @@ Keep component templates and styles inline (not separate files). Improves locali
 
 ### 5. API Error Handling Wrapper
 
-Always use `withErrorHandling` wrapper - it catches errors automatically:
+Always use `withErrorHandling` wrapper:
 
 ```typescript
-import { withErrorHandling } from '../shared/errors';
+import { withErrorHandling } from '../shared/auth';
 
 export const handler = withErrorHandling(async (req, context) => {
-  // Throw errors directly; wrapper catches and returns 500
   if (!data) throw new Error('Not found');
-
-  // Or return explicit responses
   return { status: 200, jsonBody: { success: true } };
 });
 ```
@@ -144,12 +141,12 @@ All protected endpoints use `authorize()`:
 import { authorize } from '../shared/authorize';
 
 export const handler = withErrorHandling(async (req, context) => {
-  const auth = await authorize(req);
-  if (!auth.ok) return auth.response;
-
-  const { userId } = auth.value; // Use for queries
+  const user = authorize(context, req); // throws 401 on missing/invalid token
+  const { sub } = user;
 });
 ```
+
+For admin-only routes, use `requireAdmin()` from `api/src/shared/admin.ts`.
 
 **See:** `docs/architecture/auth-flow.md` for full flow.
 
@@ -172,16 +169,25 @@ Most features require an active participant selected:
 
 **See:** `docs/architecture/participant-association.md`
 
+### 9. Timeline EventIndex Pattern
+
+- Keep domain containers as source-of-truth.
+- Use `eventIndex` as an append-only projection for cross-domain timeline queries.
+- Projection records must include a pointer back to source (`sourceType`, `sourceId`, `sourceContainer`, `sourcePartitionKey`) and deterministic IDs for idempotency.
+- Backfill and verify must go through admin-protected internal routes:
+  - `/api/internal/admin/migrations/event-index/backfill`
+  - `/api/internal/admin/migrations/event-index/verify`
+
 ## File & Naming Conventions
 
-**Files:** kebab-case (e.g., `behavior-incident.component.ts`)
-**Classes/Types:** PascalCase (e.g., `BehaviorIncident`)
-**Functions/Variables:** camelCase (e.g., `createIncident`)
-**Constants:** UPPERCASE_SNAKE_CASE (e.g., `API_BASE_URL`)
+**Files:** kebab-case (for example `behavior-incident.component.ts`)
+**Classes/Types:** PascalCase (for example `BehaviorIncident`)
+**Functions/Variables:** camelCase (for example `createIncident`)
+**Constants:** UPPERCASE_SNAKE_CASE (for example `API_BASE_URL`)
 
 **TypeScript suffixes:**
-- Backend documents: `*Document` (e.g., `ParticipantDocument`)
-- Frontend models: No suffix (e.g., `Participant`)
+- Backend documents: `*Document` (for example `ParticipantDocument`)
+- Frontend models: No suffix (for example `Participant`)
 - Request/Response: `*Request`, `*Response`
 
 ## Key Architecture Decisions
@@ -194,18 +200,20 @@ Most features require an active participant selected:
 
 ## Things to Avoid
 
-❌ Don't use NgModules (standalone components only)
-❌ Don't use RxJS for simple state (use Signals)
-❌ Don't store local timestamps without timezone context
-❌ Don't hardcode URLs (use `environment.apiBaseUrl`)
-❌ Don't skip error handling on HTTP calls
-❌ Don't forget `authorize()` in API functions
-❌ Don't use default change detection (always OnPush)
-❌ Don't create separate .html/.css files (inline templates/styles)
-❌ Don't use fixed pixel widths that break mobile layouts
-❌ Don't create UI that causes horizontal scrolling on mobile
-❌ Don't make touch targets smaller than 44x44px
-❌ Don't skip mobile viewport testing for UI changes
+- Do not use NgModules (standalone components only)
+- Do not use RxJS for simple state (use Signals)
+- Do not store local timestamps without timezone context
+- Do not hardcode URLs (use `environment.apiBaseUrl`)
+- Do not skip error handling on HTTP calls
+- Do not forget `authorize()` in API functions
+- Do not use default change detection (always OnPush)
+- Do not create separate `.html`/`.css` files (inline templates/styles)
+- Do not use fixed pixel widths that break mobile layouts
+- Do not create UI that causes horizontal scrolling on mobile
+- Do not make touch targets smaller than 44x44px
+- Do not skip mobile viewport testing for UI changes
+- Do not use custom Azure Function routes under `/admin/*` (reserved by host)
+- Do not commit `frontend/src/proxy.conf.json`
 
 ## Common Tasks
 
@@ -256,7 +264,6 @@ The user may have `npm run dev:frontend:log` running in the background. This run
 
 To check for compilation errors, read this log file instead of running a full build:
 ```bash
-# Check the log file for build status
 cat dist/frontend/dev-frontend.log
 ```
 
@@ -265,20 +272,22 @@ Look for "Application bundle generation complete" to confirm success, or TypeScr
 ## Environment Variables
 
 **Frontend** (`environment.ts`):
-- `apiBaseUrl` - API endpoint (e.g., `http://localhost:7071/api`)
+- `apiBaseUrl` - API endpoint (for example `http://localhost:7071/api`)
 - `googleClientId` - Google OAuth client ID
 
 **Backend** (`local.settings.json`):
-- `COSMOS_ENDPOINT`, `COSMOS_KEY`, `COSMOS_DATABASE_NAME`
-- `JWT_SECRET_KEY` - Secret for signing JWTs
-- `GOOGLE_CLIENT_ID` - For OAuth validation
+- `COSMOS_ENDPOINT`, `COSMOS_KEY`, `COSMOS_DATABASE`
+- `COSMOS_USERS_CONTAINER`, `COSMOS_PARTICIPANTS_CONTAINER`, `COSMOS_MEDICATION_LOGS_CONTAINER`, `COSMOS_EVENT_INDEX_CONTAINER`
+- `JWT_SECRET`, `JWT_AUDIENCE`, `JWT_EXPIRY_SECONDS`
+- `GOOGLE_CLIENT_ID`
+- `TIMELINE_PROJECTION_MODE`, `TIMELINE_QUERY_ENABLED`
 
 ## Architecture Documentation
 
 For detailed information on specific areas:
 
 - **`docs/architecture/auth-flow.md`** - Authentication flow, JWT handling
-- **`docs/architecture/data-modeling.md`** - Cosmos schema, UTC+local time, compound IDs
+- **`docs/architecture/data-modeling.md`** - Cosmos schema, UTC/local time, eventIndex semantics
 - **`docs/architecture/participant-association.md`** - Active participant pattern
 - **`docs/architecture/behavior-tracking-abc.md`** - ABC behavior tracking model
 
