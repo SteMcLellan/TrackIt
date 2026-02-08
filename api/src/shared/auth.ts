@@ -49,6 +49,7 @@ export interface AppUserClaims {
   name?: string;
   picture?: string;
   role?: string;
+  roles?: string[];
 }
 
 export interface AppJwtPayload extends AppUserClaims {
@@ -81,13 +82,19 @@ export async function verifyGoogleIdToken(idToken: string, config: AuthConfig): 
  * Signs a TrackIt app JWT using the configured HMAC secret.
  */
 export function signAppJwt(claims: AppUserClaims, config: AuthConfig): string {
+  const roles = Array.isArray(claims.roles) && claims.roles.length > 0
+    ? claims.roles
+    : [claims.role || 'parent'];
+  const role = claims.role || roles[0] || 'parent';
+
   return jwt.sign(
     {
       sub: claims.sub,
       email: claims.email,
       name: claims.name,
       picture: claims.picture,
-      role: claims.role || 'parent'
+      role,
+      roles
     },
     config.jwtSecret,
     { algorithm: 'HS256', expiresIn: config.jwtExpirySeconds, audience: config.audience }

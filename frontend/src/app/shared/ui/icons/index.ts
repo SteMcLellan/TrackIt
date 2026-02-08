@@ -4,6 +4,7 @@ export { MedicationsIconComponent } from './medications-icon.component';
 export { IncidentsIconComponent } from './incidents-icon.component';
 export { ParticipantsIconComponent } from './participants-icon.component';
 export { AnalyticsIconComponent } from './analytics-icon.component';
+export { TimelineIconComponent } from './timeline-icon.component';
 export { MenuIconComponent } from './menu-icon.component';
 export { PlusIconComponent } from './plus-icon.component';
 

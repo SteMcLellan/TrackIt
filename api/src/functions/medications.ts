@@ -8,6 +8,8 @@ import { parseJsonBody } from '../shared/requests';
 import { buildMedicationListQuery } from '../shared/data/medications';
 import { readParticipantLink } from '../shared/data/participants';
 import { MedicationDocument } from '../models/medication';
+import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
+import { appendTimelineEvent } from '../shared/timeline/write-through';
 
 type CreateMedicationRequest = {
   name: string;
@@ -182,6 +184,10 @@ const createMedicationHandler = withErrorHandling(
     };
 
     await containers.medications.items.create(medication);
+    await appendTimelineEvent(
+      containers.eventIndex,
+      projectMedicationToEventIndex(medication, 'created')
+    );
 
     return { status: 201, jsonBody: medication };
   }

@@ -8,6 +8,7 @@ export interface ParticipantsCosmosConfig {
   behaviorIncidentsContainerId: string;
   medicationsContainerId: string;
   medicationLogsContainerId: string;
+  eventIndexContainerId: string;
 }
 
 /**
@@ -24,6 +25,7 @@ export interface CosmosConfig {
   behaviorIncidentsContainerId: string;
   medicationsContainerId: string;
   medicationLogsContainerId: string;
+  eventIndexContainerId: string;
 }
 
 let cachedClient: CosmosClient | null = null;
@@ -47,6 +49,7 @@ export async function buildCosmos(
     behaviorIncidentsContainerId: process.env.COSMOS_BEHAVIOR_INCIDENTS_CONTAINER || 'behaviorIncidents',
     medicationsContainerId: process.env.COSMOS_MEDICATIONS_CONTAINER || 'medications',
     medicationLogsContainerId: process.env.COSMOS_MEDICATION_LOGS_CONTAINER || 'medicationLogs',
+    eventIndexContainerId: process.env.COSMOS_EVENT_INDEX_CONTAINER || 'eventIndex',
     ...config
   };
 
@@ -92,6 +95,26 @@ export async function buildCosmos(
     id: resolved.medicationLogsContainerId,
     partitionKey: { paths: ['/participantId'] }
   });
+  const { container: eventIndexContainer } = await database.containers.createIfNotExists({
+    id: resolved.eventIndexContainerId,
+    partitionKey: { paths: ['/participantId'] },
+    indexingPolicy: {
+      compositeIndexes: [
+        [
+          { path: '/eventAtUtc', order: 'ascending' },
+          { path: '/sourceType', order: 'ascending' }
+        ],
+        [
+          { path: '/sourceType', order: 'ascending' },
+          { path: '/eventAtUtc', order: 'ascending' }
+        ],
+        [
+          { path: '/logLocalDate', order: 'ascending' },
+          { path: '/eventAtUtc', order: 'ascending' }
+        ]
+      ]
+    }
+  });
 
   cachedClient = client;
   cachedContainers = {
@@ -101,7 +124,8 @@ export async function buildCosmos(
     participantInvites: participantInvitesContainer,
     behaviorIncidents: behaviorIncidentsContainer,
     medications: medicationsContainer,
-    medicationLogs: medicationLogsContainer
+    medicationLogs: medicationLogsContainer,
+    eventIndex: eventIndexContainer
   };
 
   return {

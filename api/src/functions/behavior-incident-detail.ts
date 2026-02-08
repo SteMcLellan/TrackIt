@@ -7,6 +7,8 @@ import { parseJsonBody } from '../shared/requests';
 import { readBehaviorIncident } from '../shared/data/behavior-incidents';
 import { readParticipantLink } from '../shared/data/participants';
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
+import { projectIncidentToEventIndex } from '../shared/timeline/projectors';
+import { appendTimelineEvent } from '../shared/timeline/write-through';
 import {
   isNonEmpty,
   isDateOnly,
@@ -204,6 +206,7 @@ const updateBehaviorIncidentHandler = withErrorHandling(
     };
 
     await containers.behaviorIncidents.items.upsert(updated);
+    await appendTimelineEvent(containers.eventIndex, projectIncidentToEventIndex(updated));
 
     return { status: 200, jsonBody: updated };
   }
@@ -236,6 +239,7 @@ const deleteBehaviorIncidentHandler = withErrorHandling(
       return { status: 404, jsonBody: { message: 'Incident not found.' } };
     }
     await containers.behaviorIncidents.item(incidentId, participantId).delete();
+    await appendTimelineEvent(containers.eventIndex, projectIncidentToEventIndex(existing, 'delete'));
     return { status: 204 };
   }
 );

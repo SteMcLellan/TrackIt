@@ -41,4 +41,10 @@ export class MedicationLogService {
       request
     );
   }
+
+  getLog(participantId: string, logId: string) {
+    return this.http.get<MedicationLog>(
+      `${environment.apiBaseUrl}/participants/${participantId}/medication-logs/${logId}`
+    );
+  }
 }

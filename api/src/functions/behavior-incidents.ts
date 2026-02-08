@@ -8,6 +8,8 @@ import { parseJsonBody } from '../shared/requests';
 import { buildBehaviorIncidentListQuery } from '../shared/data/behavior-incidents';
 import { readParticipantLink } from '../shared/data/participants';
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
+import { projectIncidentToEventIndex } from '../shared/timeline/projectors';
+import { appendTimelineEvent } from '../shared/timeline/write-through';
 import {
   isNonEmpty,
   isDateOnly,
@@ -203,6 +205,7 @@ const createBehaviorIncidentHandler = withErrorHandling(
     };
 
     await containers.behaviorIncidents.items.create(incident);
+    await appendTimelineEvent(containers.eventIndex, projectIncidentToEventIndex(incident));
 
     return { status: 201, jsonBody: incident };
   }

@@ -7,6 +7,8 @@ import { parseJsonBody } from '../shared/requests';
 import { readMedication } from '../shared/data/medications';
 import { readParticipantLink } from '../shared/data/participants';
 import { MedicationDocument } from '../models/medication';
+import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
+import { appendTimelineEvent } from '../shared/timeline/write-through';
 
 type UpdateMedicationRequest = Partial<{
   name: string;
@@ -160,10 +162,49 @@ const updateMedicationHandler = withErrorHandling(
     };
 
     await containers.medications.items.upsert(updated);
+    const action = !existing.archivedAtUtc && updated.archivedAtUtc ? 'archived' : 'updated';
+    await appendTimelineEvent(
+      containers.eventIndex,
+      projectMedicationToEventIndex(updated, action)
+    );
 
     return { status: 200, jsonBody: updated };
   }
 );
+
+const readMedicationHandler = withErrorHandling(
+  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const user = authorize(context, req);
+    const participantId = req.params.participantId;
+    const medicationId = req.params.medicationId;
+    if (!participantId || !medicationId) {
+      return buildValidationError([
+        { id: 'medications.participantId.required', message: 'Participant id is required.' },
+        { id: 'medications.medicationId.required', message: 'Medication id is required.' }
+      ]);
+    }
+
+    const { containers } = await buildCosmos();
+    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
+    if (!link) {
+      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
+    }
+
+    const medication = await readMedication(containers.medications, participantId, medicationId);
+    if (!medication) {
+      return { status: 404, jsonBody: { message: 'Medication not found.' } };
+    }
+
+    return { status: 200, jsonBody: medication };
+  }
+);
+
+app.http('medication-detail-get', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'participants/{participantId}/medications/{medicationId}',
+  handler: readMedicationHandler
+});
 
 app.http('medication-detail-patch', {
   methods: ['PATCH'],
@@ -172,4 +213,4 @@ app.http('medication-detail-patch', {
   handler: updateMedicationHandler
 });
 
-export { updateMedicationHandler };
+export { readMedicationHandler, updateMedicationHandler };

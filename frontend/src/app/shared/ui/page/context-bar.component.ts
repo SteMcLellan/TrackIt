@@ -140,10 +140,17 @@ export class ContextBarComponent {
   readonly hideOnAuthPage = computed(() => (this.navigation() || '').startsWith('/login'));
 
   readonly activeParticipantId = this.participants.activeParticipantId;
-  readonly participantResource = httpResource<Participant>(() => ({
-    url: `${environment.apiBaseUrl}/participants/${this.activeParticipantId() ?? ''}`,
-    method: 'GET'
-  }));
+  readonly participantResource = httpResource<Participant>(() => {
+    const participantId = this.activeParticipantId();
+    if (!this.isAuthenticated() || this.hideOnAuthPage() || !participantId) {
+      return undefined;
+    }
+
+    return {
+      url: `${environment.apiBaseUrl}/participants/${participantId}`,
+      method: 'GET'
+    };
+  });
 
   readonly activeParticipant = computed(() => {
     if (!this.activeParticipantId()) {

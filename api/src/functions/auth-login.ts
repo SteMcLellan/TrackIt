@@ -2,6 +2,7 @@ import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { buildConfig, readJwtHeader, signAppJwt, verifyGoogleIdToken, withErrorHandling } from '../shared/auth';
 import { buildCosmos, upsertUser } from '../shared/cosmos';
 import { UserDocument } from '../models/user';
+import { readUserBySub } from '../shared/data/users';
 
 /**
  * Exchanges a Google ID token for an app JWT and upserts the user profile.
@@ -60,23 +61,27 @@ const authLogin = withErrorHandling(async (req: HttpRequest): Promise<HttpRespon
   }
 
   const { containers } = await buildCosmos();
+  const existing = await readUserBySub(containers.users, googleClaims.sub as string);
+  const roles = existing?.roles && existing.roles.length > 0 ? existing.roles : ['parent'];
   const user: UserDocument = {
     sub: googleClaims.sub as string,
     email: googleClaims.email as string,
     name: (googleClaims.name as string) || '',
     picture: googleClaims.picture as string,
-    roles: ['parent'],
+    roles,
     createdAt: '',
     lastLoginAt: ''
   };
 
   const stored = await upsertUser(containers, user);
+  const persistedRoles = stored.roles && stored.roles.length > 0 ? stored.roles : roles;
   const token = signAppJwt({
     sub: stored.sub,
     email: stored.email,
     name: stored.name,
     picture: stored.picture,
-    role: stored.roles?.[0]
+    role: persistedRoles[0],
+    roles: persistedRoles
   }, config);
 
   return {
@@ -86,7 +91,8 @@ const authLogin = withErrorHandling(async (req: HttpRequest): Promise<HttpRespon
       email: stored.email,
       name: stored.name,
       picture: stored.picture,
-      role: stored.roles?.[0] || 'parent',
+      role: persistedRoles[0],
+      roles: persistedRoles,
       token
     }
   };

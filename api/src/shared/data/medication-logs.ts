@@ -1,4 +1,6 @@
 import type { SqlParameter, SqlQuerySpec } from '@azure/cosmos';
+import { Container } from '@azure/cosmos';
+import { MedicationLogDocument } from '../../models/medication-log';
 
 export function buildMedicationLogListQuery(
   participantId: string,
@@ -26,4 +28,13 @@ export function buildMedicationLogListQuery(
     query: `SELECT * FROM c WHERE ${conditions.join(' AND ')} ORDER BY c.logLocalDate DESC`,
     parameters
   };
+}
+
+export async function readMedicationLog(
+  container: Container,
+  participantId: string,
+  logId: string
+): Promise<MedicationLogDocument | null> {
+  const { resource } = await container.item(logId, participantId).read<MedicationLogDocument>();
+  return resource ?? null;
 }

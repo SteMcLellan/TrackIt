@@ -1,5 +1,7 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { buildConfig, signAppJwt, verifyGoogleIdToken, withErrorHandling } from '../shared/auth';
+import { buildCosmos } from '../shared/cosmos';
+import { readUserBySub } from '../shared/data/users';
 
 /**
  * Issues a fresh app JWT using a valid Google ID token.
@@ -25,18 +27,22 @@ const authRefresh = withErrorHandling(async (req: HttpRequest): Promise<HttpResp
 
   const config = buildConfig();
   const claims = await verifyGoogleIdToken(idToken, config);
+  const { containers } = await buildCosmos();
+  const user = await readUserBySub(containers.users, claims.sub as string);
+  const roles = user?.roles && user.roles.length > 0 ? user.roles : ['parent'];
   const token = signAppJwt(
     {
       sub: claims.sub as string,
       email: claims.email as string,
       name: claims.name as string,
       picture: claims.picture as string,
-      role: 'parent'
+      role: roles[0],
+      roles
     },
     config
   );
 
-  return { status: 200, jsonBody: { token } };
+  return { status: 200, jsonBody: { token, role: roles[0], roles } };
 });
 
 /**

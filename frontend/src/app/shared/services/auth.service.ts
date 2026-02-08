@@ -10,6 +10,7 @@ interface AppUser {
   name: string;
   picture?: string;
   role: string;
+  roles?: string[];
   token: string;
 }
 
@@ -22,6 +23,7 @@ const signedOutUser: AppUser = {
   name: 'Signed out',
   picture: undefined,
   role: 'guest',
+  roles: ['guest'],
   token: ''
 };
 

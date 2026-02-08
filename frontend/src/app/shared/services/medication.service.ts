@@ -51,4 +51,10 @@ export class MedicationService {
       request
     );
   }
+
+  getMedication(participantId: string, medicationId: string) {
+    return this.http.get<Medication>(
+      `${environment.apiBaseUrl}/participants/${participantId}/medications/${medicationId}`
+    );
+  }
 }

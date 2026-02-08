@@ -8,6 +8,8 @@ import { buildMedicationLogListQuery } from '../shared/data/medication-logs';
 import { readMedication } from '../shared/data/medications';
 import { readParticipantLink } from '../shared/data/participants';
 import { MedicationLogDocument } from '../models/medication-log';
+import { projectMedicationLogToEventIndex } from '../shared/timeline/projectors';
+import { appendTimelineEvent } from '../shared/timeline/write-through';
 
 type UpsertMedicationLogRequest = {
   status: 'taken' | 'not_taken';
@@ -216,6 +218,10 @@ const upsertMedicationLogHandler = withErrorHandling(
     };
 
     await containers.medicationLogs.items.upsert(updated);
+    await appendTimelineEvent(
+      containers.eventIndex,
+      projectMedicationLogToEventIndex(updated, medication)
+    );
 
     return { status: 200, jsonBody: updated };
   }

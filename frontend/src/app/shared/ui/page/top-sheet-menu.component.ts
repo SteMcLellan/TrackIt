@@ -12,7 +12,8 @@ import {
   MedicationsIconComponent,
   IncidentsIconComponent,
   ParticipantsIconComponent,
-  AnalyticsIconComponent
+  AnalyticsIconComponent,
+  TimelineIconComponent
 } from '../icons';
 
 @Component({
@@ -23,7 +24,8 @@ import {
     MedicationsIconComponent,
     IncidentsIconComponent,
     ParticipantsIconComponent,
-    AnalyticsIconComponent
+    AnalyticsIconComponent,
+    TimelineIconComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -97,6 +99,10 @@ import {
             <a class="nav-link" routerLink="/analytics" (click)="closeMenu()">
               <app-icon-analytics class="nav-icon" />
               <span>Analytics</span>
+            </a>
+            <a class="nav-link" routerLink="/timeline" (click)="closeMenu()">
+              <app-icon-timeline class="nav-icon" />
+              <span>Timeline</span>
             </a>
             <a class="nav-link" routerLink="/participants" (click)="closeMenu()">
               <app-icon-participants class="nav-icon" />
@@ -254,7 +260,7 @@ import {
 
     @media (min-width: 480px) {
       .nav-grid {
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
   `]
@@ -298,10 +304,17 @@ export class TopSheetMenuComponent {
   readonly hideOnAuthPage = computed(() => (this.navigation() || '').startsWith('/login'));
 
   readonly activeParticipantId = this.participants.activeParticipantId;
-  readonly participantResource = httpResource<Participant>(() => ({
-    url: `${environment.apiBaseUrl}/participants/${this.activeParticipantId() ?? ''}`,
-    method: 'GET'
-  }));
+  readonly participantResource = httpResource<Participant>(() => {
+    const participantId = this.activeParticipantId();
+    if (!this.isAuthenticated() || this.hideOnAuthPage() || !participantId) {
+      return undefined;
+    }
+
+    return {
+      url: `${environment.apiBaseUrl}/participants/${participantId}`,
+      method: 'GET'
+    };
+  });
 
   readonly activeParticipant = computed(() => {
     if (!this.activeParticipantId()) {

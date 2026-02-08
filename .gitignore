@@ -29,6 +29,7 @@ api/functions/
 authconfig.json
 api/local.settings.json
 proxy.conf.json
+frontend/src/proxy.conf.json
 
 # Editor/OS
 **/.vscode/
