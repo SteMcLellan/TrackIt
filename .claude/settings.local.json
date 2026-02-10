@@ -8,7 +8,13 @@
       "Bash(git -C \"C:\\\\Users\\\\mclel\\\\repos\\\\TrackIt.wt\\\\a\" diff HEAD frontend/src/proxy.conf.json)",
       "Bash(git -C \"C:\\\\Users\\\\mclel\\\\repos\\\\TrackIt.wt\\\\a\" log --stat -5)",
       "Bash(git -C \"C:\\\\Users\\\\mclel\\\\repos\\\\TrackIt.wt\\\\a\" log --all --oneline --decorate)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "mcp__stitch__list_projects",
+      "mcp__stitch__list_screens",
+      "WebFetch(domain:contribution.usercontent.google.com)",
+      "mcp__stitch__get_screen",
+      "mcp__stitch__get_project",
+      "Bash(curl:*)"
     ]
   }
 }

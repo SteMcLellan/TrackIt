@@ -24,3 +24,4 @@ export { FunctionTangibleIconComponent } from './function-tangible-icon.componen
 
 // Branding
 export { TrackItLogoIconComponent } from './trackit-logo-icon.component';
+export { TrackItTrendlineLogoIconComponent } from './trackit-trendline-logo-icon.component';

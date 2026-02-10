@@ -72,7 +72,11 @@ export class AuthService {
     google.accounts.id.renderButton(document.getElementById(containerId), {
       type: 'standard',
       theme: 'outline',
-      size: 'large'
+      size: 'large',
+      text: 'signin_with',
+      shape: 'rectangular',
+      width: 280,
+      logo_alignment: 'left'
     });
   }
 
