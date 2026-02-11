@@ -1,5 +1,12 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
+/**
+ * @stitch-project projects/2002730124455423542
+ * @stitch-screen projects/2002730124455423542/screens/40de48a457ef43beab1f50b6742a7664
+ * @stitch-screen-title TrackIt Trendline Logo Identity
+ * @stitch-status converted
+ * @stitch-last-sync 2026-02-11
+ */
 @Component({
   selector: 'app-icon-trackit-trendline-logo',
   changeDetection: ChangeDetectionStrategy.OnPush,

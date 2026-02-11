@@ -52,6 +52,41 @@ Always verify UI changes at mobile viewport sizes (375px width minimum). Check f
 - Text wrapping correctly
 - Touch targets adequately sized
 
+## Stitch Migration Workflow
+
+Use Stitch as the canonical design source while migrating the existing UI incrementally.
+
+- **TrackIt Stitch project:** `projects/2002730124455423542`
+- Default to this project for TrackIt UI migration work unless the user explicitly specifies another project.
+- Not all TrackIt flows are in Stitch yet; convert existing components as corresponding Stitch screens become available.
+
+### Required Stitch Metadata for Converted Components
+
+When a component is implemented from a Stitch screen, add a metadata comment block immediately above `@Component(...)`:
+
+```typescript
+/**
+ * @stitch-project projects/2002730124455423542
+ * @stitch-screen projects/2002730124455423542/screens/<screen-id>
+ * @stitch-screen-title <screen title>
+ * @stitch-status converted
+ * @stitch-last-sync YYYY-MM-DD
+ */
+```
+
+Rules:
+- The metadata block is required for any component marked as Stitch-converted.
+- `@stitch-screen` must use the full Stitch resource name.
+- `@stitch-last-sync` is the date the component last synced to a Stitch design (`YYYY-MM-DD`).
+
+### Stitch Migration Progress Tracking
+
+- Source-of-truth tracker: `docs/architecture/stitch-migration.md`
+- Track all frontend Angular components (`frontend/src/app/**/*.component.ts`).
+- Keep tracker status binary: `Converted` or `Not`.
+- Update the tracker in the same PR that migrates a component.
+- Run `npm run audit:stitch-migration` before finishing Stitch migration changes.
+
 ## Critical Patterns Unique to This Codebase
 
 ### 1. Signal-Based State (Not RxJS)
@@ -290,6 +325,7 @@ For detailed information on specific areas:
 - **`docs/architecture/data-modeling.md`** - Cosmos schema, UTC/local time, eventIndex semantics
 - **`docs/architecture/participant-association.md`** - Active participant pattern
 - **`docs/architecture/behavior-tracking-abc.md`** - ABC behavior tracking model
+- **`docs/architecture/stitch-migration.md`** - Stitch conversion inventory and migration progress
 
 ---
 
