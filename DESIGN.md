@@ -35,14 +35,14 @@ These three colors form the shared visual language of the TrackIt brand. They ap
 |---|---|---|
 | Ghost White Canvas | `#fcfcfd` | Primary light background (dashboard and sign-in) |
 | Midnight Slate | `#1e293b` | Primary body and heading text on light surfaces |
-| Signal Blue | `#137fec` | Project accent; interactive elements, links, selected states |
+| Signal Blue | `#137fec` | Project accent; links, selected states, and focus rings (not primary CTA fill) |
 | Sky Azure | `#0ea5e9` | Focus and cognitive metric indicators (dashboard only) |
 
 ### Brand-Only Colors
 
 | Descriptive Name | Hex | Role |
 |---|---|---|
-| Mint Pulse | `#13ec92` | Defined as Tailwind `primary`; used for dot-grid background overlay on SignIn — not part of the logo mark |
+| Mint Pulse | `#13ec92` | Brand accent reserved for the SignIn dot-grid background overlay; not part of the logo mark and not used for primary CTA fills |
 | Deep Forest Night | `#10221a` | Dark surface background variant; reserved for dark-mode surfaces |
 
 ---
@@ -60,7 +60,7 @@ These three colors form the shared visual language of the TrackIt brand. They ap
 
 ## 4. Component Stylings
 
-- **Buttons:** Pill-shaped (fully rounded, `border-radius: 9999px`), filled with Mint Pulse (`#13ec92`) for primary actions; ghost/outline style for secondary actions. Minimum 44px touch target height.
+- **Buttons:** Pill-shaped (fully rounded, `border-radius: 9999px`), filled with Vital Emerald (`#10b981`) for primary actions (standardized to match Dashboard "Taken"); ghost/outline style for secondary actions. Minimum 44px touch target height.
 
 - **Cards / Containers:** Gently curved corners (8px radius, equivalent to Tailwind `rounded-lg`). On the light dashboard surface, cards sit on Ghost White Canvas with whisper-soft diffused shadows (`0 4px 24px -2px rgba(0,0,0,0.05)`) — barely-there elevation. No heavy borders.
 
@@ -80,3 +80,62 @@ These three colors form the shared visual language of the TrackIt brand. They ap
 - **Sticky / anchored primary actions:** Key CTAs (like "Sign In") are positioned within thumb reach — lower third of the screen on mobile.
 - **Data grid for metrics:** Dashboard weekly summaries use a compact horizontal grid of color-coded chips/badges — scannable at a glance, not requiring deep reading.
 - **Scrollable content areas use `.no-scrollbar`:** Overflow content scrolls without visible scrollbar chrome, maintaining the clean aesthetic.
+
+---
+
+## 6. Canonical Page Shell (Top + Bottom)
+
+Use this shell by default on authenticated mobile screens unless a flow explicitly requires a different structure.
+
+### Top App Bar (Canonical)
+
+- **Header container class tokens (required):**
+  - `flex items-center bg-white/90 backdrop-blur-md p-4 pb-3 justify-between sticky top-0 z-30 border-b border-slate-100`
+- **Left brand cluster (required):**
+  - Outer wrapper: `flex items-center gap-2.5`
+  - Inner wrapper: `flex items-center gap-0.5 h-6`
+  - Keep the TrackIt 3-wave SVG logo with these exact path geometries:
+    - `M2 14C4 14 6 8 8 10C10 12 12 6 14 6`
+    - `M5 16C7 16 9 10 11 12C13 14 15 8 17 8`
+    - `M8 18C10 18 12 12 14 14C16 16 18 10 20 10`
+  - Wordmark text treatment: `text-slate-900 font-bold text-lg tracking-tight`
+- **Right action cluster (required):**
+  - Wrapper: `flex items-center gap-2`
+  - Notifications button:
+    - `flex size-9 cursor-pointer items-center justify-center rounded-full bg-white border border-slate-100 text-slate-400`
+    - Icon name/class: `notifications` with `text-xl`
+  - Account control:
+    - `text-energetic-violet flex size-9 shrink-0 items-center justify-center rounded-full bg-soft-violet border border-violet-100`
+    - Icon name/class: `account_circle` with `text-xl leading-none`
+- **Do not:**
+  - Replace `size-9` with `w-9 h-9`
+  - Replace `account_circle` with `person`
+  - Replace `text-xl` with `text-[20px]`
+  - Add dark-mode variants unless explicitly requested
+
+### Bottom Navigation (Canonical)
+
+- **Nav container class tokens (required):**
+  - `fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-2xl border-t border-slate-100 px-10 py-5 pb-8 flex justify-between items-center z-50`
+- **Information architecture and order (required):**
+  1. `Insights` icon `insights`
+  2. `History` icon `calendar_today`
+  3. `Care Team` icon `hub`
+  4. `Profile` icon `settings`
+- **Item treatment:**
+  - Each item uses: `flex flex-col items-center gap-1.5`
+  - Icon size: `text-[26px]`
+  - Label: `text-[9px] font-bold uppercase tracking-tighter`
+  - Active tab color: `text-energetic-violet` and active icon includes `fill-1`
+  - Inactive tabs: `text-slate-400`
+- **Safe area / mobile behavior:**
+  - Keep bottom padding token `pb-8` on nav
+  - Ensure page content has enough bottom spacing to avoid overlap with fixed nav
+
+### Shell Parity Checklist
+
+Use this before accepting a Stitch screen update:
+
+1. Top app bar matches canonical class tokens, icon names, and SVG path geometry.
+2. Bottom nav matches canonical container tokens, item order, icons, and active/inactive states.
+3. Screen remains mobile-first at 390px width, with no horizontal overflow.
