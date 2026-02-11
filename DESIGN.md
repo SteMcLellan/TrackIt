@@ -119,9 +119,8 @@ Use this shell by default on authenticated mobile screens unless a flow explicit
   - `fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-2xl border-t border-slate-100 px-10 py-5 pb-8 flex justify-between items-center z-50`
 - **Information architecture and order (required):**
   1. `Insights` icon `insights`
-  2. `History` icon `calendar_today`
-  3. `Care Team` icon `hub`
-  4. `Profile` icon `settings`
+  2. `Timeline` icon `calendar_today`
+  3. `Profile` icon `settings`
 - **Item treatment:**
   - Each item uses: `flex flex-col items-center gap-1.5`
   - Icon size: `text-[26px]`

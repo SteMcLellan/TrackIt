@@ -14,7 +14,9 @@
       "WebFetch(domain:contribution.usercontent.google.com)",
       "mcp__stitch__get_screen",
       "mcp__stitch__get_project",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__stitch__edit_screens",
+      "mcp__stitch__generate_screen_from_text"
     ]
   }
 }

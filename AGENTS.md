@@ -20,6 +20,12 @@
 3. **Low-Friction Recording** - Streamline entry of events, medications, and incidents; prefer single-tap actions where possible
 4. **Thumb-Friendly** - Place primary actions within easy thumb reach on mobile
 
+### Interaction Patterns
+
+- **Bottom sheet for "Add" actions** — when a list item needs an "Add" entry point (e.g. medications, incidents), use a bottom sheet (slides up ~65–75% of screen height with rounded top corners and a dimmed overlay) rather than inline expansion, a dialog, or a full-screen push. Reserve full-screen push for complex multi-step flows.
+- **Edit-mode-only Save buttons** — forms on settings/profile screens should show read-only display values at rest. Surface input fields and the Save button only when the user taps an Edit affordance. Never show a Save button when no changes have been made.
+- **Semantic color per section** — section cards on management screens (profile, forms) use tinted backgrounds mapped to the app's semantic palette. See `DESIGN.md` for the color-to-role mapping (emerald = wellness/medications, violet = behavioral/people, amber = alerts/scheduling, azure = context/environment).
+
 ### Mobile Layout Rules
 
 - **No horizontal scrolling** - Content must fit within viewport width at all screen sizes
@@ -59,6 +65,13 @@ Use Stitch as the canonical design source while migrating the existing UI increm
 - **TrackIt Stitch project:** `projects/2002730124455423542`
 - Default to this project for TrackIt UI migration work unless the user explicitly specifies another project.
 - Not all TrackIt flows are in Stitch yet; convert existing components as corresponding Stitch screens become available.
+- **Design system:** `DESIGN.md` is the canonical reference for colors, typography, component styles, and the canonical page shell (top app bar + bottom nav). Consult it before implementing any UI component.
+
+### Known Stitch Behaviors
+
+- **Target one screen at a time with `edit_screens`** — passing multiple screen IDs can silently no-op with no error. If an edit doesn't produce a new screen, retry with a single screen ID.
+- **Screen title drift** — Stitch generates titles from prompt phrasing and often gets them wrong (e.g. "Profile Dashboard" instead of "Profile"). Titles are cosmetic and don't affect implementation; don't waste a generation on renaming.
+- **Use the `enhance-prompt` skill** before submitting complex or color-specific edits — it injects DESIGN.md tokens and structures prompts for better results.
 
 ### Required Stitch Metadata for Converted Components
 
@@ -321,6 +334,8 @@ Look for "Application bundle generation complete" to confirm success, or TypeScr
 
 For detailed information on specific areas:
 
+- **`DESIGN.md`** - Canonical design system: color palette, typography, component styles, canonical page shell
+- **`docs/architecture/page-shell.md`** - Page shell architecture: routing structure, ShellComponent, TopBarComponent, BottomNavComponent, BottomSheetComponent
 - **`docs/architecture/auth-flow.md`** - Authentication flow, JWT handling
 - **`docs/architecture/data-modeling.md`** - Cosmos schema, UTC/local time, eventIndex semantics
 - **`docs/architecture/participant-association.md`** - Active participant pattern
