@@ -11,10 +11,10 @@ This document tracks migration progress from legacy frontend components to Stitc
 
 ## Coverage Summary
 
-- Total components: `55`
-- Converted: `2`
-- Not converted: `53`
-- Completion: `3.6%` (`2/55`)
+- Total components: `61`
+- Converted: `6`
+- Not converted: `55`
+- Completion: `9.8%` (`6/61`)
 
 ## Component Inventory
 
@@ -25,6 +25,7 @@ This document tracks migration progress from legacy frontend components to Stitc
 | frontend/src/app/features/auth/login.component.ts | Yes | projects/2002730124455423542/screens/40de48a457ef43beab1f50b6742a7664 | TrackIt Trendline Logo Identity |
 | frontend/src/app/features/dashboard/dashboard.component.ts | No | - | - |
 | frontend/src/app/features/home/home.component.ts | No | - | - |
+| frontend/src/app/features/insights/insights-placeholder.component.ts | No | - | - |
 | frontend/src/app/features/incidents/incident-create.component.ts | No | - | - |
 | frontend/src/app/features/incidents/incident-detail.component.ts | No | - | - |
 | frontend/src/app/features/incidents/incident-edit-form.component.ts | No | - | - |
@@ -41,7 +42,12 @@ This document tracks migration progress from legacy frontend components to Stitc
 | frontend/src/app/features/participants/participant-edit-form.component.ts | No | - | - |
 | frontend/src/app/features/participants/participant-list.component.ts | No | - | - |
 | frontend/src/app/features/participants/participant-start.component.ts | No | - | - |
+| frontend/src/app/features/profile/profile-placeholder.component.ts | No | - | - |
 | frontend/src/app/features/timeline/timeline.component.ts | No | - | - |
+| frontend/src/app/features/timeline/timeline-placeholder.component.ts | No | - | - |
+| frontend/src/app/shell/bottom-nav.component.ts | Yes | projects/2002730124455423542/screens/efcaceb73e4746e2a655f9d447f9f420 | Parental Insight Dashboard shell navigation |
+| frontend/src/app/shell/shell.component.ts | Yes | projects/2002730124455423542/screens/efcaceb73e4746e2a655f9d447f9f420 | Parental Insight Dashboard shell layout |
+| frontend/src/app/shell/top-bar.component.ts | Yes | projects/2002730124455423542/screens/efcaceb73e4746e2a655f9d447f9f420 | Parental Insight Dashboard top app bar |
 | frontend/src/app/shared/ui/card.component.ts | No | - | - |
 | frontend/src/app/shared/ui/charts/bar-chart.component.ts | No | - | - |
 | frontend/src/app/shared/ui/charts/donut-chart.component.ts | No | - | - |
@@ -69,7 +75,7 @@ This document tracks migration progress from legacy frontend components to Stitc
 | frontend/src/app/shared/ui/icons/trackit-trendline-logo-icon.component.ts | Yes | projects/2002730124455423542/screens/40de48a457ef43beab1f50b6742a7664 | Brand logo mark from TrackIt Trendline Logo Identity |
 | frontend/src/app/shared/ui/icons/x-icon.component.ts | No | - | - |
 | frontend/src/app/shared/ui/page/bottom-nav.component.ts | No | - | - |
-| frontend/src/app/shared/ui/page/bottom-sheet.component.ts | No | - | - |
+| frontend/src/app/shared/ui/page/bottom-sheet.component.ts | Yes | projects/2002730124455423542/screens/1c1459bdb1724f6ca337ae399d9022a1 | Profile screen bottom sheet overlay |
 | frontend/src/app/shared/ui/page/context-bar.component.ts | No | - | - |
 | frontend/src/app/shared/ui/page/page-header.component.ts | No | - | - |
 | frontend/src/app/shared/ui/page/page-title.component.ts | No | - | - |

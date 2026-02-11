@@ -12,6 +12,13 @@ import {
 } from '@angular/core';
 import { CloseIconComponent } from '../icons';
 
+/**
+ * @stitch-project projects/2002730124455423542
+ * @stitch-screen projects/2002730124455423542/screens/1c1459bdb1724f6ca337ae399d9022a1
+ * @stitch-screen-title Profile
+ * @stitch-status converted
+ * @stitch-last-sync 2026-02-11
+ */
 @Component({
   selector: 'app-bottom-sheet',
   imports: [CloseIconComponent],
@@ -55,7 +62,8 @@ import { CloseIconComponent } from '../icons';
     .backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(2px);
       z-index: 999;
       opacity: 0;
       transition: opacity 200ms ease;
@@ -71,8 +79,8 @@ import { CloseIconComponent } from '../icons';
       max-height: 85vh;
       min-height: 200px;
       background: #fff;
-      border-radius: 1rem 1rem 0 0;
-      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+      border-radius: 2.5rem 2.5rem 0 0;
+      box-shadow: 0 -12px 32px rgba(15, 23, 42, 0.22);
       z-index: 1000;
       display: flex;
       flex-direction: column;
@@ -84,10 +92,10 @@ import { CloseIconComponent } from '../icons';
       transform: translateY(0);
     }
     .drag-zone {
+      position: relative;
       flex-shrink: 0;
       cursor: grab;
       touch-action: none;
-      border-bottom: 1px solid #e5e7eb;
     }
     .drag-zone:active {
       cursor: grabbing;
@@ -95,19 +103,20 @@ import { CloseIconComponent } from '../icons';
     .handle-area {
       display: flex;
       justify-content: center;
-      padding: 1rem 0.75rem 0.5rem;
+      padding: 0.75rem 1.5rem 0;
     }
     .handle {
       width: 40px;
-      height: 5px;
-      background: #d1d5db;
+      height: 4px;
+      background: #e2e8f0;
       border-radius: 999px;
+      margin-bottom: 1.5rem;
     }
     .header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 0 var(--space-4, 1rem) var(--space-3, 0.75rem);
+      justify-content: flex-start;
+      padding: 0 1.5rem 0.75rem;
       flex-shrink: 0;
     }
     .title {
@@ -117,13 +126,16 @@ import { CloseIconComponent } from '../icons';
       color: #0f172a;
     }
     .close-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       width: 32px;
       height: 32px;
       border: none;
-      background: transparent;
+      background: #f8fafc;
       color: #64748b;
       cursor: pointer;
       border-radius: var(--radius-full, 999px);
@@ -140,7 +152,7 @@ import { CloseIconComponent } from '../icons';
     .content {
       flex: 1;
       overflow-y: auto;
-      padding: var(--space-4, 1rem);
+      padding: 0 1.5rem 3rem;
       overscroll-behavior: contain;
     }
     @media (min-width: 640px) {
@@ -150,7 +162,7 @@ import { CloseIconComponent } from '../icons';
         transform: translateX(-50%) translateY(100%);
         width: 100%;
         max-width: 480px;
-        border-radius: 1rem;
+        border-radius: 2.5rem;
         bottom: var(--space-4, 1rem);
       }
       .sheet.visible {

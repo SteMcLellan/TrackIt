@@ -1,53 +1,22 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { PageHeaderComponent, TopSheetMenuComponent, BottomNavComponent } from './shared/ui/page';
 
 /**
- * Root application shell that hosts the router outlet and navigation.
+ * Root application host for route rendering.
  */
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, PageHeaderComponent, TopSheetMenuComponent, BottomNavComponent],
+  imports: [RouterOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-page-header />
-    <app-top-sheet-menu [isOpenExternal]="menuOpen()" (closed)="closeMenu()" />
-    <main>
-      <router-outlet></router-outlet>
-    </main>
-    <app-bottom-nav (menuRequested)="openMenu()" />
+    <router-outlet></router-outlet>
   `,
   styles: [`
     :host {
-      display: flex;
-      flex-direction: column;
       min-height: 100vh;
       min-height: 100dvh;
       font-family: var(--font-family, 'Inter', system-ui, -apple-system, sans-serif);
     }
-
-    main {
-      flex: 1;
-      padding: var(--container-padding, var(--space-3, 0.75rem));
-      padding-bottom: calc(var(--container-padding, var(--space-3, 0.75rem)) + var(--bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px));
-    }
-
-    @media (min-width: 768px) {
-      main {
-        padding: var(--container-padding, var(--space-5, 1.5rem));
-        padding-bottom: calc(var(--container-padding, var(--space-5, 1.5rem)) + var(--bottom-nav-height, 56px));
-      }
-    }
   `]
 })
-export class AppComponent {
-  readonly menuOpen = signal(false);
-
-  openMenu() {
-    this.menuOpen.set(true);
-  }
-
-  closeMenu() {
-    this.menuOpen.set(false);
-  }
-}
+export class AppComponent {}
