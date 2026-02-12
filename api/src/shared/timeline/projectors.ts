@@ -108,14 +108,16 @@ export function projectMedicationLogToEventIndex(
       'type:medication_log',
       `status:${log.status}`,
       `medication:${log.medicationId}`,
+      `occurrence:${log.occurrenceKey}`,
       `operation:${operation}`
     ],
     summary: {
       title: log.status === 'taken' ? 'Medication taken' : 'Medication not taken',
-      subtitle: medication?.name || log.medicationId,
+      subtitle: `${medication?.name || log.medicationId} • ${log.occurrenceKey}`,
       status: log.status,
       medicationId: log.medicationId,
-      medicationName: medication?.name
+      medicationName: medication?.name,
+      occurrenceKey: log.occurrenceKey
     }
   });
 }

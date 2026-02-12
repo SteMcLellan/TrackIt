@@ -1,4 +1,5 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { randomUUID } from 'crypto';
 import { authorize } from '../shared/authorize';
 import { buildCosmos } from '../shared/cosmos';
 import { withErrorHandling } from '../shared/auth';
@@ -8,6 +9,7 @@ import { buildMedicationLogListQuery } from '../shared/data/medication-logs';
 import { readMedication } from '../shared/data/medications';
 import { readParticipantLink } from '../shared/data/participants';
 import { MedicationLogDocument } from '../models/medication-log';
+import { MedicationDocument } from '../models/medication';
 import { projectMedicationLogToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
 
@@ -15,6 +17,10 @@ type UpsertMedicationLogRequest = {
   status: 'taken' | 'not_taken';
   logTzOffsetMinutes: number;
   occurrenceKey?: string;
+};
+
+type CreateAsNeededMedicationLogRequest = {
+  logTzOffsetMinutes: number;
 };
 
 const maxPageSize = 100;
@@ -91,6 +97,60 @@ function validateUpsertRequest(
     errors.push({
       id: 'medicationLogs.offset.invalid',
       message: 'logTzOffsetMinutes must be a valid timezone offset.'
+    });
+  }
+  return errors;
+}
+
+function validateAsNeededCreateRequest(
+  body: CreateAsNeededMedicationLogRequest,
+  logLocalDate: string
+): ValidationErrorDetail[] {
+  const errors: ValidationErrorDetail[] = [];
+  if (!isDateOnly(logLocalDate)) {
+    errors.push({ id: 'medicationLogs.logLocalDate.invalid', message: 'logLocalDate must be YYYY-MM-DD.' });
+  }
+  if (
+    typeof body.logTzOffsetMinutes !== 'number' ||
+    !Number.isFinite(body.logTzOffsetMinutes) ||
+    Math.abs(body.logTzOffsetMinutes) > 840
+  ) {
+    errors.push({
+      id: 'medicationLogs.offset.invalid',
+      message: 'logTzOffsetMinutes must be a valid timezone offset.'
+    });
+  }
+  return errors;
+}
+
+function scheduledOccurrenceKeys(frequency: MedicationDocument['frequency']): string[] {
+  if (frequency === 'once-daily') {
+    return ['dose-1'];
+  }
+  if (frequency === 'twice-daily') {
+    return ['dose-1', 'dose-2'];
+  }
+  if (frequency === 'three-times-daily') {
+    return ['dose-1', 'dose-2', 'dose-3'];
+  }
+  return [];
+}
+
+function validateMedicationWindow(
+  medication: MedicationDocument,
+  logLocalDate: string
+): ValidationErrorDetail[] {
+  const errors: ValidationErrorDetail[] = [];
+  if (logLocalDate < medication.startDateUtc) {
+    errors.push({
+      id: 'medicationLogs.medicationWindow.invalid',
+      message: 'Log date must be on or after medication start date.'
+    });
+  }
+  if (medication.endDateUtc && logLocalDate > medication.endDateUtc) {
+    errors.push({
+      id: 'medicationLogs.medicationWindow.invalid',
+      message: 'Log date must be on or before medication end date.'
     });
   }
   return errors;
@@ -193,7 +253,40 @@ const upsertMedicationLogHandler = withErrorHandling(
       ]);
     }
 
-    const occurrenceKey = parsed.value.occurrenceKey?.trim() || 'daily';
+    const medicationWindowErrors = validateMedicationWindow(medication, logLocalDate);
+    if (medicationWindowErrors.length > 0) {
+      return buildValidationError(medicationWindowErrors);
+    }
+
+    if (medication.frequency === 'as-needed') {
+      return buildValidationError([
+        {
+          id: 'medicationLogs.frequency.route.invalid',
+          message: 'As-needed medications must use the as-needed log endpoint.'
+        }
+      ]);
+    }
+
+    const occurrenceKey = parsed.value.occurrenceKey?.trim();
+    if (!occurrenceKey) {
+      return buildValidationError([
+        {
+          id: 'medicationLogs.occurrence.required',
+          message: 'occurrenceKey is required for scheduled medications.'
+        }
+      ]);
+    }
+
+    const allowedOccurrenceKeys = scheduledOccurrenceKeys(medication.frequency);
+    if (!allowedOccurrenceKeys.includes(occurrenceKey)) {
+      return buildValidationError([
+        {
+          id: 'medicationLogs.occurrence.invalid',
+          message: `occurrenceKey is not valid for frequency ${medication.frequency}.`
+        }
+      ]);
+    }
+
     const logId = `medlog_${medicationId}_${logLocalDate}_${occurrenceKey}`;
     const existing = await containers.medicationLogs.item(logId, participantId).read<MedicationLogDocument>();
 
@@ -227,6 +320,95 @@ const upsertMedicationLogHandler = withErrorHandling(
   }
 );
 
+const createAsNeededMedicationLogHandler = withErrorHandling(
+  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const user = authorize(context, req);
+    const participantId = req.params.participantId;
+    const medicationId = req.params.medicationId;
+    const logLocalDate = req.params.logLocalDate;
+    if (!participantId || !medicationId || !logLocalDate) {
+      return buildValidationError([
+        { id: 'medicationLogs.participantId.required', message: 'Participant id is required.' },
+        { id: 'medicationLogs.medicationId.required', message: 'Medication id is required.' },
+        { id: 'medicationLogs.logLocalDate.required', message: 'logLocalDate is required.' }
+      ]);
+    }
+
+    const { containers } = await buildCosmos();
+    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
+    if (!link) {
+      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
+    }
+
+    const parsed = await parseJsonBody<CreateAsNeededMedicationLogRequest>(req, {
+      id: 'medicationLogs.body.invalid',
+      message: 'Request body must be valid JSON.'
+    });
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+
+    const errors = validateAsNeededCreateRequest(parsed.value, logLocalDate);
+    if (errors.length > 0) {
+      return buildValidationError(errors);
+    }
+
+    const medication = await readMedication(containers.medications, participantId, medicationId);
+    if (!medication) {
+      return { status: 404, jsonBody: { message: 'Medication not found.' } };
+    }
+
+    if (medication.frequency !== 'as-needed') {
+      return buildValidationError([
+        {
+          id: 'medicationLogs.frequency.route.invalid',
+          message: 'This endpoint only supports as-needed medications.'
+        }
+      ]);
+    }
+
+    const now = new Date();
+    const logDate = new Date(`${logLocalDate}T00:00:00Z`);
+    const daysAgo = daysBetweenUtc(now, logDate);
+    if (daysAgo < 0 || daysAgo > 30) {
+      return buildValidationError([
+        {
+          id: 'medicationLogs.dateRange.invalid',
+          message: 'Log date must be within the last 30 days.'
+        }
+      ]);
+    }
+
+    const medicationWindowErrors = validateMedicationWindow(medication, logLocalDate);
+    if (medicationWindowErrors.length > 0) {
+      return buildValidationError(medicationWindowErrors);
+    }
+
+    const timestamp = Date.now();
+    const occurrenceKey = `as-needed-${timestamp}-${randomUUID().slice(0, 8)}`;
+    const nowIso = now.toISOString();
+    const created: MedicationLogDocument = {
+      id: `medlog_${medicationId}_${logLocalDate}_${occurrenceKey}`,
+      participantId,
+      medicationId,
+      logLocalDate,
+      logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
+      occurrenceKey,
+      status: 'taken',
+      createdAtUtc: nowIso,
+      updatedAtUtc: nowIso
+    };
+
+    await containers.medicationLogs.items.create(created);
+    await appendTimelineEvent(
+      containers.eventIndex,
+      projectMedicationLogToEventIndex(created, medication)
+    );
+
+    return { status: 201, jsonBody: created };
+  }
+);
+
 app.http('medication-logs-list', {
   methods: ['GET'],
   authLevel: 'anonymous',
@@ -241,4 +423,11 @@ app.http('medication-logs-upsert', {
   handler: upsertMedicationLogHandler
 });
 
-export { listMedicationLogsHandler, upsertMedicationLogHandler };
+app.http('medication-logs-as-needed-create', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'participants/{participantId}/medication-logs/{medicationId}/{logLocalDate}/as-needed',
+  handler: createAsNeededMedicationLogHandler
+});
+
+export { listMedicationLogsHandler, upsertMedicationLogHandler, createAsNeededMedicationLogHandler };

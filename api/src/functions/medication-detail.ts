@@ -6,14 +6,14 @@ import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { readMedication } from '../shared/data/medications';
 import { readParticipantLink } from '../shared/data/participants';
-import { MedicationDocument } from '../models/medication';
+import { MedicationDocument, MedicationFrequency } from '../models/medication';
 import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
 
 type UpdateMedicationRequest = Partial<{
   name: string;
   dosageText: string;
-  frequencyText: string;
+  frequency: string;
   startDateUtc: string;
   endDateUtc: string | null;
   notes: string | null;
@@ -24,11 +24,8 @@ const frequencyOptions = [
   'once-daily',
   'twice-daily',
   'three-times-daily',
-  'four-times-daily',
-  'every-other-day',
-  'weekly',
   'as-needed'
-] as const;
+] as const satisfies MedicationFrequency[];
 
 function isNonEmpty(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -68,8 +65,13 @@ function isNullableUtcIso(value: unknown): value is string | null | undefined {
   return Number.isFinite(parsed);
 }
 
+function hasLegacyFrequencyTextField(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, 'frequencyText');
+}
+
 function validateUpdateRequest(body: UpdateMedicationRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
+  const frequency = typeof body.frequency === 'string' ? body.frequency.trim() : undefined;
 
   if (typeof body.name !== 'undefined' && !isNonEmpty(body.name)) {
     errors.push({ id: 'medications.name.required', message: 'Name is required.' });
@@ -77,12 +79,12 @@ function validateUpdateRequest(body: UpdateMedicationRequest): ValidationErrorDe
   if (typeof body.dosageText !== 'undefined' && !isNonEmpty(body.dosageText)) {
     errors.push({ id: 'medications.dosage.required', message: 'Dosage is required.' });
   }
-  if (typeof body.frequencyText !== 'undefined' && !isNonEmpty(body.frequencyText)) {
+  if (typeof frequency !== 'undefined' && !isNonEmpty(frequency)) {
     errors.push({ id: 'medications.frequency.required', message: 'Frequency is required.' });
   } else if (
-    typeof body.frequencyText !== 'undefined' &&
-    isNonEmpty(body.frequencyText) &&
-    !frequencyOptions.includes(body.frequencyText as (typeof frequencyOptions)[number])
+    typeof frequency !== 'undefined' &&
+    isNonEmpty(frequency) &&
+    !frequencyOptions.includes(frequency as MedicationFrequency)
   ) {
     errors.push({ id: 'medications.frequency.invalid', message: 'Frequency is not valid.' });
   }
@@ -125,6 +127,15 @@ const updateMedicationHandler = withErrorHandling(
       return parsed.response;
     }
 
+    if (hasLegacyFrequencyTextField(parsed.value)) {
+      return buildValidationError([
+        {
+          id: 'medications.frequencyText.unsupported',
+          message: 'frequencyText is no longer supported. Use frequency.'
+        }
+      ]);
+    }
+
     const errors = validateUpdateRequest(parsed.value);
     if (errors.length > 0) {
       return buildValidationError(errors);
@@ -149,10 +160,10 @@ const updateMedicationHandler = withErrorHandling(
       name: typeof parsed.value.name === 'string' ? parsed.value.name.trim() : existing.name,
       dosageText:
         typeof parsed.value.dosageText === 'string' ? parsed.value.dosageText.trim() : existing.dosageText,
-      frequencyText:
-        typeof parsed.value.frequencyText === 'string'
-          ? parsed.value.frequencyText.trim()
-          : existing.frequencyText,
+      frequency:
+        typeof parsed.value.frequency === 'string'
+          ? parsed.value.frequency.trim() as MedicationFrequency
+          : existing.frequency,
       startDateUtc: nextStartDate,
       endDateUtc: typeof nextEndDate === 'undefined' ? existing.endDateUtc : nextEndDate,
       notes: typeof parsed.value.notes === 'string' ? parsed.value.notes.trim() : parsed.value.notes ?? existing.notes,

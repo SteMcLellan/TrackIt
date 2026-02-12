@@ -7,14 +7,14 @@ import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { buildMedicationListQuery } from '../shared/data/medications';
 import { readParticipantLink } from '../shared/data/participants';
-import { MedicationDocument } from '../models/medication';
+import { MedicationDocument, MedicationFrequency } from '../models/medication';
 import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
 
 type CreateMedicationRequest = {
   name: string;
   dosageText: string;
-  frequencyText: string;
+  frequency: string;
   startDateUtc: string; // YYYY-MM-DD
   endDateUtc?: string | null;
   notes?: string | null;
@@ -25,11 +25,8 @@ const frequencyOptions = [
   'once-daily',
   'twice-daily',
   'three-times-daily',
-  'four-times-daily',
-  'every-other-day',
-  'weekly',
   'as-needed'
-] as const;
+] as const satisfies MedicationFrequency[];
 
 function isNonEmpty(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -67,8 +64,13 @@ function parseIncludeArchived(value?: string | null): boolean {
   return value === 'true' || value === '1';
 }
 
+function hasLegacyFrequencyTextField(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, 'frequencyText');
+}
+
 function validateCreateRequest(body: CreateMedicationRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
+  const frequency = typeof body.frequency === 'string' ? body.frequency.trim() : '';
 
   if (!isNonEmpty(body.name)) {
     errors.push({ id: 'medications.name.required', message: 'Name is required.' });
@@ -76,9 +78,9 @@ function validateCreateRequest(body: CreateMedicationRequest): ValidationErrorDe
   if (!isNonEmpty(body.dosageText)) {
     errors.push({ id: 'medications.dosage.required', message: 'Dosage is required.' });
   }
-  if (!isNonEmpty(body.frequencyText)) {
+  if (!isNonEmpty(frequency)) {
     errors.push({ id: 'medications.frequency.required', message: 'Frequency is required.' });
-  } else if (!frequencyOptions.includes(body.frequencyText as (typeof frequencyOptions)[number])) {
+  } else if (!frequencyOptions.includes(frequency as MedicationFrequency)) {
     errors.push({ id: 'medications.frequency.invalid', message: 'Frequency is not valid.' });
   }
   if (!isNonEmpty(body.startDateUtc) || !isDateOnly(body.startDateUtc)) {
@@ -163,18 +165,28 @@ const createMedicationHandler = withErrorHandling(
       return parsed.response;
     }
 
+    if (hasLegacyFrequencyTextField(parsed.value)) {
+      return buildValidationError([
+        {
+          id: 'medications.frequencyText.unsupported',
+          message: 'frequencyText is no longer supported. Use frequency.'
+        }
+      ]);
+    }
+
     const errors = validateCreateRequest(parsed.value);
     if (errors.length > 0) {
       return buildValidationError(errors);
     }
 
     const now = new Date().toISOString();
+    const frequency = parsed.value.frequency.trim() as MedicationFrequency;
     const medication: MedicationDocument = {
       id: `med_${randomUUID()}`,
       participantId,
       name: parsed.value.name.trim(),
       dosageText: parsed.value.dosageText.trim(),
-      frequencyText: parsed.value.frequencyText.trim(),
+      frequency,
       startDateUtc: parsed.value.startDateUtc,
       endDateUtc: parsed.value.endDateUtc ?? null,
       notes: typeof parsed.value.notes === 'string' ? parsed.value.notes.trim() : null,

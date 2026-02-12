@@ -1,22 +1,22 @@
 # Medication Frequency: Bounded Enum Approach
 
-## Problem
+## Status
 
-`frequencyText` is currently a freeform string stored on `MedicationDocument`. The frontend presents a 7-option dropdown (Once daily, Twice daily, Three times daily, Four times daily, Every other day, Weekly, As needed), but the API accepts any string — there is no enforcement of valid values.
+Implemented in backend.
 
-More critically, `frequencyText` is **purely cosmetic today**. It is displayed as a label on medication cards (`name · dosage · frequencyText`) but does not drive any check-in behavior. The `MedicationLogDocument` has a placeholder field `occurrenceKey` hardcoded to `"daily"` for all records, explicitly deferred with an MVP comment.
+- `MedicationDocument` now stores `frequency` (bounded enum), not `frequencyText`.
+- Medication log occurrence handling is strict and frequency-aware.
+- As-needed logs use a dedicated server-generated endpoint.
 
 ## Use Case
 
-As a parent tracking a child's medication, the primary concern is **accountability**: verifying that every scheduled dose was actually administered. If a medication is prescribed twice daily, there should be two separate check-in slots — each independently confirmable. Reviewing the day's record should make it immediately clear whether both doses were given, one was missed, or neither occurred.
+As a parent tracking a child's medication, the primary concern is accountability: verifying that every scheduled dose was actually administered. If a medication is prescribed twice daily, there should be two separate check-in slots, each independently confirmable.
 
-This is a record-keeping and review need, not a reminder or scheduling need. The check-in screen and the timeline are the surfaces where dose completeness will be evaluated.
+This is a record-keeping and review need, not a reminder or scheduling engine.
 
-## Decision: Frequency as a Bounded Enum
+## Frequency Model
 
-`frequencyText` will be replaced by a typed `frequency` field validated against a fixed set of values. The enum is intentionally narrow — it maps directly to **doses per day** for a given participant.
-
-### Allowed Values
+`frequency` is a bounded enum mapped to daily slot count:
 
 | Value | Doses per day | Label |
 |---|---|---|
@@ -25,67 +25,89 @@ This is a record-keeping and review need, not a reminder or scheduling need. The
 | `three-times-daily` | 3 | Three times daily |
 | `as-needed` | variable | As needed |
 
-### Why these four, and not the current seven
+`every-other-day`, `weekly`, and `four-times-daily` are intentionally out of scope.
 
-The current dropdown includes `every-other-day`, `weekly`, and `four-times-daily`. These are removed for the following reasons:
+## Log Model and Occurrence Keys
 
-- **`every-other-day` / `weekly`** — These are scheduling concepts, not daily dose counts. They describe *when* a medication cycle occurs, not how many doses to verify on a given day. Supporting them correctly would require a scheduling layer that does not exist. They add UI complexity without serving the core accountability use case.
-- **`four-times-daily`** — Removed as an edge case unlikely in the current user base (parents of children with ADHD). Can be added later if needed.
-- **`as-needed`** — Kept because it describes a real category (PRN medications) with a meaningfully different check-in interaction: no automatic dose slots; instead, doses are logged ad hoc when administered.
+`MedicationLogDocument.occurrenceKey` semantics:
 
-## Impact on the Log Model
-
-`MedicationLogDocument.occurrenceKey` was designed for this change. Currently hardcoded to `"daily"`, it will expand to represent individual dose slots generated from `frequency`:
-
-| Frequency | occurrenceKey values per day |
+| Frequency | Allowed occurrence keys |
 |---|---|
 | `once-daily` | `dose-1` |
 | `twice-daily` | `dose-1`, `dose-2` |
 | `three-times-daily` | `dose-1`, `dose-2`, `dose-3` |
-| `as-needed` | `as-needed-{timestamp}` (ad hoc) |
+| `as-needed` | `as-needed-{timestamp}-{suffix}` (server generated) |
 
-Each `(medicationId, logLocalDate, occurrenceKey)` triple is a unique log entry. The check-in screen generates the expected slots from the medication's `frequency` and compares against existing logs to determine completion state.
+Each `(medicationId, logLocalDate, occurrenceKey)` is a distinct log row and log id component.
 
-## API Enforcement
+## API Enforcement (Current Behavior)
 
-The API must validate `frequency` against the bounded enum at both create and update. A freeform string must be rejected with a `400` and a clear error message. This prevents the frontend dropdown from being bypassed (e.g., via direct API calls or future integrations).
+### Medication create/update
 
-Validation location: `api/src/functions/medications.ts` and `medication-detail.ts`, applied before writing to Cosmos.
+- `POST /participants/{participantId}/medications`
+- `PATCH /participants/{participantId}/medications/{medicationId}`
 
-## Data Model Changes
+Rules:
+- `frequency` is required and must be one of the four enum values.
+- `frequencyText` is rejected with `400` (`medications.frequencyText.unsupported`).
 
-**`MedicationDocument` (api/src/models/medication.ts):**
+### Scheduled medication logging
+
+- `PUT /participants/{participantId}/medication-logs/{medicationId}/{logLocalDate}`
+
+Rules:
+- For scheduled medications, `occurrenceKey` is required.
+- `occurrenceKey` must match the allowed slot keys for the medication's frequency.
+- `as-needed` medications are rejected on this route (`medicationLogs.frequency.route.invalid`).
+- Existing date constraints still apply:
+  - log date must be within last 30 days
+  - log date must be within medication start/end window
+
+### As-needed logging
+
+- `POST /participants/{participantId}/medication-logs/{medicationId}/{logLocalDate}/as-needed`
+
+Rules:
+- Medication must have `frequency = as-needed`.
+- Server generates `occurrenceKey` as `as-needed-{timestamp}-{suffix}`.
+- Entry is always recorded as `status = taken`.
+- Same date/window constraints apply.
+
+## Data Model
+
+`api/src/models/medication.ts`:
+
 ```ts
-// Before
-frequencyText: string;
+export type MedicationFrequency =
+  | 'once-daily'
+  | 'twice-daily'
+  | 'three-times-daily'
+  | 'as-needed';
 
-// After
-frequency: 'once-daily' | 'twice-daily' | 'three-times-daily' | 'as-needed';
+export interface MedicationDocument {
+  // ...
+  frequency: MedicationFrequency;
+}
 ```
 
-**`Medication` (frontend/src/app/shared/models/medication.ts):** same change.
+`api/src/models/medication-log.ts`:
 
-A shared `MedicationFrequency` type should be defined in the API models and mirrored on the frontend.
+```ts
+occurrenceKey: string; // scheduled: dose-1..dose-N, PRN: as-needed-*
+```
+
+## Timeline Projection Notes
+
+Medication log projections now include occurrence context:
+- tag: `occurrence:{occurrenceKey}`
+- summary field: `occurrenceKey`
+- subtitle includes occurrence key for medication-log events.
 
 ## Migration
 
-Existing Cosmos documents have freeform `frequencyText` values (e.g., `"once-daily"`, `"twice-daily"` — these happen to match the new enum because the frontend dropdown was already using these values). A migration script should:
+Not required for current environment. Medication and medication-log data was reset before cutover.
 
-1. Read all existing `MedicationDocument` records
-2. Attempt to map `frequencyText` → `frequency` using the new enum
-3. For any value that doesn't map cleanly, default to `once-daily` and flag for review
-4. Write the updated documents back
+## Remaining Product Question
 
-Existing `MedicationLogDocument` records with `occurrenceKey: "daily"` should be remapped to `occurrenceKey: "dose-1"` for consistency with the new scheme.
-
-## Screens to Update
-
-- **`medication-list.component.ts`** — Replace the 7-option frequency dropdown with the 4-value bounded selector
-- **Medication check-in screen** — Generate N dose slots per medication from `frequency` instead of always showing one
-- **Onboarding: Add Medication screen** — Use the 4-value selector from the start
-- **Profile Stitch screen** — Currently shows a freeform "Time" field; update to match the bounded frequency approach
-
-## Open Questions
-
-- **`as-needed` check-in UX** — How does a user log an ad hoc dose? Tap-to-add on the check-in screen, or through the timeline? To be decided when building this feature.
-- **Dose labeling** — Should `dose-1` / `dose-2` be labeled by time of day (e.g., "Morning dose", "Evening dose") or just numbered? Numbered is simpler; labeled is more scannable. Deferred.
+- Dose labeling in UI is still open:
+  - numeric (`dose-1`, `dose-2`) vs human labels (`Morning`, `Afternoon`).

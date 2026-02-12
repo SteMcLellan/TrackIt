@@ -7,7 +7,7 @@ export interface MedicationLogDocument {
   medicationId: string;
   logLocalDate: string; // YYYY-MM-DD
   logTzOffsetMinutes: number;
-  occurrenceKey: string; // "daily" for MVP
+  occurrenceKey: string; // scheduled: dose-1..dose-N, PRN: as-needed-*
   status: 'taken' | 'not_taken';
   createdAtUtc: string;
   updatedAtUtc: string;
