@@ -8,14 +8,16 @@ import { requireAdmin } from '../shared/admin';
 import { BehaviorIncidentDocument } from '../models/behavior-incident';
 import { MedicationLogDocument } from '../models/medication-log';
 import { MedicationDocument } from '../models/medication';
+import { DailyReflectionDocument } from '../models/daily-reflection';
 import { EventIndexDocument } from '../models/event-index';
 import {
   projectIncidentToEventIndex,
   projectMedicationLogToEventIndex,
-  projectMedicationToEventIndex
+  projectMedicationToEventIndex,
+  projectDailyReflectionToEventIndex
 } from '../shared/timeline/projectors';
 
-type BackfillSource = 'incidents' | 'medicationLogs' | 'medications';
+type BackfillSource = 'incidents' | 'medicationLogs' | 'medications' | 'dailyReflections';
 
 type BackfillRequest = {
   dryRun?: boolean;
@@ -49,7 +51,7 @@ type VerifyResponse = {
   continuation: Partial<Record<BackfillSource, string | null>>;
 };
 
-const allSources: BackfillSource[] = ['incidents', 'medicationLogs', 'medications'];
+const allSources: BackfillSource[] = ['incidents', 'medicationLogs', 'medications', 'dailyReflections'];
 
 function parseSources(sources?: BackfillSource[]): BackfillSource[] {
   if (!Array.isArray(sources) || sources.length === 0) {
@@ -138,78 +140,96 @@ const adminBackfillTimelineHandler = withErrorHandling(
       }
 
       const { querySpec, queryOptions } = buildSourceQuery(participantId);
-      if (source === 'incidents') {
-        const response = await containers.behaviorIncidents.items.query<BehaviorIncidentDocument>(querySpec, {
-          ...queryOptions,
-          maxItemCount: remaining,
-          continuationToken: continuation[source]
-        }).fetchNext();
-        nextContinuation[source] = response.continuationToken ?? null;
-        for (const doc of response.resources ?? []) {
-          scanned += 1;
-          try {
-            const event = projectIncidentToEventIndex(doc);
-            if (!dryRun) {
-              await containers.eventIndex.items.upsert(event);
+
+      switch (source) {
+        case 'incidents': {
+          const response = await containers.behaviorIncidents.items.query<BehaviorIncidentDocument>(querySpec, {
+            ...queryOptions,
+            maxItemCount: remaining,
+            continuationToken: continuation[source]
+          }).fetchNext();
+          nextContinuation[source] = response.continuationToken ?? null;
+          for (const doc of response.resources ?? []) {
+            scanned += 1;
+            try {
+              const event = projectIncidentToEventIndex(doc);
+              if (!dryRun) {
+                await containers.eventIndex.items.upsert(event);
+              }
+              projected += 1;
+            } catch (error) {
+              errors.push({ source, id: doc.id, error: error instanceof Error ? error.message : String(error) });
             }
-            projected += 1;
-          } catch (error) {
-            errors.push({
-              source,
-              id: doc.id,
-              error: error instanceof Error ? error.message : String(error)
-            });
           }
+          remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
+          break;
         }
-        remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
-      } else if (source === 'medicationLogs') {
-        const response = await containers.medicationLogs.items.query<MedicationLogDocument>(querySpec, {
-          ...queryOptions,
-          maxItemCount: remaining,
-          continuationToken: continuation[source]
-        }).fetchNext();
-        nextContinuation[source] = response.continuationToken ?? null;
-        for (const doc of response.resources ?? []) {
-          scanned += 1;
-          try {
-            const event = projectMedicationLogToEventIndex(doc);
-            if (!dryRun) {
-              await containers.eventIndex.items.upsert(event);
+        case 'medicationLogs': {
+          const response = await containers.medicationLogs.items.query<MedicationLogDocument>(querySpec, {
+            ...queryOptions,
+            maxItemCount: remaining,
+            continuationToken: continuation[source]
+          }).fetchNext();
+          nextContinuation[source] = response.continuationToken ?? null;
+          for (const doc of response.resources ?? []) {
+            scanned += 1;
+            try {
+              const event = projectMedicationLogToEventIndex(doc);
+              if (!dryRun) {
+                await containers.eventIndex.items.upsert(event);
+              }
+              projected += 1;
+            } catch (error) {
+              errors.push({ source, id: doc.id, error: error instanceof Error ? error.message : String(error) });
             }
-            projected += 1;
-          } catch (error) {
-            errors.push({
-              source,
-              id: doc.id,
-              error: error instanceof Error ? error.message : String(error)
-            });
           }
+          remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
+          break;
         }
-        remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
-      } else {
-        const response = await containers.medications.items.query<MedicationDocument>(querySpec, {
-          ...queryOptions,
-          maxItemCount: remaining,
-          continuationToken: continuation[source]
-        }).fetchNext();
-        nextContinuation[source] = response.continuationToken ?? null;
-        for (const doc of response.resources ?? []) {
-          scanned += 1;
-          try {
-            const event = projectMedicationToEventIndex(doc, 'snapshot');
-            if (!dryRun) {
-              await containers.eventIndex.items.upsert(event);
+        case 'medications': {
+          const response = await containers.medications.items.query<MedicationDocument>(querySpec, {
+            ...queryOptions,
+            maxItemCount: remaining,
+            continuationToken: continuation[source]
+          }).fetchNext();
+          nextContinuation[source] = response.continuationToken ?? null;
+          for (const doc of response.resources ?? []) {
+            scanned += 1;
+            try {
+              const event = projectMedicationToEventIndex(doc, 'snapshot');
+              if (!dryRun) {
+                await containers.eventIndex.items.upsert(event);
+              }
+              projected += 1;
+            } catch (error) {
+              errors.push({ source, id: doc.id, error: error instanceof Error ? error.message : String(error) });
             }
-            projected += 1;
-          } catch (error) {
-            errors.push({
-              source,
-              id: doc.id,
-              error: error instanceof Error ? error.message : String(error)
-            });
           }
+          remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
+          break;
         }
-        remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
+        case 'dailyReflections': {
+          const response = await containers.dailyReflections.items.query<DailyReflectionDocument>(querySpec, {
+            ...queryOptions,
+            maxItemCount: remaining,
+            continuationToken: continuation[source]
+          }).fetchNext();
+          nextContinuation[source] = response.continuationToken ?? null;
+          for (const doc of response.resources ?? []) {
+            scanned += 1;
+            try {
+              const event = projectDailyReflectionToEventIndex(doc);
+              if (!dryRun) {
+                await containers.eventIndex.items.upsert(event);
+              }
+              projected += 1;
+            } catch (error) {
+              errors.push({ source, id: doc.id, error: error instanceof Error ? error.message : String(error) });
+            }
+          }
+          remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
+          break;
+        }
       }
     }
 
@@ -267,108 +287,120 @@ const adminVerifyTimelineHandler = withErrorHandling(
       }
 
       const { querySpec, queryOptions } = buildSourceQuery(participantId);
-      if (source === 'incidents') {
-        const response = await containers.behaviorIncidents.items.query<BehaviorIncidentDocument>(querySpec, {
-          ...queryOptions,
-          maxItemCount: remaining,
-          continuationToken: continuation[source]
-        }).fetchNext();
-        nextContinuation[source] = response.continuationToken ?? null;
-        for (const doc of response.resources ?? []) {
-          scanned += 1;
-          try {
-            const expected = projectIncidentToEventIndex(doc);
-            const actual = await containers.eventIndex.item(expected.id, expected.participantId)
-              .read<EventIndexDocument>();
-            if (!actual.resource) {
-              missing += 1;
-              continue;
+
+      switch (source) {
+        case 'incidents': {
+          const response = await containers.behaviorIncidents.items.query<BehaviorIncidentDocument>(querySpec, {
+            ...queryOptions,
+            maxItemCount: remaining,
+            continuationToken: continuation[source]
+          }).fetchNext();
+          nextContinuation[source] = response.continuationToken ?? null;
+          for (const doc of response.resources ?? []) {
+            scanned += 1;
+            try {
+              const expected = projectIncidentToEventIndex(doc);
+              const actual = await containers.eventIndex.item(expected.id, expected.participantId).read<EventIndexDocument>();
+              if (!actual.resource) {
+                missing += 1;
+                continue;
+              }
+              if (actual.resource.sourceId !== expected.sourceId || actual.resource.sourceVersion !== expected.sourceVersion) {
+                mismatched += 1;
+                continue;
+              }
+              matched += 1;
+            } catch (error) {
+              errors.push({ source, id: doc.id, error: error instanceof Error ? error.message : String(error) });
             }
-            if (
-              actual.resource.sourceId !== expected.sourceId ||
-              actual.resource.sourceVersion !== expected.sourceVersion
-            ) {
-              mismatched += 1;
-              continue;
-            }
-            matched += 1;
-          } catch (error) {
-            errors.push({
-              source,
-              id: doc.id,
-              error: error instanceof Error ? error.message : String(error)
-            });
           }
+          remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
+          break;
         }
-        remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
-      } else if (source === 'medicationLogs') {
-        const response = await containers.medicationLogs.items.query<MedicationLogDocument>(querySpec, {
-          ...queryOptions,
-          maxItemCount: remaining,
-          continuationToken: continuation[source]
-        }).fetchNext();
-        nextContinuation[source] = response.continuationToken ?? null;
-        for (const doc of response.resources ?? []) {
-          scanned += 1;
-          try {
-            const expected = projectMedicationLogToEventIndex(doc);
-            const actual = await containers.eventIndex.item(expected.id, expected.participantId)
-              .read<EventIndexDocument>();
-            if (!actual.resource) {
-              missing += 1;
-              continue;
+        case 'medicationLogs': {
+          const response = await containers.medicationLogs.items.query<MedicationLogDocument>(querySpec, {
+            ...queryOptions,
+            maxItemCount: remaining,
+            continuationToken: continuation[source]
+          }).fetchNext();
+          nextContinuation[source] = response.continuationToken ?? null;
+          for (const doc of response.resources ?? []) {
+            scanned += 1;
+            try {
+              const expected = projectMedicationLogToEventIndex(doc);
+              const actual = await containers.eventIndex.item(expected.id, expected.participantId).read<EventIndexDocument>();
+              if (!actual.resource) {
+                missing += 1;
+                continue;
+              }
+              if (actual.resource.sourceId !== expected.sourceId || actual.resource.sourceVersion !== expected.sourceVersion) {
+                mismatched += 1;
+                continue;
+              }
+              matched += 1;
+            } catch (error) {
+              errors.push({ source, id: doc.id, error: error instanceof Error ? error.message : String(error) });
             }
-            if (
-              actual.resource.sourceId !== expected.sourceId ||
-              actual.resource.sourceVersion !== expected.sourceVersion
-            ) {
-              mismatched += 1;
-              continue;
-            }
-            matched += 1;
-          } catch (error) {
-            errors.push({
-              source,
-              id: doc.id,
-              error: error instanceof Error ? error.message : String(error)
-            });
           }
+          remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
+          break;
         }
-        remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
-      } else {
-        const response = await containers.medications.items.query<MedicationDocument>(querySpec, {
-          ...queryOptions,
-          maxItemCount: remaining,
-          continuationToken: continuation[source]
-        }).fetchNext();
-        nextContinuation[source] = response.continuationToken ?? null;
-        for (const doc of response.resources ?? []) {
-          scanned += 1;
-          try {
-            const expected = projectMedicationToEventIndex(doc, 'snapshot');
-            const actual = await containers.eventIndex.item(expected.id, expected.participantId)
-              .read<EventIndexDocument>();
-            if (!actual.resource) {
-              missing += 1;
-              continue;
+        case 'medications': {
+          const response = await containers.medications.items.query<MedicationDocument>(querySpec, {
+            ...queryOptions,
+            maxItemCount: remaining,
+            continuationToken: continuation[source]
+          }).fetchNext();
+          nextContinuation[source] = response.continuationToken ?? null;
+          for (const doc of response.resources ?? []) {
+            scanned += 1;
+            try {
+              const expected = projectMedicationToEventIndex(doc, 'snapshot');
+              const actual = await containers.eventIndex.item(expected.id, expected.participantId).read<EventIndexDocument>();
+              if (!actual.resource) {
+                missing += 1;
+                continue;
+              }
+              if (actual.resource.sourceId !== expected.sourceId || actual.resource.sourceVersion !== expected.sourceVersion) {
+                mismatched += 1;
+                continue;
+              }
+              matched += 1;
+            } catch (error) {
+              errors.push({ source, id: doc.id, error: error instanceof Error ? error.message : String(error) });
             }
-            if (
-              actual.resource.sourceId !== expected.sourceId ||
-              actual.resource.sourceVersion !== expected.sourceVersion
-            ) {
-              mismatched += 1;
-              continue;
-            }
-            matched += 1;
-          } catch (error) {
-            errors.push({
-              source,
-              id: doc.id,
-              error: error instanceof Error ? error.message : String(error)
-            });
           }
+          remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
+          break;
         }
-        remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
+        case 'dailyReflections': {
+          const response = await containers.dailyReflections.items.query<DailyReflectionDocument>(querySpec, {
+            ...queryOptions,
+            maxItemCount: remaining,
+            continuationToken: continuation[source]
+          }).fetchNext();
+          nextContinuation[source] = response.continuationToken ?? null;
+          for (const doc of response.resources ?? []) {
+            scanned += 1;
+            try {
+              const expected = projectDailyReflectionToEventIndex(doc);
+              const actual = await containers.eventIndex.item(expected.id, expected.participantId).read<EventIndexDocument>();
+              if (!actual.resource) {
+                missing += 1;
+                continue;
+              }
+              if (actual.resource.sourceId !== expected.sourceId || actual.resource.sourceVersion !== expected.sourceVersion) {
+                mismatched += 1;
+                continue;
+              }
+              matched += 1;
+            } catch (error) {
+              errors.push({ source, id: doc.id, error: error instanceof Error ? error.message : String(error) });
+            }
+          }
+          remaining = Math.max(0, remaining - (response.resources?.length ?? 0));
+          break;
+        }
       }
     }
 

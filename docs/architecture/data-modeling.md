@@ -14,6 +14,7 @@ This document codifies data modeling conventions for TrackIt, especially time fi
   - `behaviorIncidents`
   - `medicationLogs`
   - `medications`
+  - `dailyReflections`
 - Timeline projection container:
   - `eventIndex`
 
@@ -43,6 +44,13 @@ All loggable domain items should include:
 - `createdAtUtc`
 - `updatedAtUtc?`
 
+For daily reflections:
+- `moodScore` (`0..100`)
+- `focusScore` (`0..100`)
+- `energyScore` (`0..100`)
+- `sleepScore` (`0..100`)
+- `journalNote?`
+
 ### Time-based additions
 For items where time-of-day matters:
 - `logLocalTime`
@@ -66,6 +74,7 @@ The EventIndex document shape is defined in `api/src/models/event-index.ts`.
 - `eventAtUtc` (timeline axis instant)
 - `logLocalDate`, `logLocalTime?`, `logTzOffsetMinutes?`
 - `sourceType`: `'incident' | 'medication_log' | 'medication'`
+  - includes `'daily_reflection'` when reflection projection is enabled
 - `sourceId`, `sourceContainer`, `sourcePartitionKey`
 - `sourceVersion` (typically latest `updatedAtUtc` or `createdAtUtc`)
 - `operation`: `'upsert' | 'delete'`
@@ -89,6 +98,7 @@ The EventIndex document shape is defined in `api/src/models/event-index.ts`.
 - Incident: `eventAtUtc = occurredAtUtc`
 - Medication log: derived from `logLocalDate` + `logTzOffsetMinutes` (currently day-granularity time)
 - Medication lifecycle projection: `updatedAtUtc` (or `archivedAtUtc` for archive transition)
+- Daily reflection: `updatedAtUtc` (latest save instant for the local day entry)
 
 ## Validation Guidance
 - `logLocalDate` must be valid `YYYY-MM-DD`.

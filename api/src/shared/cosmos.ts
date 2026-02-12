@@ -8,6 +8,7 @@ export interface ParticipantsCosmosConfig {
   behaviorIncidentsContainerId: string;
   medicationsContainerId: string;
   medicationLogsContainerId: string;
+  dailyReflectionsContainerId: string;
   eventIndexContainerId: string;
 }
 
@@ -25,6 +26,7 @@ export interface CosmosConfig {
   behaviorIncidentsContainerId: string;
   medicationsContainerId: string;
   medicationLogsContainerId: string;
+  dailyReflectionsContainerId: string;
   eventIndexContainerId: string;
 }
 
@@ -49,6 +51,7 @@ export async function buildCosmos(
     behaviorIncidentsContainerId: process.env.COSMOS_BEHAVIOR_INCIDENTS_CONTAINER || 'behaviorIncidents',
     medicationsContainerId: process.env.COSMOS_MEDICATIONS_CONTAINER || 'medications',
     medicationLogsContainerId: process.env.COSMOS_MEDICATION_LOGS_CONTAINER || 'medicationLogs',
+    dailyReflectionsContainerId: process.env.COSMOS_DAILY_REFLECTIONS_CONTAINER || 'dailyReflections',
     eventIndexContainerId: process.env.COSMOS_EVENT_INDEX_CONTAINER || 'eventIndex',
     ...config
   };
@@ -95,6 +98,18 @@ export async function buildCosmos(
     id: resolved.medicationLogsContainerId,
     partitionKey: { paths: ['/participantId'] }
   });
+  const { container: dailyReflectionsContainer } = await database.containers.createIfNotExists({
+    id: resolved.dailyReflectionsContainerId,
+    partitionKey: { paths: ['/participantId'] },
+    indexingPolicy: {
+      compositeIndexes: [
+        [
+          { path: '/logLocalDate', order: 'descending' },
+          { path: '/updatedAtUtc', order: 'descending' }
+        ]
+      ]
+    }
+  });
   const { container: eventIndexContainer } = await database.containers.createIfNotExists({
     id: resolved.eventIndexContainerId,
     partitionKey: { paths: ['/participantId'] },
@@ -125,6 +140,7 @@ export async function buildCosmos(
     behaviorIncidents: behaviorIncidentsContainer,
     medications: medicationsContainer,
     medicationLogs: medicationLogsContainer,
+    dailyReflections: dailyReflectionsContainer,
     eventIndex: eventIndexContainer
   };
 

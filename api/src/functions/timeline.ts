@@ -11,7 +11,8 @@ import {
 } from '../shared/data/event-index';
 import { EventIndexDocument, EventSourceType } from '../models/event-index';
 
-const sourceTypeOptions: EventSourceType[] = ['incident', 'medication_log', 'medication'];
+const sourceTypeOptions: EventSourceType[] = ['incident', 'medication_log', 'medication', 'daily_reflection'];
+const defaultSourceTypeFilter: EventSourceType[] = ['incident', 'medication_log', 'medication'];
 
 function isTimelineQueryEnabled(): boolean {
   const value = (process.env.TIMELINE_QUERY_ENABLED || 'true').toLowerCase();
@@ -158,7 +159,8 @@ const listTimelineHandler = withErrorHandling(
       return buildValidationError(errors);
     }
 
-    const sourceTypes = parseSourceTypes(req.query.get('$types'));
+    // Backward compatibility: existing clients that omit $types expect only legacy source types.
+    const sourceTypes = parseSourceTypes(req.query.get('$types')) ?? defaultSourceTypeFilter;
     const tags = parseTags(req.query.get('$tags'));
     const top = parseTop(req.query.get('$top'));
     const skipToken = req.query.get('$skipToken');
@@ -238,7 +240,8 @@ const timelineContextHandler = withErrorHandling(
       return Math.min(parsed, 180);
     })();
 
-    const sourceTypes = parseSourceTypes(req.query.get('$types'));
+    // Backward compatibility for existing timeline context consumers.
+    const sourceTypes = parseSourceTypes(req.query.get('$types')) ?? defaultSourceTypeFilter;
     const tags = parseTags(req.query.get('$tags'));
     const sortOrder = parseSortOrder(req.query.get('$orderBy'));
 

@@ -1,4 +1,4 @@
-export type EventSourceType = 'incident' | 'medication_log' | 'medication';
+export type EventSourceType = 'incident' | 'medication_log' | 'medication' | 'daily_reflection';
 
 export type EventOperation = 'upsert' | 'delete';
 
@@ -10,6 +10,11 @@ export interface EventIndexSummary {
   place?: string;
   medicationId?: string;
   medicationName?: string;
+  moodScore?: number;
+  focusScore?: number;
+  energyScore?: number;
+  sleepScore?: number;
+  journalNotePreview?: string;
 }
 
 /**

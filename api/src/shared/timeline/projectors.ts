@@ -2,6 +2,7 @@ import { BehaviorIncidentDocument } from '../../models/behavior-incident';
 import { EventIndexDocument, EventOperation } from '../../models/event-index';
 import { MedicationLogDocument } from '../../models/medication-log';
 import { MedicationDocument } from '../../models/medication';
+import { DailyReflectionDocument } from '../../models/daily-reflection';
 import { computeUtcFromLocal } from '../validators';
 
 export type MedicationProjectionAction = 'created' | 'updated' | 'archived' | 'snapshot';
@@ -159,6 +160,68 @@ export function projectMedicationToEventIndex(
       subtitle: `${medication.name} • ${medication.dosageText}`,
       medicationId: medication.id,
       medicationName: medication.name
+    }
+  });
+}
+
+function toScoreBand(value: number): string {
+  if (value <= 24) {
+    return 'very_low';
+  }
+  if (value <= 49) {
+    return 'low';
+  }
+  if (value <= 74) {
+    return 'medium';
+  }
+  return 'high';
+}
+
+function buildJournalPreview(note?: string): string | undefined {
+  if (!note) {
+    return undefined;
+  }
+  const trimmed = note.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+  return trimmed.length > 100 ? `${trimmed.slice(0, 100)}...` : trimmed;
+}
+
+export function projectDailyReflectionToEventIndex(
+  reflection: DailyReflectionDocument,
+  operation: EventOperation = 'upsert'
+): EventIndexDocument {
+  const sourceVersion = reflection.updatedAtUtc || reflection.createdAtUtc;
+  return buildBaseEvent({
+    participantId: reflection.participantId,
+    eventAtUtc: reflection.updatedAtUtc,
+    logLocalDate: reflection.logLocalDate,
+    logTzOffsetMinutes: reflection.logTzOffsetMinutes,
+    sourceType: 'daily_reflection',
+    sourceId: reflection.id,
+    sourceContainer: 'dailyReflections',
+    sourcePartitionKey: reflection.participantId,
+    sourceVersion,
+    sourceCreatedAtUtc: reflection.createdAtUtc,
+    sourceUpdatedAtUtc: reflection.updatedAtUtc,
+    operation,
+    tags: [
+      'type:daily_reflection',
+      `mood_band:${toScoreBand(reflection.moodScore)}`,
+      `focus_band:${toScoreBand(reflection.focusScore)}`,
+      `energy_band:${toScoreBand(reflection.energyScore)}`,
+      `sleep_band:${toScoreBand(reflection.sleepScore)}`,
+      `operation:${operation}`
+    ],
+    summary: {
+      title: 'Daily reflection',
+      subtitle: `Mood ${reflection.moodScore} | Focus ${reflection.focusScore} | Energy ${reflection.energyScore} | Sleep ${reflection.sleepScore}`,
+      moodScore: reflection.moodScore,
+      focusScore: reflection.focusScore,
+      energyScore: reflection.energyScore,
+      sleepScore: reflection.sleepScore,
+      journalNotePreview: buildJournalPreview(reflection.journalNote)
     }
   });
 }
