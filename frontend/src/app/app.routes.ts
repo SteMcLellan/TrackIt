@@ -15,9 +15,10 @@ import { ParticipantListComponent } from './features/participants/participant-li
 import { ParticipantStartComponent } from './features/participants/participant-start.component';
 import { InviteAcceptComponent } from './features/invites/invite-accept.component';
 import { ShellComponent } from './shell/shell.component';
-import { InsightsPlaceholderComponent } from './features/insights/insights-placeholder.component';
+import { InsightsDashboardComponent } from './features/insights/insights-dashboard.component';
 import { TimelinePlaceholderComponent } from './features/timeline/timeline-placeholder.component';
 import { ProfilePlaceholderComponent } from './features/profile/profile-placeholder.component';
+import { DailyReflectionComponent } from './features/daily-reflection/daily-reflection.component';
 
 /**
  * Application routes for the TrackIt frontend.
@@ -31,7 +32,8 @@ export const appRoutes: Routes = [
     canActivate: [AuthGuard],
     children: [
       { path: '', redirectTo: 'insights', pathMatch: 'full' },
-      { path: 'insights', component: InsightsPlaceholderComponent, canActivate: [ActiveParticipantGuard] },
+      { path: 'insights', component: InsightsDashboardComponent, canActivate: [ActiveParticipantGuard] },
+      { path: 'daily-reflection', component: DailyReflectionComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'timeline', component: TimelinePlaceholderComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'profile', component: ProfilePlaceholderComponent }
     ]

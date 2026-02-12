@@ -11,10 +11,10 @@ This document tracks migration progress from legacy frontend components to Stitc
 
 ## Coverage Summary
 
-- Total components: `61`
-- Converted: `6`
+- Total components: `63`
+- Converted: `8`
 - Not converted: `55`
-- Completion: `9.8%` (`6/61`)
+- Completion: `12.7%` (`8/63`)
 
 ## Component Inventory
 
@@ -23,8 +23,10 @@ This document tracks migration progress from legacy frontend components to Stitc
 | frontend/src/app/app.component.ts | No | - | - |
 | frontend/src/app/features/analytics/analytics.component.ts | No | - | - |
 | frontend/src/app/features/auth/login.component.ts | Yes | projects/2002730124455423542/screens/40de48a457ef43beab1f50b6742a7664 | TrackIt Trendline Logo Identity |
+| frontend/src/app/features/daily-reflection/daily-reflection.component.ts | Yes | projects/2002730124455423542/screens/57dc91ea7516465ea3bb05ba8f35b7d9 | Daily Reflection Entry |
 | frontend/src/app/features/dashboard/dashboard.component.ts | No | - | - |
 | frontend/src/app/features/home/home.component.ts | No | - | - |
+| frontend/src/app/features/insights/insights-dashboard.component.ts | Yes | projects/2002730124455423542/screens/efcaceb73e4746e2a655f9d447f9f420 | Parental Insight Dashboard |
 | frontend/src/app/features/insights/insights-placeholder.component.ts | No | - | - |
 | frontend/src/app/features/incidents/incident-create.component.ts | No | - | - |
 | frontend/src/app/features/incidents/incident-detail.component.ts | No | - | - |

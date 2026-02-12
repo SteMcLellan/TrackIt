@@ -157,11 +157,11 @@ export class LoginComponent implements OnInit, OnDestroy {
     effect(() => {
       if (this.auth.isAuthenticated()) {
         const returnUrl = this.returnUrl();
-        // Navigate to returnUrl if present and valid, otherwise default to /home
+        // Navigate to returnUrl if present and valid, otherwise default to /insights
         if (returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login')) {
           this.router.navigateByUrl(returnUrl);
         } else {
-          this.router.navigate(['/home']);
+          this.router.navigate(['/insights']);
         }
       }
     });
@@ -176,7 +176,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login')) {
         this.router.navigateByUrl(returnUrl);
       } else {
-        this.router.navigate(['/home']);
+        this.router.navigate(['/insights']);
       }
       return;
     }
