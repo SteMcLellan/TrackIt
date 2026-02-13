@@ -306,7 +306,7 @@ type RoutineMedicationRow = {
         <a class="reflection-button" routerLink="/incidents/new">
           <span class="left">
             <span class="title">Log a Moment</span>
-            <span class="subtitle">Capture a behavioral moment in under a minute.</span>
+            <span class="subtitle">Record what happened, when, and why.</span>
           </span>
           <span class="material-symbols-outlined chevron">arrow_forward_ios</span>
         </a>
