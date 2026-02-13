@@ -142,7 +142,12 @@ type RoutineMedicationRow = {
                 } @else {
                   <div class="routine-list">
                     @for (row of scheduledRows(); track row.id) {
-                      <article class="swipe-item" [class.reveal-actions]="isSwiping(row.id)">
+                      <article
+                        class="swipe-item"
+                        [class.reveal-actions]="isSwiping(row.id)"
+                        [class.reveal-right]="isSwipingRight(row.id)"
+                        [class.reveal-left]="isSwipingLeft(row.id)"
+                      >
                         <div class="swipe-rail rail-right" [class.disabled]="!canSwipeRight(row)">
                           <span class="material-symbols-outlined">check_circle</span>
                           <span>Taken</span>
@@ -212,7 +217,12 @@ type RoutineMedicationRow = {
                   <div class="as-needed-list">
                     @for (baseRow of asNeededBaseRows(); track baseRow.id) {
                       <article class="as-needed-block">
-                        <article class="swipe-item" [class.reveal-actions]="isSwiping(baseRow.id)">
+                        <article
+                          class="swipe-item"
+                          [class.reveal-actions]="isSwiping(baseRow.id)"
+                          [class.reveal-right]="isSwipingRight(baseRow.id)"
+                          [class.reveal-left]="isSwipingLeft(baseRow.id)"
+                        >
                           <div class="swipe-rail rail-right" [class.disabled]="!canSwipeRight(baseRow)">
                             <span class="material-symbols-outlined">add_circle</span>
                             <span>Log Dose</span>
@@ -623,9 +633,7 @@ type RoutineMedicationRow = {
     }
 
     .routine-list .swipe-item + .swipe-item {
-      border-top: 1px solid #f8fafc;
       margin-top: 0.7rem;
-      padding-top: 0.7rem;
     }
 
     .as-needed-block {
@@ -681,16 +689,13 @@ type RoutineMedicationRow = {
       transition: opacity 120ms ease;
     }
 
-    .swipe-item.reveal-actions .swipe-rail {
-      opacity: 1;
-    }
-
     .swipe-rail .material-symbols-outlined {
       font-size: 1rem;
       line-height: 1;
     }
 
     .swipe-rail.rail-right {
+      left: 0;
       right: 50%;
       justify-content: flex-start;
       background: #10b981;
@@ -698,11 +703,18 @@ type RoutineMedicationRow = {
 
     .swipe-rail.rail-left {
       left: 50%;
+      right: 0;
       justify-content: flex-end;
       background: #64748b;
     }
 
-    .swipe-rail.disabled {
+    .swipe-item.reveal-right .swipe-rail.rail-right,
+    .swipe-item.reveal-left .swipe-rail.rail-left {
+      opacity: 1;
+    }
+
+    .swipe-item.reveal-right .swipe-rail.rail-right.disabled,
+    .swipe-item.reveal-left .swipe-rail.rail-left.disabled {
       opacity: 0.22;
     }
 
@@ -1323,7 +1335,18 @@ export class InsightsDashboardComponent {
     return !!this.swipeActiveMap()[rowId];
   }
 
+  isSwipingRight(rowId: string): boolean {
+    return this.isSwiping(rowId) && (this.swipeOffsetMap()[rowId] ?? 0) > 0;
+  }
+
+  isSwipingLeft(rowId: string): boolean {
+    return this.isSwiping(rowId) && (this.swipeOffsetMap()[rowId] ?? 0) < 0;
+  }
+
   swipeTransform(rowId: string): string {
+    if (!this.isSwiping(rowId)) {
+      return 'none';
+    }
     const offset = this.swipeOffsetMap()[rowId] ?? 0;
     return offset === 0 ? 'none' : `translate3d(${offset}px, 0, 0)`;
   }
@@ -1353,6 +1376,8 @@ export class InsightsDashboardComponent {
       return;
     }
 
+    this.onSwipeCancel(row.id);
+
     const surface = event.currentTarget as HTMLElement | null;
     surface?.setPointerCapture(event.pointerId);
 
@@ -1360,7 +1385,6 @@ export class InsightsDashboardComponent {
     this.swipeStartX.set(row.id, event.clientX);
     this.swipeStartY.set(row.id, event.clientY);
     this.swipeAxisLock.set(row.id, null);
-    this.swipeActiveMap.update((state) => ({ ...state, [row.id]: true }));
   }
 
   onSwipeMove(event: PointerEvent, row: RoutineMedicationRow): void {
@@ -1382,7 +1406,11 @@ export class InsightsDashboardComponent {
       if (Math.abs(deltaX) < this.SWIPE_LOCK_PX && Math.abs(deltaY) < this.SWIPE_LOCK_PX) {
         return;
       }
-      this.swipeAxisLock.set(row.id, Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y');
+      const axis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y';
+      this.swipeAxisLock.set(row.id, axis);
+      if (axis === 'x') {
+        this.swipeActiveMap.update((state) => ({ ...state, [row.id]: true }));
+      }
     }
 
     if (this.swipeAxisLock.get(row.id) === 'y') {
@@ -1410,7 +1438,7 @@ export class InsightsDashboardComponent {
       surface.releasePointerCapture(event.pointerId);
     }
 
-    const offset = this.swipeOffsetMap()[row.id] ?? 0;
+    const offset = this.isSwiping(row.id) ? (this.swipeOffsetMap()[row.id] ?? 0) : 0;
     this.onSwipeCancel(row.id);
 
     if (offset >= this.SWIPE_TRIGGER_PX && this.canSwipeRight(row)) {
