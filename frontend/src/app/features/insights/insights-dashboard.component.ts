@@ -1,5 +1,5 @@
 import { httpResource } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BehaviorIncident } from '../../shared/models/behavior-incident';
 import { CollectionResponse } from '../../shared/models/collection';
@@ -129,7 +129,7 @@ type RoutineMedicationRow = {
           <p class="error">{{ routineError() }}</p>
         }
         <div class="routine-card">
-          @if (medicationsResource.isLoading() || logsResource.isLoading()) {
+          @if (!routineLoadedOnce() && (medicationsResource.isLoading() || logsResource.isLoading())) {
             <div class="routine-empty">Loading today's medication routine...</div>
           } @else if (scheduledRows().length === 0 && asNeededBaseRows().length === 0) {
             <div class="routine-empty">No active medications scheduled today.</div>
@@ -1112,6 +1112,9 @@ export class InsightsDashboardComponent {
   readonly swipeOffsetMap = signal<Record<string, number>>({});
   readonly swipeActiveMap = signal<Record<string, boolean>>({});
   readonly routineError = signal<string | null>(null);
+  readonly routineLoadedOnce = signal(false);
+  private readonly cachedMedications = signal<Medication[]>([]);
+  private readonly cachedLogs = signal<MedicationLog[]>([]);
   private readonly refreshTick = signal(0);
   private readonly swipeStartX = new Map<string, number>();
   private readonly swipeStartY = new Map<string, number>();
@@ -1147,7 +1150,6 @@ export class InsightsDashboardComponent {
 
   readonly medicationsResource = httpResource<MedicationsResponse>(() => {
     const participantId = this.activeParticipantId();
-    this.refreshTick();
     if (!participantId) {
       return {
         url: `${environment.apiBaseUrl}/participants/unknown/medications`,
@@ -1204,10 +1206,10 @@ export class InsightsDashboardComponent {
   );
 
   readonly medications = computed(() =>
-    this.medicationsResource.hasValue() ? this.medicationsResource.value().items : []
+    this.medicationsResource.hasValue() ? this.medicationsResource.value().items : this.cachedMedications()
   );
 
-  readonly logs = computed(() => (this.logsResource.hasValue() ? this.logsResource.value().items : []));
+  readonly logs = computed(() => (this.logsResource.hasValue() ? this.logsResource.value().items : this.cachedLogs()));
 
   readonly incidents = computed(() =>
     this.incidentsResource.hasValue() ? this.incidentsResource.value().items : []
@@ -1326,6 +1328,34 @@ export class InsightsDashboardComponent {
       this.buildMetricCard('energy', 'Energy', 'bolt', summary.energy)
     ];
   });
+
+  constructor() {
+    effect(
+      () => {
+        this.activeParticipantId();
+        this.todayLocalDate();
+        this.cachedMedications.set([]);
+        this.cachedLogs.set([]);
+        this.routineLoadedOnce.set(false);
+      },
+      { allowSignalWrites: true }
+    );
+
+    effect(
+      () => {
+        if (this.medicationsResource.hasValue()) {
+          this.cachedMedications.set(this.medicationsResource.value().items);
+        }
+        if (this.logsResource.hasValue()) {
+          this.cachedLogs.set(this.logsResource.value().items);
+        }
+        if (this.medicationsResource.hasValue() && this.logsResource.hasValue()) {
+          this.routineLoadedOnce.set(true);
+        }
+      },
+      { allowSignalWrites: true }
+    );
+  }
 
   isSaving(rowId: string): boolean {
     return !!this.savingMap()[rowId];
