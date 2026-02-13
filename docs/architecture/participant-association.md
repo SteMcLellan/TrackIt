@@ -108,13 +108,15 @@ Validation:
 
 ## Frontend Flow
 - After sign-in, the dashboard route checks `/api/participants`. If none exist, route to `/participants/start`.
+- If exactly one participant is associated to the user, it is auto-selected for the current browser session.
 - `/participants/start` provides the first-participant CTA.
 - `/participants/new` creates a participant.
-- `/participants` lists participants, lets the user select an active participant (stored in `localStorage`), and provides links to detail and dashboard.
+- `/participants` lists participants, lets the user select an active participant for the current browser session, and provides links to detail and dashboard.
 - `/participants/:id` shows participant details and tracking history placeholder. Managers can edit metadata inline.
 
 ## Active Participant State
-Active participant is stored in `localStorage` under `trackit.activeParticipantId` and surfaced via `ParticipantService.activeParticipantId` signal.
+Active participant is stored in-memory (signal state) and surfaced via `ParticipantService.activeParticipantId`.
+The selection is not persisted in browser storage. Logging out or reloading the app clears the active participant state.
 
 ## Roles
 Two distinct role concepts:

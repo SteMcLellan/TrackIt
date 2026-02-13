@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { GoogleIdentityService } from './google-identity.service';
+import { ParticipantService } from './participant.service';
 
 interface AppUser {
   sub: string;
@@ -32,6 +33,7 @@ export class AuthService {
   private readonly storageKey = 'trackit.appUser';
   private readonly http = inject(HttpClient);
   private readonly googleIdentity = inject(GoogleIdentityService);
+  private readonly participants = inject(ParticipantService);
   private readonly appUserState = signal<AppUser>(signedOutUser);
   private logoutTimerId: number | null = null;
   readonly appUser = this.appUserState.asReadonly();
@@ -85,6 +87,7 @@ export class AuthService {
    */
   logout(): void {
     this.appUserState.set(signedOutUser);
+    this.participants.clearActiveParticipant();
     localStorage.removeItem(this.storageKey);
     this.clearLogoutTimer();
   }
