@@ -16,12 +16,10 @@ export type UpdateParticipantRequest = {
   birthDate?: string;
 };
 
-const ACTIVE_PARTICIPANT_KEY = 'trackit.activeParticipantId';
-
 @Injectable({ providedIn: 'root' })
 export class ParticipantService {
   private readonly http = inject(HttpClient);
-  private readonly activeParticipantIdSignal = signal<string | null>(this.readActiveParticipantId());
+  private readonly activeParticipantIdSignal = signal<string | null>(null);
   readonly activeParticipantId = this.activeParticipantIdSignal.asReadonly();
 
   listParticipants(pageSize?: number) {
@@ -42,31 +40,9 @@ export class ParticipantService {
 
   setActiveParticipant(participantId: string) {
     this.activeParticipantIdSignal.set(participantId);
-    this.writeActiveParticipantId(participantId);
   }
 
   clearActiveParticipant() {
     this.activeParticipantIdSignal.set(null);
-    this.writeActiveParticipantId(null);
-  }
-
-  private readActiveParticipantId(): string | null {
-    try {
-      return localStorage.getItem(ACTIVE_PARTICIPANT_KEY);
-    } catch {
-      return null;
-    }
-  }
-
-  private writeActiveParticipantId(value: string | null) {
-    try {
-      if (!value) {
-        localStorage.removeItem(ACTIVE_PARTICIPANT_KEY);
-      } else {
-        localStorage.setItem(ACTIVE_PARTICIPANT_KEY, value);
-      }
-    } catch {
-      // Ignore storage errors (e.g., private mode).
-    }
   }
 }
