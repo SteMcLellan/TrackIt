@@ -28,7 +28,7 @@ import { ParticipantInviteService } from '../../shared/services/participant-invi
         <div class="header">
           <div>
             <h2>{{ displayName() }}</h2>
-            <p class="muted">Age {{ participant()?.ageYears }}</p>
+            <p class="muted">Age {{ participant()?.ageYears ?? 'Unknown' }}</p>
           </div>
           @if (participant()?.role === 'manager') {
             <button class="button secondary" type="button" (click)="startEdit()">Edit</button>

@@ -74,7 +74,7 @@ import {
           @if (activeParticipant()) {
             <div class="section-value">
               {{ activeParticipant()!.displayName || 'Participant' }}
-              <span class="section-sub">(Age {{ activeParticipant()!.ageYears }})</span>
+              <span class="section-sub">(Age {{ activeParticipant()!.ageYears ?? 'Unknown' }})</span>
             </div>
           } @else {
             <div class="section-value muted">No active participant selected</div>

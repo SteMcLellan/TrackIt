@@ -17,6 +17,17 @@ type MedicationsResponse = CollectionResponse<Medication>;
 type MedicationLogsResponse = CollectionResponse<MedicationLog>;
 type IncidentsResponse = CollectionResponse<BehaviorIncident>;
 
+type MedicationFrequency =
+  | 'once-daily'
+  | 'twice-daily'
+  | 'three-times-daily'
+  | 'as-needed';
+
+type MedicationWithFrequency = Medication & {
+  frequency?: MedicationFrequency;
+  frequencyText?: string;
+};
+
 type WeeklyMetricKey = 'mood' | 'focus' | 'sleep' | 'energy';
 
 type WeeklyMetricCard = {
@@ -25,6 +36,17 @@ type WeeklyMetricCard = {
   icon: string;
   scoreLabel: string;
   path: string;
+};
+
+type RoutineRowSource = 'scheduled' | 'as-needed-base' | 'as-needed-log';
+
+type RoutineMedicationRow = {
+  id: string;
+  medication: Medication;
+  source: RoutineRowSource;
+  status: 'taken' | 'not_taken';
+  logId?: string;
+  takenTimeLabel?: string;
 };
 
 /**
@@ -109,56 +131,66 @@ type WeeklyMetricCard = {
         <div class="routine-card">
           @if (medicationsResource.isLoading() || logsResource.isLoading()) {
             <div class="routine-empty">Loading today's medication routine...</div>
-          } @else if (routineMedications().length === 0) {
+          } @else if (routineRows().length === 0) {
             <div class="routine-empty">No active medications scheduled today.</div>
           } @else {
-            @for (medication of routineMedications(); track medication.id; let index = $index) {
-              <article class="routine-row">
-                <div class="medication-meta">
-                  <div class="medication-icon" [class.alt]="index % 2 === 1">
-                    <span class="material-symbols-outlined">
-                      {{ index % 2 === 0 ? 'wb_sunny' : 'wb_twilight' }}
-                    </span>
+            @for (row of routineRows(); track row.id) {
+              <article class="swipe-item">
+                <div class="swipe-rail rail-right" [class.disabled]="!canSwipeRight(row)">
+                  <span class="material-symbols-outlined">check_circle</span>
+                  <span>Taken</span>
+                </div>
+                <div class="swipe-rail rail-left" [class.disabled]="!canSwipeLeft(row)">
+                  <span>Not Taken</span>
+                  <span class="material-symbols-outlined">close</span>
+                </div>
+                <div
+                  class="swipe-surface"
+                  [class.dragging]="isSwiping(row.id)"
+                  [style.transform]="swipeTransform(row.id)"
+                  (pointerdown)="onSwipeStart($event, row)"
+                  (pointermove)="onSwipeMove($event, row)"
+                  (pointerup)="onSwipeEnd($event, row)"
+                  (pointercancel)="onSwipeCancel(row.id)"
+                  (lostpointercapture)="onSwipeCancel(row.id)"
+                >
+                  <div class="medication-meta">
+                    <div
+                      class="medication-icon"
+                      [class.taken]="row.status === 'taken'"
+                      [class.not-taken]="row.status === 'not_taken'"
+                    >
+                      <span class="material-symbols-outlined">pill</span>
+                    </div>
+                    <div class="medication-copy">
+                      <p class="medication-title">{{ row.medication.name }}</p>
+                      <p class="medication-subtitle">
+                        {{ row.medication.dosageText }} - {{ medicationFrequencyLabel(row.medication) }}
+                      </p>
+                    </div>
                   </div>
-                  <div class="medication-copy">
-                    <p class="medication-title">{{ medication.name }}</p>
-                    <p class="medication-subtitle">
-                      {{ medication.dosageText }} • {{ medication.frequencyText }}
-                    </p>
+
+                  <div class="status-meta">
+                    @if (isSaving(row.id)) {
+                      <span class="status-saving">Saving...</span>
+                    } @else if (row.status === 'taken') {
+                      <div class="status-stack">
+                        <span class="status-chip taken">
+                          <span class="material-symbols-outlined">check</span>
+                          <span>Taken</span>
+                        </span>
+                        @if (row.takenTimeLabel) {
+                          <span class="status-time">{{ row.takenTimeLabel }}</span>
+                        }
+                      </div>
+                    } @else {
+                      <span class="status-chip not-taken">
+                        <span class="material-symbols-outlined">close</span>
+                        <span>Not Taken</span>
+                      </span>
+                    }
                   </div>
                 </div>
-                @switch (logStatus(medication.id)) {
-                  @case ('taken') {
-                    <button
-                      class="status-button taken"
-                      type="button"
-                      [disabled]="isSaving(medication.id)"
-                      (click)="markMedication(medication, 'not_taken')"
-                    >
-                      Taken
-                    </button>
-                  }
-                  @case ('not_taken') {
-                    <button
-                      class="status-button skipped"
-                      type="button"
-                      [disabled]="isSaving(medication.id)"
-                      (click)="markMedication(medication, 'taken')"
-                    >
-                      Not Taken
-                    </button>
-                  }
-                  @default {
-                    <button
-                      class="status-button pending"
-                      type="button"
-                      [disabled]="isSaving(medication.id)"
-                      (click)="markMedication(medication, 'taken')"
-                    >
-                      Mark Taken
-                    </button>
-                  }
-                }
               </article>
             }
           }
@@ -455,17 +487,76 @@ type WeeklyMetricCard = {
       gap: 1rem;
     }
 
-    .routine-row {
+    .swipe-item {
+      position: relative;
+      border-radius: 1rem;
+      overflow: hidden;
+      background: #f1f5f9;
+    }
+
+    .swipe-item + .swipe-item {
+      margin-top: 0.85rem;
+    }
+
+    .swipe-rail {
+      position: absolute;
+      inset: 1px;
+      z-index: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0 1rem;
+      border-radius: calc(1rem - 1px);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      pointer-events: none;
+    }
+
+    .swipe-rail .material-symbols-outlined {
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .swipe-rail.rail-right {
+      right: 50%;
+      justify-content: flex-start;
+      background: #10b981;
+    }
+
+    .swipe-rail.rail-left {
+      left: 50%;
+      justify-content: flex-end;
+      background: #64748b;
+    }
+
+    .swipe-rail.disabled {
+      opacity: 0.22;
+    }
+
+    .swipe-surface {
+      position: relative;
+      z-index: 1;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 0.75rem;
-      flex-wrap: wrap;
+      width: 100%;
+      min-height: 76px;
+      padding: 0.75rem 0.85rem;
+      border-radius: 1rem;
+      border: 1px solid #dbe3ee;
+      box-sizing: border-box;
+      background: #fff;
+      transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      touch-action: pan-y;
+      user-select: none;
     }
 
-    .routine-row + .routine-row {
-      border-top: 1px solid #f8fafc;
-      padding-top: 1rem;
+    .swipe-surface.dragging {
+      transition: none;
     }
 
     .medication-meta {
@@ -483,14 +574,25 @@ type WeeklyMetricCard = {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: #10b981;
-      background: #ecfdf5;
+      border: 1px solid transparent;
       flex-shrink: 0;
     }
 
-    .medication-icon.alt {
-      color: #f59e0b;
-      background: #fffbeb;
+    .medication-icon .material-symbols-outlined {
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .medication-icon.taken {
+      color: #10b981;
+      background: #ecfdf5;
+      border-color: rgba(16, 185, 129, 0.24);
+    }
+
+    .medication-icon.not-taken {
+      color: #64748b;
+      background: #f1f5f9;
+      border-color: rgba(100, 116, 139, 0.25);
     }
 
     .medication-copy {
@@ -517,40 +619,69 @@ type WeeklyMetricCard = {
       font-weight: 500;
     }
 
-    .status-button {
-      min-height: 40px;
-      border-radius: 999px;
-      border: 2px solid transparent;
-      padding: 0.45rem 0.95rem;
-      font-size: 0.75rem;
+    .status-meta {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-shrink: 0;
+      min-width: 6.25rem;
+    }
+
+    .status-stack {
+      display: grid;
+      justify-items: end;
+      gap: 0.2rem;
+    }
+
+    .status-saving {
+      color: #64748b;
+      font-size: 0.7rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      cursor: pointer;
-      max-width: 100%;
     }
 
-    .status-button[disabled] {
-      opacity: 0.6;
-      cursor: not-allowed;
+    .status-chip {
+      min-height: 30px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 0.22rem 0.56rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.66rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
     }
 
-    .status-button.pending {
-      background: #10b981;
-      color: #fff;
-      border-color: #10b981;
+    .status-chip .material-symbols-outlined {
+      font-size: 0.88rem;
+      line-height: 1;
     }
 
-    .status-button.taken {
-      background: #10b981;
-      color: #fff;
-      border-color: #10b981;
+    .status-chip.taken {
+      color: #10b981;
+      background: #ecfdf5;
+      border-color: rgba(16, 185, 129, 0.3);
     }
 
-    .status-button.skipped {
-      background: #fff;
+    .status-chip.not-taken {
+      color: #64748b;
+      background: #f1f5f9;
+      border-color: rgba(100, 116, 139, 0.25);
+    }
+
+    .status-time {
       color: #94a3b8;
-      border-color: #f1f5f9;
+      font-size: 0.58rem;
+      font-weight: 700;
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      white-space: nowrap;
     }
 
     .incident-card {
@@ -712,8 +843,17 @@ export class InsightsDashboardComponent {
   readonly todayLocalDate = signal(this.formatLocalDate(new Date()));
   readonly metricSkeleton = [1, 2, 3, 4];
   readonly savingMap = signal<Record<string, boolean>>({});
+  readonly swipeOffsetMap = signal<Record<string, number>>({});
+  readonly swipeActiveMap = signal<Record<string, boolean>>({});
   readonly routineError = signal<string | null>(null);
   private readonly refreshTick = signal(0);
+  private readonly swipeStartX = new Map<string, number>();
+  private readonly swipeStartY = new Map<string, number>();
+  private readonly swipePointerId = new Map<string, number>();
+  private readonly swipeAxisLock = new Map<string, 'x' | 'y' | null>();
+  private readonly SWIPE_MAX_PX = 112;
+  private readonly SWIPE_TRIGGER_PX = 64;
+  private readonly SWIPE_LOCK_PX = 8;
 
   readonly participantsResource = httpResource<ParticipantsResponse>(() => ({
     url: `${environment.apiBaseUrl}/participants`,
@@ -820,18 +960,65 @@ export class InsightsDashboardComponent {
     return this.medications()
       .filter((item) => !item.archivedAtUtc)
       .filter((item) => item.startDateUtc <= today)
-      .filter((item) => !item.endDateUtc || item.endDateUtc >= today)
-      .slice(0, 2);
+      .filter((item) => !item.endDateUtc || item.endDateUtc >= today);
   });
 
-  readonly logStatusByMedicationId = computed(() => {
-    const statusMap = new Map<string, 'taken' | 'not_taken'>();
-    for (const log of this.logs()) {
-      if (log.logLocalDate === this.todayLocalDate()) {
-        statusMap.set(log.medicationId, log.status);
-      }
+  readonly todayLogs = computed(() =>
+    this.logs().filter((log) => log.logLocalDate === this.todayLocalDate())
+  );
+
+  readonly routineRows = computed<RoutineMedicationRow[]>(() => {
+    const rows: RoutineMedicationRow[] = [];
+    const logsByMedication = new Map<string, MedicationLog[]>();
+
+    for (const log of this.todayLogs()) {
+      const existing = logsByMedication.get(log.medicationId) ?? [];
+      existing.push(log);
+      logsByMedication.set(log.medicationId, existing);
     }
-    return statusMap;
+
+    for (const medication of this.routineMedications()) {
+      const medicationLogs = [...(logsByMedication.get(medication.id) ?? [])].sort(
+        (a, b) => this.logSortTimeMs(b) - this.logSortTimeMs(a)
+      );
+
+      if (this.isAsNeededMedication(medication)) {
+        rows.push({
+          id: `routine_${medication.id}_base`,
+          medication,
+          source: 'as-needed-base',
+          status: 'not_taken'
+        });
+
+        for (const log of medicationLogs) {
+          if (log.status !== 'taken') {
+            continue;
+          }
+          rows.push({
+            id: `routine_${log.id}`,
+            medication,
+            source: 'as-needed-log',
+            status: 'taken',
+            logId: log.id,
+            takenTimeLabel: this.formatTakenTime(log)
+          });
+        }
+        continue;
+      }
+
+      const latest = medicationLogs[0];
+      const status: 'taken' | 'not_taken' = latest?.status === 'taken' ? 'taken' : 'not_taken';
+      rows.push({
+        id: `routine_${medication.id}_scheduled`,
+        medication,
+        source: 'scheduled',
+        status,
+        logId: latest?.id,
+        takenTimeLabel: status === 'taken' && latest ? this.formatTakenTime(latest) : undefined
+      });
+    }
+
+    return rows;
   });
 
   readonly latestIncident = computed(() => {
@@ -852,41 +1039,233 @@ export class InsightsDashboardComponent {
     ];
   });
 
-  logStatus(medicationId: string): 'taken' | 'not_taken' | null {
-    return this.logStatusByMedicationId().get(medicationId) ?? null;
+  isSaving(rowId: string): boolean {
+    return !!this.savingMap()[rowId];
   }
 
-  markMedication(medication: Medication, status: 'taken' | 'not_taken'): void {
+  isSwiping(rowId: string): boolean {
+    return !!this.swipeActiveMap()[rowId];
+  }
+
+  swipeTransform(rowId: string): string {
+    const offset = this.swipeOffsetMap()[rowId] ?? 0;
+    return offset === 0 ? 'none' : `translate3d(${offset}px, 0, 0)`;
+  }
+
+  canSwipeLeft(row: RoutineMedicationRow): boolean {
+    return row.source !== 'as-needed-base';
+  }
+
+  canSwipeRight(row: RoutineMedicationRow): boolean {
+    return row.source !== 'as-needed-log';
+  }
+
+  onSwipeStart(event: PointerEvent, row: RoutineMedicationRow): void {
+    if (event.button !== 0 || this.isSaving(row.id)) {
+      return;
+    }
+
+    const surface = event.currentTarget as HTMLElement | null;
+    surface?.setPointerCapture(event.pointerId);
+
+    this.swipePointerId.set(row.id, event.pointerId);
+    this.swipeStartX.set(row.id, event.clientX);
+    this.swipeStartY.set(row.id, event.clientY);
+    this.swipeAxisLock.set(row.id, null);
+    this.swipeActiveMap.update((state) => ({ ...state, [row.id]: true }));
+  }
+
+  onSwipeMove(event: PointerEvent, row: RoutineMedicationRow): void {
+    if (this.swipePointerId.get(row.id) !== event.pointerId) {
+      return;
+    }
+
+    const startX = this.swipeStartX.get(row.id);
+    const startY = this.swipeStartY.get(row.id);
+    if (typeof startX !== 'number' || typeof startY !== 'number') {
+      return;
+    }
+
+    const deltaX = event.clientX - startX;
+    const deltaY = event.clientY - startY;
+    const currentAxis = this.swipeAxisLock.get(row.id);
+
+    if (!currentAxis) {
+      if (Math.abs(deltaX) < this.SWIPE_LOCK_PX && Math.abs(deltaY) < this.SWIPE_LOCK_PX) {
+        return;
+      }
+      this.swipeAxisLock.set(row.id, Math.abs(deltaX) >= Math.abs(deltaY) ? 'x' : 'y');
+    }
+
+    if (this.swipeAxisLock.get(row.id) === 'y') {
+      return;
+    }
+
+    event.preventDefault();
+    let clamped = Math.max(-this.SWIPE_MAX_PX, Math.min(this.SWIPE_MAX_PX, deltaX));
+    if (!this.canSwipeLeft(row) && clamped < 0) {
+      clamped = 0;
+    }
+    if (!this.canSwipeRight(row) && clamped > 0) {
+      clamped = 0;
+    }
+    this.setSwipeOffset(row.id, clamped);
+  }
+
+  onSwipeEnd(event: PointerEvent, row: RoutineMedicationRow): void {
+    if (this.swipePointerId.get(row.id) !== event.pointerId) {
+      return;
+    }
+
+    const surface = event.currentTarget as HTMLElement | null;
+    if (surface?.hasPointerCapture(event.pointerId)) {
+      surface.releasePointerCapture(event.pointerId);
+    }
+
+    const offset = this.swipeOffsetMap()[row.id] ?? 0;
+    this.onSwipeCancel(row.id);
+
+    if (offset >= this.SWIPE_TRIGGER_PX && this.canSwipeRight(row)) {
+      this.handleSwipeRight(row);
+      return;
+    }
+
+    if (offset <= -this.SWIPE_TRIGGER_PX && this.canSwipeLeft(row)) {
+      this.handleSwipeLeft(row);
+    }
+  }
+
+  onSwipeCancel(rowId: string): void {
+    this.setSwipeOffset(rowId, 0);
+    this.swipeActiveMap.update((state) => this.removeKey(state, rowId));
+    this.swipeStartX.delete(rowId);
+    this.swipeStartY.delete(rowId);
+    this.swipePointerId.delete(rowId);
+    this.swipeAxisLock.delete(rowId);
+  }
+
+  private handleSwipeRight(row: RoutineMedicationRow): void {
     const participantId = this.activeParticipantId();
     if (!participantId) {
       return;
     }
 
+    const frequency = this.resolveMedicationFrequency(row.medication);
+    if (!frequency) {
+      this.routineError.set('Medication frequency is missing. Update this medication in Profile.');
+      return;
+    }
+
+    if (row.source === 'as-needed-log') {
+      return;
+    }
+
     this.routineError.set(null);
-    this.setSaving(medication.id, true);
+    this.setSaving(row.id, true);
     const logLocalDate = this.todayLocalDate();
     const logTzOffsetMinutes = -new Date().getTimezoneOffset();
 
+    if (frequency === 'as-needed') {
+      this.medicationLogs
+        .createAsNeededLog(participantId, row.medication.id, logLocalDate, { logTzOffsetMinutes })
+        .subscribe({
+          next: () => {
+            this.setSaving(row.id, false);
+            this.refreshTick.update((value) => value + 1);
+          },
+          error: () => {
+            this.setSaving(row.id, false);
+            this.routineError.set('Unable to update routine status. Please try again.');
+          }
+        });
+      return;
+    }
+
     this.medicationLogs
-      .upsertLog(participantId, medication.id, logLocalDate, {
-        status,
+      .upsertLog(participantId, row.medication.id, logLocalDate, {
+        status: 'taken',
         logTzOffsetMinutes,
-        occurrenceKey: 'daily'
+        occurrenceKey: this.defaultOccurrenceKey(frequency)
       })
       .subscribe({
         next: () => {
-          this.setSaving(medication.id, false);
+          this.setSaving(row.id, false);
           this.refreshTick.update((value) => value + 1);
         },
         error: () => {
-          this.setSaving(medication.id, false);
+          this.setSaving(row.id, false);
           this.routineError.set('Unable to update routine status. Please try again.');
         }
       });
   }
 
-  isSaving(medicationId: string): boolean {
-    return !!this.savingMap()[medicationId];
+  private handleSwipeLeft(row: RoutineMedicationRow): void {
+    const participantId = this.activeParticipantId();
+    if (!participantId) {
+      return;
+    }
+
+    if (row.source === 'as-needed-base') {
+      return;
+    }
+
+    this.routineError.set(null);
+
+    if (row.source === 'as-needed-log') {
+      if (!row.logId) {
+        this.routineError.set('Missing log id for this as-needed entry.');
+        return;
+      }
+      this.setSaving(row.id, true);
+      this.medicationLogs.deleteLog(participantId, row.logId).subscribe({
+        next: () => {
+          this.setSaving(row.id, false);
+          this.refreshTick.update((value) => value + 1);
+        },
+        error: () => {
+          this.setSaving(row.id, false);
+          this.routineError.set('Unable to remove this medication log. Please try again.');
+        }
+      });
+      return;
+    }
+
+    const frequency = this.resolveMedicationFrequency(row.medication);
+    if (!frequency || frequency === 'as-needed') {
+      this.routineError.set('Unable to update routine status. Please try again.');
+      return;
+    }
+
+    this.setSaving(row.id, true);
+    this.medicationLogs
+      .upsertLog(participantId, row.medication.id, this.todayLocalDate(), {
+        status: 'not_taken',
+        logTzOffsetMinutes: -new Date().getTimezoneOffset(),
+        occurrenceKey: this.defaultOccurrenceKey(frequency)
+      })
+      .subscribe({
+        next: () => {
+          this.setSaving(row.id, false);
+          this.refreshTick.update((value) => value + 1);
+        },
+        error: () => {
+          this.setSaving(row.id, false);
+          this.routineError.set('Unable to update routine status. Please try again.');
+        }
+      });
+  }
+
+  medicationFrequencyLabel(medication: Medication): string {
+    const frequency = this.resolveMedicationFrequency(medication);
+    if (frequency === 'once-daily') return 'Once daily';
+    if (frequency === 'twice-daily') return 'Twice daily';
+    if (frequency === 'three-times-daily') return 'Three times daily';
+    if (frequency === 'as-needed') return 'As needed';
+    return 'Frequency not set';
+  }
+
+  isAsNeededMedication(medication: Medication): boolean {
+    return this.resolveMedicationFrequency(medication) === 'as-needed';
   }
 
   formatFunction(value: string): string {
@@ -897,13 +1276,74 @@ export class InsightsDashboardComponent {
     const today = this.todayLocalDate();
     const time = this.formatTimeLabel(incident.logLocalTime);
     if (incident.logLocalDate === today) {
-      return `Today • ${time}`;
+      return `Today - ${time}`;
     }
-    return `${incident.logLocalDate} • ${time}`;
+    return `${incident.logLocalDate} - ${time}`;
   }
 
   private setSaving(medicationId: string, value: boolean): void {
     this.savingMap.update((state) => ({ ...state, [medicationId]: value }));
+  }
+
+  private setSwipeOffset(medicationId: string, value: number): void {
+    this.swipeOffsetMap.update((state) => ({ ...state, [medicationId]: value }));
+  }
+
+  private removeKey<T>(source: Record<string, T>, key: string): Record<string, T> {
+    const next = { ...source };
+    delete next[key];
+    return next;
+  }
+
+  private logSortTimeMs(log: MedicationLog): number {
+    const updated = Date.parse(log.updatedAtUtc);
+    if (Number.isFinite(updated)) {
+      return updated;
+    }
+    const created = Date.parse(log.createdAtUtc);
+    return Number.isFinite(created) ? created : 0;
+  }
+
+  private formatTakenTime(log: MedicationLog): string | undefined {
+    const utcMillis = this.logSortTimeMs(log);
+    if (!Number.isFinite(utcMillis) || utcMillis <= 0) {
+      return undefined;
+    }
+
+    const localMillis = utcMillis + log.logTzOffsetMinutes * 60_000;
+    const localInstant = new Date(localMillis);
+    const hh = String(localInstant.getUTCHours()).padStart(2, '0');
+    const mm = String(localInstant.getUTCMinutes()).padStart(2, '0');
+    return this.formatTimeLabel(`${hh}:${mm}`);
+  }
+
+  private resolveMedicationFrequency(medication: Medication): MedicationFrequency | null {
+    const withFrequency = medication as MedicationWithFrequency;
+    const frequency = withFrequency.frequency;
+    if (
+      frequency === 'once-daily' ||
+      frequency === 'twice-daily' ||
+      frequency === 'three-times-daily' ||
+      frequency === 'as-needed'
+    ) {
+      return frequency;
+    }
+
+    const frequencyText = withFrequency.frequencyText?.trim().toLowerCase();
+    if (!frequencyText) {
+      return null;
+    }
+    if (frequencyText.includes('as-needed') || frequencyText.includes('as needed')) return 'as-needed';
+    if (frequencyText.includes('three')) return 'three-times-daily';
+    if (frequencyText.includes('twice') || frequencyText.includes('2')) return 'twice-daily';
+    if (frequencyText.includes('once') || frequencyText.includes('daily')) return 'once-daily';
+    return null;
+  }
+
+  private defaultOccurrenceKey(frequency: Exclude<MedicationFrequency, 'as-needed'>): string {
+    if (frequency === 'three-times-daily') return 'dose-1';
+    if (frequency === 'twice-daily') return 'dose-1';
+    return 'dose-1';
   }
 
   private buildMetricCard(

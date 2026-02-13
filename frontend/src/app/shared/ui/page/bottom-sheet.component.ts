@@ -14,10 +14,10 @@ import { CloseIconComponent } from '../icons';
 
 /**
  * @stitch-project projects/2002730124455423542
- * @stitch-screen projects/2002730124455423542/screens/1c1459bdb1724f6ca337ae399d9022a1
+ * @stitch-screen projects/2002730124455423542/screens/f26e44666b8e4077a45861d9aee62025
  * @stitch-screen-title Profile
  * @stitch-status converted
- * @stitch-last-sync 2026-02-11
+ * @stitch-last-sync 2026-02-12
  */
 @Component({
   selector: 'app-bottom-sheet',
@@ -95,7 +95,7 @@ import { CloseIconComponent } from '../icons';
       position: relative;
       flex-shrink: 0;
       cursor: grab;
-      touch-action: none;
+      touch-action: pan-y;
     }
     .drag-zone:active {
       cursor: grabbing;
@@ -115,7 +115,8 @@ import { CloseIconComponent } from '../icons';
     .header {
       display: flex;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
       padding: 0 1.5rem 0.75rem;
       flex-shrink: 0;
     }
@@ -126,9 +127,6 @@ import { CloseIconComponent } from '../icons';
       color: #0f172a;
     }
     .close-btn {
-      position: absolute;
-      top: 0;
-      right: 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -211,6 +209,10 @@ export class BottomSheetComponent implements AfterViewInit, OnDestroy {
   }
 
   onHandleDown(event: PointerEvent): void {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
     this.isDragging = true;
     this.startY = event.clientY;
     this.currentY = 0;
@@ -228,7 +230,7 @@ export class BottomSheetComponent implements AfterViewInit, OnDestroy {
     this.currentY = Math.max(0, deltaY);
     const sheet = this.sheetRef?.nativeElement;
     if (sheet) {
-      sheet.style.transform = `translateY(${this.currentY}px)`;
+      sheet.style.transform = this.dragTransform(this.currentY);
     }
   };
 
@@ -253,5 +255,12 @@ export class BottomSheetComponent implements AfterViewInit, OnDestroy {
     if (this.open()) {
       requestAnimationFrame(() => this.visible.set(true));
     }
+  }
+
+  private dragTransform(offsetY: number): string {
+    if (window.matchMedia('(min-width: 640px)').matches) {
+      return `translateX(-50%) translateY(${offsetY}px)`;
+    }
+    return `translateY(${offsetY}px)`;
   }
 }

@@ -1,17 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Participant } from '../../shared/models/participant';
 import { ParticipantService } from '../../shared/services/participant.service';
-
-function integerValidator(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const value = control.value as number | null;
-    if (value === null || value === undefined) {
-      return null;
-    }
-    return Number.isInteger(value) ? null : { integer: true };
-  };
-}
 
 @Component({
   selector: 'app-participant-edit-form',
@@ -28,19 +18,17 @@ function integerValidator(): ValidatorFn {
         placeholder="e.g., Avery"
       />
 
-      <label for="ageYears">Age in years</label>
+      <label for="birthDate">Birth date</label>
       <input
-        id="ageYears"
-        type="number"
-        formControlName="ageYears"
-        min="1"
-        inputmode="numeric"
-        [attr.aria-invalid]="ageInvalid()"
-        [attr.aria-describedby]="ageInvalid() ? 'age-error' : null"
+        id="birthDate"
+        type="date"
+        formControlName="birthDate"
+        [attr.aria-invalid]="birthDateInvalid()"
+        [attr.aria-describedby]="birthDateInvalid() ? 'birth-date-error' : null"
       />
-      @if (ageInvalid()) {
-        <p id="age-error" class="error" role="alert">
-          Enter a whole number greater than zero.
+      @if (birthDateInvalid()) {
+        <p id="birth-date-error" class="error" role="alert">
+          Enter a valid birth date.
         </p>
       }
 
@@ -127,8 +115,8 @@ export class ParticipantEditFormComponent {
 
   readonly form = this.fb.group({
     displayName: this.fb.nonNullable.control(''),
-    ageYears: this.fb.control<number | null>(null, {
-      validators: [Validators.required, Validators.min(1), integerValidator()]
+    birthDate: this.fb.nonNullable.control('', {
+      validators: [Validators.required, Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)]
     })
   });
 
@@ -137,13 +125,13 @@ export class ParticipantEditFormComponent {
       const participant = this.participant();
       this.form.reset({
         displayName: participant.displayName ?? '',
-        ageYears: participant.ageYears
+        birthDate: participant.birthDate ?? ''
       }, { emitEvent: false });
     });
   }
 
-  ageInvalid() {
-    const control = this.form.controls.ageYears;
+  birthDateInvalid() {
+    const control = this.form.controls.birthDate;
     return control.invalid && (control.dirty || control.touched);
   }
 
@@ -159,7 +147,7 @@ export class ParticipantEditFormComponent {
 
     const participant = this.participant();
     const displayName = this.form.controls.displayName.value.trim();
-    const ageYears = this.form.controls.ageYears.value;
+    const birthDate = this.form.controls.birthDate.value.trim();
 
     this.saving.set(true);
     this.saveError.set(null);
@@ -167,7 +155,7 @@ export class ParticipantEditFormComponent {
     this.participantsService
       .updateParticipant(participant.id, {
         displayName,
-        ageYears: ageYears ?? undefined
+        birthDate: birthDate || undefined
       })
       .subscribe({
         next: (updated) => {

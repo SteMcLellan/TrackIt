@@ -9,8 +9,45 @@ import { ParticipantDocument } from '../models/participant';
 
 type UpdateParticipantRequest = {
   displayName?: string;
-  ageYears?: number;
+  birthDate?: string;
 };
+
+function isDateOnly(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const [year, month, day] = value.split('-').map((part) => Number(part));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+function calculateAgeYears(birthDate: string): number {
+  const [year, month, day] = birthDate.split('-').map((part) => Number(part));
+  const today = new Date();
+  let age = today.getUTCFullYear() - year;
+  const monthDelta = today.getUTCMonth() + 1 - month;
+  if (monthDelta < 0 || (monthDelta === 0 && today.getUTCDate() < day)) {
+    age -= 1;
+  }
+  return age;
+}
+
+function normalizeParticipantForResponse(participant: ParticipantDocument): Omit<ParticipantDocument, 'ageYears'> & { ageYears: number | null } {
+  if (typeof participant.birthDate === 'string' && isDateOnly(participant.birthDate)) {
+    return {
+      ...participant,
+      ageYears: Math.max(calculateAgeYears(participant.birthDate), 0)
+    };
+  }
+  return {
+    ...participant,
+    ageYears: participant.ageYears ?? null
+  };
+}
 
 const readParticipantHandler = withErrorHandling(
   async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
@@ -33,7 +70,7 @@ const readParticipantHandler = withErrorHandling(
       return { status: 404, jsonBody: { message: 'Participant not found.' } };
     }
 
-    return { status: 200, jsonBody: { ...participant, role: link.role } };
+    return { status: 200, jsonBody: { ...normalizeParticipantForResponse(participant), role: link.role } };
   }
 );
 
@@ -66,19 +103,25 @@ const updateParticipantHandler = withErrorHandling(
 
     const updates: ValidationErrorDetail[] = [];
     const hasDisplayName = typeof parsed.value.displayName !== 'undefined';
-    const hasAgeYears = typeof parsed.value.ageYears !== 'undefined';
+    const hasBirthDate = typeof parsed.value.birthDate !== 'undefined';
 
-    if (!hasDisplayName && !hasAgeYears) {
+    if (!hasDisplayName && !hasBirthDate) {
       updates.push({
         id: 'participants.update.empty',
         message: 'At least one field must be provided.'
       });
     }
 
-    if (hasAgeYears && (!Number.isInteger(parsed.value.ageYears) || (parsed.value.ageYears ?? 0) <= 0)) {
+    if (hasBirthDate && (!parsed.value.birthDate || !isDateOnly(parsed.value.birthDate))) {
       updates.push({
-        id: 'participants.age.invalid',
-        message: 'Age must be a positive integer.'
+        id: 'participants.birthDate.invalid',
+        message: 'Birth date must be YYYY-MM-DD.'
+      });
+    }
+    if (hasBirthDate && parsed.value.birthDate && parsed.value.birthDate > new Date().toISOString().slice(0, 10)) {
+      updates.push({
+        id: 'participants.birthDate.future',
+        message: 'Birth date cannot be in the future.'
       });
     }
 
@@ -96,15 +139,22 @@ const updateParticipantHandler = withErrorHandling(
         ? parsed.value.displayName.trim()
         : (participant.displayName ?? '').trim();
 
+    const updatedBirthDate =
+      typeof parsed.value.birthDate === 'string' ? parsed.value.birthDate : participant.birthDate;
+
     const updated: ParticipantDocument = {
       ...participant,
       displayName: normalizedDisplayName.length > 0 ? normalizedDisplayName : undefined,
-      ageYears: typeof parsed.value.ageYears === 'number' ? parsed.value.ageYears : participant.ageYears
+      birthDate: updatedBirthDate,
+      ageYears:
+        typeof updatedBirthDate === 'string' && isDateOnly(updatedBirthDate)
+          ? Math.max(calculateAgeYears(updatedBirthDate), 0)
+          : participant.ageYears ?? null
     };
 
     await containers.participants.items.upsert(updated);
 
-    return { status: 200, jsonBody: { ...updated, role: link.role } };
+    return { status: 200, jsonBody: { ...normalizeParticipantForResponse(updated), role: link.role } };
   }
 );
 

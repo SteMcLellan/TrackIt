@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import {
   ParticipantInviteResponse,
+  ActiveParticipantInviteResponse,
   AcceptInviteResponse,
   ParticipantMember
 } from '../models/participant-invite';
@@ -11,6 +12,12 @@ import { CollectionResponse } from '../models/collection';
 @Injectable({ providedIn: 'root' })
 export class ParticipantInviteService {
   private readonly http = inject(HttpClient);
+
+  getActiveInvite(participantId: string) {
+    return this.http.get<ActiveParticipantInviteResponse>(
+      `${environment.apiBaseUrl}/participants/${participantId}/invites/active`
+    );
+  }
 
   createInvite(participantId: string) {
     return this.http.post<ParticipantInviteResponse>(

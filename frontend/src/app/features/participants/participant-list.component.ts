@@ -54,7 +54,7 @@ import { environment } from '../../../environments/environment';
                       <span class="badge">Active</span>
                     }
                   </div>
-                  <div class="meta">Age {{ participant.ageYears }}</div>
+                  <div class="meta">Age {{ participant.ageYears ?? 'Unknown' }}</div>
                 </div>
                 <div class="actions">
                   <a

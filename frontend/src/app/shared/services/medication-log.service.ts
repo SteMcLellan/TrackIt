@@ -10,6 +10,10 @@ export type UpsertMedicationLogRequest = {
   occurrenceKey?: string;
 };
 
+export type CreateAsNeededMedicationLogRequest = {
+  logTzOffsetMinutes: number;
+};
+
 @Injectable({ providedIn: 'root' })
 export class MedicationLogService {
   private readonly http = inject(HttpClient);
@@ -42,8 +46,26 @@ export class MedicationLogService {
     );
   }
 
+  createAsNeededLog(
+    participantId: string,
+    medicationId: string,
+    logLocalDate: string,
+    request: CreateAsNeededMedicationLogRequest
+  ) {
+    return this.http.post<MedicationLog>(
+      `${environment.apiBaseUrl}/participants/${participantId}/medication-logs/${medicationId}/${logLocalDate}/as-needed`,
+      request
+    );
+  }
+
   getLog(participantId: string, logId: string) {
     return this.http.get<MedicationLog>(
+      `${environment.apiBaseUrl}/participants/${participantId}/medication-logs/${logId}`
+    );
+  }
+
+  deleteLog(participantId: string, logId: string) {
+    return this.http.delete<void>(
       `${environment.apiBaseUrl}/participants/${participantId}/medication-logs/${logId}`
     );
   }

@@ -17,7 +17,7 @@ import { InviteAcceptComponent } from './features/invites/invite-accept.componen
 import { ShellComponent } from './shell/shell.component';
 import { InsightsDashboardComponent } from './features/insights/insights-dashboard.component';
 import { TimelinePlaceholderComponent } from './features/timeline/timeline-placeholder.component';
-import { ProfilePlaceholderComponent } from './features/profile/profile-placeholder.component';
+import { ProfileDashboardComponent } from './features/profile/profile-dashboard.component';
 import { DailyReflectionComponent } from './features/daily-reflection/daily-reflection.component';
 
 /**
@@ -35,7 +35,7 @@ export const appRoutes: Routes = [
       { path: 'insights', component: InsightsDashboardComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'daily-reflection', component: DailyReflectionComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'timeline', component: TimelinePlaceholderComponent, canActivate: [ActiveParticipantGuard] },
-      { path: 'profile', component: ProfilePlaceholderComponent }
+      { path: 'profile', component: ProfileDashboardComponent, canActivate: [ActiveParticipantGuard] }
     ]
   },
   { path: 'home', redirectTo: '/insights', pathMatch: 'full' },

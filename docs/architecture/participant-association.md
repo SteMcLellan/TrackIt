@@ -15,7 +15,8 @@ Shapes:
 export type ParticipantDocument = {
   id: string;
   displayName?: string;
-  ageYears: number;
+  birthDate?: string; // YYYY-MM-DD
+  ageYears?: number | null; // derived from birthDate for responses
   createdAt: string;
   createdByUserId: string;
 };
@@ -37,7 +38,7 @@ Creates a participant and a manager link for the current user.
 
 Request:
 ```json
-{ "displayName": "Avery", "ageYears": 9 }
+{ "displayName": "Avery", "birthDate": "2016-04-12" }
 ```
 
 Response:
@@ -45,6 +46,7 @@ Response:
 {
   "id": "participant_...",
   "displayName": "Avery",
+  "birthDate": "2016-04-12",
   "ageYears": 9,
   "createdAt": "...",
   "createdByUserId": "user_123"
@@ -52,7 +54,8 @@ Response:
 ```
 
 Validation:
-- `ageYears` must be a positive integer.
+- `birthDate` is required and must be `YYYY-MM-DD`.
+- `birthDate` cannot be in the future.
 
 ### `GET /api/participants`
 Lists participants linked to the current user. Response includes role from the link.
@@ -64,6 +67,7 @@ Response:
     {
       "id": "participant_...",
       "displayName": "Avery",
+      "birthDate": "2016-04-12",
       "ageYears": 9,
       "createdAt": "...",
       "createdByUserId": "user_123",
@@ -82,7 +86,7 @@ Updates participant fields. Requires the user to have `role: manager` on the lin
 
 Request:
 ```json
-{ "displayName": "Avery K", "ageYears": 10 }
+{ "displayName": "Avery K", "birthDate": "2015-04-12" }
 ```
 
 Response:
@@ -91,6 +95,7 @@ Response:
   "id": "participant_...",
   "displayName": "Avery K",
   "ageYears": 10,
+  "birthDate": "2015-04-12",
   "createdAt": "...",
   "createdByUserId": "user_123",
   "role": "manager"
@@ -98,7 +103,7 @@ Response:
 ```
 
 Validation:
-- `ageYears` must be a positive integer.
+- `birthDate` (if provided) must be `YYYY-MM-DD` and not in the future.
 - At least one field must be provided.
 
 ## Frontend Flow
@@ -118,5 +123,4 @@ Two distinct role concepts:
 
 ## Known Gaps / Future Work
 - Delete behavior (soft vs hard).
-- Age storage (years vs DOB).
 - Shared participants / invites.

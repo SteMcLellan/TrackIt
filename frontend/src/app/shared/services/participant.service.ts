@@ -6,14 +6,14 @@ import { Participant } from '../models/participant';
 
 export type CreateParticipantRequest = {
   displayName?: string;
-  ageYears: number;
+  birthDate: string;
 };
 
 export type CreateParticipantResponse = Omit<Participant, 'role'>;
 
 export type UpdateParticipantRequest = {
   displayName?: string;
-  ageYears?: number;
+  birthDate?: string;
 };
 
 const ACTIVE_PARTICIPANT_KEY = 'trackit.activeParticipantId';

@@ -37,7 +37,7 @@ import { environment } from '../../../../environments/environment';
           @if (activeParticipant()) {
             <span class="value">
               {{ activeParticipant()!.displayName || 'Participant' }}
-              <span class="muted">(Age {{ activeParticipant()!.ageYears }})</span>
+              <span class="muted">(Age {{ activeParticipant()!.ageYears ?? 'Unknown' }})</span>
             </span>
           } @else {
             <span class="value muted">No active participant selected</span>

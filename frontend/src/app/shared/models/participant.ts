@@ -3,7 +3,8 @@ export type ParticipantRole = 'manager' | 'viewer';
 export type Participant = {
   id: string;
   displayName?: string;
-  ageYears: number;
+  birthDate?: string;
+  ageYears: number | null;
   createdAt: string;
   createdByUserId: string;
   role: ParticipantRole;

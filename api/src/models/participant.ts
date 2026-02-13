@@ -4,7 +4,8 @@
 export interface ParticipantDocument {
   id: string;
   displayName?: string;
-  ageYears: number;
+  birthDate?: string; // YYYY-MM-DD
+  ageYears?: number | null;
   createdAt: string;
   createdByUserId: string;
 }

@@ -12,9 +12,9 @@ This document tracks migration progress from legacy frontend components to Stitc
 ## Coverage Summary
 
 - Total components: `63`
-- Converted: `8`
-- Not converted: `55`
-- Completion: `12.7%` (`8/63`)
+- Converted: `9`
+- Not converted: `54`
+- Completion: `14.3%` (`9/63`)
 
 ## Component Inventory
 
@@ -44,7 +44,7 @@ This document tracks migration progress from legacy frontend components to Stitc
 | frontend/src/app/features/participants/participant-edit-form.component.ts | No | - | - |
 | frontend/src/app/features/participants/participant-list.component.ts | No | - | - |
 | frontend/src/app/features/participants/participant-start.component.ts | No | - | - |
-| frontend/src/app/features/profile/profile-placeholder.component.ts | No | - | - |
+| frontend/src/app/features/profile/profile-dashboard.component.ts | Yes | projects/2002730124455423542/screens/6a3a33ded32c4f688c10ff3f109a4623 | Profile Dashboard |
 | frontend/src/app/features/timeline/timeline.component.ts | No | - | - |
 | frontend/src/app/features/timeline/timeline-placeholder.component.ts | No | - | - |
 | frontend/src/app/shell/bottom-nav.component.ts | Yes | projects/2002730124455423542/screens/efcaceb73e4746e2a655f9d447f9f420 | Parental Insight Dashboard shell navigation |
@@ -77,7 +77,7 @@ This document tracks migration progress from legacy frontend components to Stitc
 | frontend/src/app/shared/ui/icons/trackit-trendline-logo-icon.component.ts | Yes | projects/2002730124455423542/screens/40de48a457ef43beab1f50b6742a7664 | Brand logo mark from TrackIt Trendline Logo Identity |
 | frontend/src/app/shared/ui/icons/x-icon.component.ts | No | - | - |
 | frontend/src/app/shared/ui/page/bottom-nav.component.ts | No | - | - |
-| frontend/src/app/shared/ui/page/bottom-sheet.component.ts | Yes | projects/2002730124455423542/screens/1c1459bdb1724f6ca337ae399d9022a1 | Profile screen bottom sheet overlay |
+| frontend/src/app/shared/ui/page/bottom-sheet.component.ts | Yes | projects/2002730124455423542/screens/f26e44666b8e4077a45861d9aee62025 | Profile screen bottom sheet overlay |
 | frontend/src/app/shared/ui/page/context-bar.component.ts | No | - | - |
 | frontend/src/app/shared/ui/page/page-header.component.ts | No | - | - |
 | frontend/src/app/shared/ui/page/page-title.component.ts | No | - | - |

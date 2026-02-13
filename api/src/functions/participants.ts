@@ -8,7 +8,10 @@ import { parseJsonBody } from '../shared/requests';
 import { listParticipantLinks, readParticipant } from '../shared/data/participants';
 import { ParticipantDocument, UserParticipantLinkDocument } from '../models/participant';
 
-type ParticipantResponse = ParticipantDocument & { role: 'manager' | 'viewer' };
+type ParticipantResponse = Omit<ParticipantDocument, 'ageYears'> & {
+  ageYears: number | null;
+  role: 'manager' | 'viewer';
+};
 
 type ListParticipantsResponse = {
   items: ParticipantResponse[];
@@ -17,7 +20,7 @@ type ListParticipantsResponse = {
 
 type CreateParticipantRequest = {
   displayName?: string;
-  ageYears: number;
+  birthDate: string;
 };
 
 function parsePageSize(value?: string | null): number {
@@ -36,14 +39,60 @@ function normalizeDisplayName(displayName?: string | null): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+function isDateOnly(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const [year, month, day] = value.split('-').map((part) => Number(part));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+function calculateAgeYears(birthDate: string): number {
+  const [year, month, day] = birthDate.split('-').map((part) => Number(part));
+  const today = new Date();
+  let age = today.getUTCFullYear() - year;
+  const monthDelta = today.getUTCMonth() + 1 - month;
+  if (monthDelta < 0 || (monthDelta === 0 && today.getUTCDate() < day)) {
+    age -= 1;
+  }
+  return age;
+}
+
+function normalizeParticipant(participant: ParticipantDocument): Omit<ParticipantDocument, 'ageYears'> & { ageYears: number | null } {
+  const birthDate = participant.birthDate;
+  if (typeof birthDate === 'string' && isDateOnly(birthDate)) {
+    return {
+      ...participant,
+      birthDate,
+      ageYears: Math.max(calculateAgeYears(birthDate), 0)
+    };
+  }
+  return {
+    ...participant,
+    ageYears: participant.ageYears ?? null
+  };
+}
+
 function validateCreateRequest(body: CreateParticipantRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
-  if (!Number.isInteger(body.ageYears) || body.ageYears <= 0) {
+
+  if (typeof body.birthDate !== 'string' || !isDateOnly(body.birthDate)) {
     errors.push({
-      id: 'participants.age.invalid',
-      message: 'Age must be a positive integer.'
+      id: 'participants.birthDate.invalid',
+      message: 'Birth date must be YYYY-MM-DD.'
+    });
+  } else if (body.birthDate > new Date().toISOString().slice(0, 10)) {
+    errors.push({
+      id: 'participants.birthDate.future',
+      message: 'Birth date cannot be in the future.'
     });
   }
+
   return errors;
 }
 
@@ -60,7 +109,7 @@ const listParticipantsHandler = withErrorHandling(
     for (const link of linksPage.resources ?? []) {
       const participant = await readParticipant(containers.participants, link.participantId);
       if (participant) {
-        items.push({ ...participant, role: link.role });
+        items.push({ ...normalizeParticipant(participant), role: link.role });
       }
     }
 
@@ -92,10 +141,12 @@ const createParticipantHandler = withErrorHandling(
 
     const timestamp = new Date().toISOString();
     const participantId = `participant_${randomUUID()}`;
+    const birthDate = parsed.value.birthDate;
     const participant: ParticipantDocument = {
       id: participantId,
       displayName: normalizeDisplayName(parsed.value.displayName),
-      ageYears: parsed.value.ageYears,
+      birthDate,
+      ageYears: Math.max(calculateAgeYears(birthDate), 0),
       createdAt: timestamp,
       createdByUserId: user.sub
     };
@@ -111,7 +162,7 @@ const createParticipantHandler = withErrorHandling(
     };
     await containers.userParticipantLinks.items.create(link);
 
-    return { status: 201, jsonBody: participant };
+    return { status: 201, jsonBody: normalizeParticipant(participant) };
   }
 );
 
