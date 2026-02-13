@@ -51,10 +51,10 @@ type RoutineMedicationRow = {
 
 /**
  * @stitch-project projects/2002730124455423542
- * @stitch-screen projects/2002730124455423542/screens/efcaceb73e4746e2a655f9d447f9f420
+ * @stitch-screen projects/2002730124455423542/screens/0a32dfe56df640358837a966104aeb27
  * @stitch-screen-title Parental Insight Dashboard
  * @stitch-status converted
- * @stitch-last-sync 2026-02-12
+ * @stitch-last-sync 2026-02-13
  */
 @Component({
   selector: 'app-insights-dashboard',
@@ -131,68 +131,163 @@ type RoutineMedicationRow = {
         <div class="routine-card">
           @if (medicationsResource.isLoading() || logsResource.isLoading()) {
             <div class="routine-empty">Loading today's medication routine...</div>
-          } @else if (routineRows().length === 0) {
+          } @else if (scheduledRows().length === 0 && asNeededBaseRows().length === 0) {
             <div class="routine-empty">No active medications scheduled today.</div>
           } @else {
-            @for (row of routineRows(); track row.id) {
-              <article class="swipe-item">
-                <div class="swipe-rail rail-right" [class.disabled]="!canSwipeRight(row)">
-                  <span class="material-symbols-outlined">check_circle</span>
-                  <span>Taken</span>
-                </div>
-                <div class="swipe-rail rail-left" [class.disabled]="!canSwipeLeft(row)">
-                  <span>Not Taken</span>
-                  <span class="material-symbols-outlined">close</span>
-                </div>
-                <div
-                  class="swipe-surface"
-                  [class.dragging]="isSwiping(row.id)"
-                  [style.transform]="swipeTransform(row.id)"
-                  (pointerdown)="onSwipeStart($event, row)"
-                  (pointermove)="onSwipeMove($event, row)"
-                  (pointerup)="onSwipeEnd($event, row)"
-                  (pointercancel)="onSwipeCancel(row.id)"
-                  (lostpointercapture)="onSwipeCancel(row.id)"
-                >
-                  <div class="medication-meta">
-                    <div
-                      class="medication-icon"
-                      [class.taken]="row.status === 'taken'"
-                      [class.not-taken]="row.status === 'not_taken'"
-                    >
-                      <span class="material-symbols-outlined">pill</span>
-                    </div>
-                    <div class="medication-copy">
-                      <p class="medication-title">{{ row.medication.name }}</p>
-                      <p class="medication-subtitle">
-                        {{ row.medication.dosageText }} - {{ medicationFrequencyLabel(row.medication) }}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="status-meta">
-                    @if (isSaving(row.id)) {
-                      <span class="status-saving">Saving...</span>
-                    } @else if (row.status === 'taken') {
-                      <div class="status-stack">
-                        <span class="status-chip taken">
-                          <span class="material-symbols-outlined">check</span>
+            <div class="routine-groups">
+              <section class="routine-group">
+                <h3 class="routine-group-label">Scheduled</h3>
+                @if (scheduledRows().length === 0) {
+                  <p class="routine-sub-empty">No scheduled medications today.</p>
+                } @else {
+                  <div class="routine-list">
+                    @for (row of scheduledRows(); track row.id) {
+                      <article class="swipe-item" [class.reveal-actions]="isSwiping(row.id)">
+                        <div class="swipe-rail rail-right" [class.disabled]="!canSwipeRight(row)">
+                          <span class="material-symbols-outlined">check_circle</span>
                           <span>Taken</span>
-                        </span>
-                        @if (row.takenTimeLabel) {
-                          <span class="status-time">{{ row.takenTimeLabel }}</span>
-                        }
-                      </div>
-                    } @else {
-                      <span class="status-chip not-taken">
-                        <span class="material-symbols-outlined">close</span>
-                        <span>Not Taken</span>
-                      </span>
+                        </div>
+                        <div class="swipe-rail rail-left" [class.disabled]="!canSwipeLeft(row)">
+                          <span>Not Taken</span>
+                          <span class="material-symbols-outlined">close</span>
+                        </div>
+                        <div
+                          class="swipe-surface"
+                          [class.dragging]="isSwiping(row.id)"
+                          [style.transform]="swipeTransform(row.id)"
+                          (pointerdown)="onSwipeStart($event, row)"
+                          (pointermove)="onSwipeMove($event, row)"
+                          (pointerup)="onSwipeEnd($event, row)"
+                          (pointercancel)="onSwipeCancel(row.id)"
+                          (lostpointercapture)="onSwipeCancel(row.id)"
+                        >
+                          <div class="medication-meta">
+                            <div
+                              class="medication-icon"
+                              [class.taken]="row.status === 'taken'"
+                              [class.not-taken]="row.status === 'not_taken'"
+                            >
+                              <span class="material-symbols-outlined">pill</span>
+                            </div>
+                            <div class="medication-copy">
+                              <p class="medication-title">{{ row.medication.name }}</p>
+                              <p class="medication-subtitle">
+                                {{ row.medication.dosageText }} - {{ medicationFrequencyLabel(row.medication) }}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div class="status-meta">
+                            @if (isSaving(row.id)) {
+                              <span class="status-saving">Saving...</span>
+                            } @else if (row.status === 'taken') {
+                              <div class="status-stack">
+                                <span class="status-chip taken">
+                                  <span class="material-symbols-outlined">check</span>
+                                  <span>Taken</span>
+                                </span>
+                                @if (row.takenTimeLabel) {
+                                  <span class="status-time">{{ row.takenTimeLabel }}</span>
+                                }
+                              </div>
+                            } @else {
+                              <span class="status-chip not-taken">
+                                <span class="material-symbols-outlined">close</span>
+                                <span>Not Taken</span>
+                              </span>
+                            }
+                          </div>
+                        </div>
+                      </article>
                     }
                   </div>
-                </div>
-              </article>
-            }
+                }
+              </section>
+
+              <section class="routine-group">
+                <h3 class="routine-group-label">As Needed</h3>
+                @if (asNeededBaseRows().length === 0) {
+                  <p class="routine-sub-empty">No as-needed medications today.</p>
+                } @else {
+                  <div class="as-needed-list">
+                    @for (baseRow of asNeededBaseRows(); track baseRow.id) {
+                      <article class="as-needed-block">
+                        <article class="swipe-item" [class.reveal-actions]="isSwiping(baseRow.id)">
+                          <div class="swipe-rail rail-right" [class.disabled]="!canSwipeRight(baseRow)">
+                            <span class="material-symbols-outlined">add_circle</span>
+                            <span>Log Dose</span>
+                          </div>
+                          <div class="swipe-rail rail-left" [class.disabled]="!canSwipeLeft(baseRow)">
+                            <span>Not Taken</span>
+                            <span class="material-symbols-outlined">close</span>
+                          </div>
+                          <div
+                            class="swipe-surface as-needed-base-surface"
+                            [class.dragging]="isSwiping(baseRow.id)"
+                            [style.transform]="swipeTransform(baseRow.id)"
+                            (pointerdown)="onSwipeStart($event, baseRow)"
+                            (pointermove)="onSwipeMove($event, baseRow)"
+                            (pointerup)="onSwipeEnd($event, baseRow)"
+                            (pointercancel)="onSwipeCancel(baseRow.id)"
+                            (lostpointercapture)="onSwipeCancel(baseRow.id)"
+                          >
+                            <div class="medication-meta">
+                              <div class="medication-icon not-taken">
+                                <span class="material-symbols-outlined">pill</span>
+                              </div>
+                              <div class="medication-copy">
+                                <p class="medication-title">{{ baseRow.medication.name }}</p>
+                                <p class="medication-subtitle">
+                                  {{ baseRow.medication.dosageText }} - {{ medicationFrequencyLabel(baseRow.medication) }}
+                                </p>
+                              </div>
+                            </div>
+                            <div class="as-needed-trailing">
+                              @if (isSaving(baseRow.id)) {
+                                <span class="status-saving">Saving...</span>
+                              } @else {
+                                <span class="material-symbols-outlined">chevron_right</span>
+                              }
+                            </div>
+                          </div>
+                        </article>
+
+                        @if (asNeededVisibleEventRows(baseRow.medication.id).length > 0) {
+                          <div class="as-needed-events">
+                            @for (eventRow of asNeededVisibleEventRows(baseRow.medication.id); track eventRow.id) {
+                              <article class="event-swipe-item" [class.reveal-actions]="isSwiping(eventRow.id)">
+                                <div class="event-swipe-rail">
+                                  <span class="material-symbols-outlined">delete</span>
+                                  <span>Remove</span>
+                                </div>
+                                <div
+                                  class="event-swipe-surface"
+                                  [class.dragging]="isSwiping(eventRow.id)"
+                                  [style.transform]="swipeTransform(eventRow.id)"
+                                  (pointerdown)="onSwipeStart($event, eventRow)"
+                                  (pointermove)="onSwipeMove($event, eventRow)"
+                                  (pointerup)="onSwipeEnd($event, eventRow)"
+                                  (pointercancel)="onSwipeCancel(eventRow.id)"
+                                  (lostpointercapture)="onSwipeCancel(eventRow.id)"
+                                >
+                                  <span class="material-symbols-outlined">check_circle</span>
+                                  <span>Taken - {{ eventRow.takenTimeLabel ?? 'Time n/a' }}</span>
+                                </div>
+                              </article>
+                            }
+                            @if (asNeededOverflowCount(baseRow.medication.id) > 0) {
+                              <p class="as-needed-overflow">
+                                +{{ asNeededOverflowCount(baseRow.medication.id) }} more
+                              </p>
+                            }
+                          </div>
+                        }
+                      </article>
+                    }
+                  </div>
+                }
+              </section>
+            </div>
           }
         </div>
       </section>
@@ -484,35 +579,110 @@ type RoutineMedicationRow = {
       padding: 1.2rem;
       box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.05);
       display: grid;
-      gap: 1rem;
+      gap: 1.25rem;
+    }
+
+    .routine-groups {
+      display: grid;
+      gap: 1.1rem;
+    }
+
+    .routine-group {
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .routine-group + .routine-group {
+      border-top: 1px solid #f8fafc;
+      padding-top: 0.7rem;
+    }
+
+    .routine-group-label {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 0.56rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .routine-sub-empty {
+      margin: 0;
+      border-radius: 0.8rem;
+      border: 1px dashed #d8e0ea;
+      color: #64748b;
+      background: #fff;
+      font-size: 0.75rem;
+      padding: 0.7rem 0.8rem;
+    }
+
+    .routine-list,
+    .as-needed-list {
+      display: grid;
+      gap: 0;
+    }
+
+    .routine-list .swipe-item + .swipe-item {
+      border-top: 1px solid #f8fafc;
+      margin-top: 0.7rem;
+      padding-top: 0.7rem;
+    }
+
+    .as-needed-block {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .as-needed-block + .as-needed-block {
+      border-top: 1px solid #f8fafc;
+      margin-top: 0.7rem;
+      padding-top: 0.7rem;
+    }
+
+    .as-needed-events {
+      margin-left: 3.3rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .as-needed-overflow {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding-left: 0.2rem;
     }
 
     .swipe-item {
       position: relative;
-      border-radius: 1rem;
+      border-radius: 0.8rem;
       overflow: hidden;
-      background: #f1f5f9;
-    }
-
-    .swipe-item + .swipe-item {
-      margin-top: 0.85rem;
+      background: #fff;
     }
 
     .swipe-rail {
       position: absolute;
-      inset: 1px;
+      inset: 0;
       z-index: 0;
       display: flex;
       align-items: center;
       gap: 0.4rem;
       padding: 0 1rem;
-      border-radius: calc(1rem - 1px);
+      border-radius: 0.8rem;
       color: #fff;
       font-size: 0.7rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       pointer-events: none;
+      opacity: 0;
+      transition: opacity 120ms ease;
+    }
+
+    .swipe-item.reveal-actions .swipe-rail {
+      opacity: 1;
     }
 
     .swipe-rail .material-symbols-outlined {
@@ -536,6 +706,10 @@ type RoutineMedicationRow = {
       opacity: 0.22;
     }
 
+    .as-needed-base-surface {
+      min-height: 72px;
+    }
+
     .swipe-surface {
       position: relative;
       z-index: 1;
@@ -545,10 +719,9 @@ type RoutineMedicationRow = {
       gap: 0.75rem;
       width: 100%;
       min-height: 76px;
-      padding: 0.75rem 0.85rem;
-      border-radius: 1rem;
-      border: 1px solid #dbe3ee;
-      box-sizing: border-box;
+      padding: 0.75rem 0 0.75rem 0;
+      border-radius: 0.8rem;
+      border: none;
       background: #fff;
       transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
       touch-action: pan-y;
@@ -557,6 +730,87 @@ type RoutineMedicationRow = {
 
     .swipe-surface.dragging {
       transition: none;
+    }
+
+    .as-needed-trailing {
+      min-width: 2rem;
+      display: inline-flex;
+      justify-content: flex-end;
+      align-items: center;
+      color: #c0cad8;
+    }
+
+    .as-needed-trailing .material-symbols-outlined {
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .event-swipe-item {
+      position: relative;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .event-swipe-rail {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      border-radius: 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.25rem;
+      padding: 0 0.65rem;
+      color: #fff;
+      background: #64748b;
+      font-size: 0.54rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 120ms ease;
+    }
+
+    .event-swipe-item.reveal-actions .event-swipe-rail {
+      opacity: 1;
+    }
+
+    .event-swipe-rail .material-symbols-outlined {
+      font-size: 0.85rem;
+      line-height: 1;
+    }
+
+    .event-swipe-surface {
+      position: relative;
+      z-index: 1;
+      min-height: 30px;
+      border-radius: 0.5rem;
+      border: none;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      width: 100%;
+      padding: 0.35rem 0.55rem;
+      color: #64748b;
+      font-size: 0.62rem;
+      font-weight: 600;
+      transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      touch-action: pan-y;
+      user-select: none;
+    }
+
+    .event-swipe-surface.dragging {
+      transition: none;
+    }
+
+    .event-swipe-surface .material-symbols-outlined {
+      font-size: 0.85rem;
+      line-height: 1;
+      color: #10b981;
+      flex-shrink: 0;
     }
 
     .medication-meta {
@@ -625,7 +879,7 @@ type RoutineMedicationRow = {
       align-items: center;
       justify-content: flex-end;
       flex-shrink: 0;
-      min-width: 6.25rem;
+      min-width: 5.6rem;
     }
 
     .status-stack {
@@ -854,6 +1108,7 @@ export class InsightsDashboardComponent {
   private readonly SWIPE_MAX_PX = 112;
   private readonly SWIPE_TRIGGER_PX = 64;
   private readonly SWIPE_LOCK_PX = 8;
+  private readonly AS_NEEDED_EVENT_PREVIEW_LIMIT = 3;
 
   readonly participantsResource = httpResource<ParticipantsResponse>(() => ({
     url: `${environment.apiBaseUrl}/participants`,
@@ -1021,6 +1276,27 @@ export class InsightsDashboardComponent {
     return rows;
   });
 
+  readonly scheduledRows = computed(() =>
+    this.routineRows().filter((row) => row.source === 'scheduled')
+  );
+
+  readonly asNeededBaseRows = computed(() =>
+    this.routineRows().filter((row) => row.source === 'as-needed-base')
+  );
+
+  readonly asNeededEventRowsByMedicationId = computed(() => {
+    const eventMap = new Map<string, RoutineMedicationRow[]>();
+    for (const row of this.routineRows()) {
+      if (row.source !== 'as-needed-log') {
+        continue;
+      }
+      const existing = eventMap.get(row.medication.id) ?? [];
+      existing.push(row);
+      eventMap.set(row.medication.id, existing);
+    }
+    return eventMap;
+  });
+
   readonly latestIncident = computed(() => {
     const sorted = [...this.incidents()].sort((a, b) => b.occurredAtUtc.localeCompare(a.occurredAtUtc));
     return sorted[0] ?? null;
@@ -1058,6 +1334,18 @@ export class InsightsDashboardComponent {
 
   canSwipeRight(row: RoutineMedicationRow): boolean {
     return row.source !== 'as-needed-log';
+  }
+
+  asNeededVisibleEventRows(medicationId: string): RoutineMedicationRow[] {
+    return (this.asNeededEventRowsByMedicationId().get(medicationId) ?? []).slice(
+      0,
+      this.AS_NEEDED_EVENT_PREVIEW_LIMIT
+    );
+  }
+
+  asNeededOverflowCount(medicationId: string): number {
+    const total = this.asNeededEventRowsByMedicationId().get(medicationId)?.length ?? 0;
+    return Math.max(0, total - this.AS_NEEDED_EVENT_PREVIEW_LIMIT);
   }
 
   onSwipeStart(event: PointerEvent, row: RoutineMedicationRow): void {
