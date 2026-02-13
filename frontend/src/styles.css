@@ -40,6 +40,7 @@
   --color-text-muted: #64748b;
   --color-border: #e2e8f0;
   --color-bg: #f1f5f9;
+  --color-ghost-white-canvas: #fcfcfd;
 
   /* Radius */
   --radius-1: 0.25rem;
@@ -69,14 +70,17 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  background: var(--color-ghost-white-canvas);
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
   font-family: var(--font-family);
   font-size: var(--font-size-base);
   line-height: 1.5;
-  background: var(--color-bg);
+  background: var(--color-ghost-white-canvas);
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

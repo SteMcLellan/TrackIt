@@ -28,6 +28,7 @@ import { ShellBottomNavComponent } from './bottom-nav.component';
       display: block;
       min-height: 100vh;
       min-height: 100dvh;
+      background: var(--color-ghost-white-canvas, #fcfcfd);
     }
 
     .shell {
@@ -35,6 +36,7 @@ import { ShellBottomNavComponent } from './bottom-nav.component';
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
+      background: var(--color-ghost-white-canvas, #fcfcfd);
     }
 
     main {
@@ -42,6 +44,7 @@ import { ShellBottomNavComponent } from './bottom-nav.component';
       overflow-y: auto;
       overscroll-behavior-y: contain;
       padding-bottom: calc(8rem + env(safe-area-inset-bottom, 0px));
+      background: var(--color-ghost-white-canvas, #fcfcfd);
     }
   `]
 })

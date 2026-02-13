@@ -13,8 +13,10 @@ import { RouterOutlet } from '@angular/router';
   `,
   styles: [`
     :host {
+      display: block;
       min-height: 100vh;
       min-height: 100dvh;
+      background: var(--color-ghost-white-canvas, #fcfcfd);
       font-family: var(--font-family, 'Inter', system-ui, -apple-system, sans-serif);
     }
   `]
