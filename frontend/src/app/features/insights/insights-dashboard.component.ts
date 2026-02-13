@@ -51,7 +51,7 @@ type RoutineMedicationRow = {
 
 /**
  * @stitch-project projects/2002730124455423542
- * @stitch-screen projects/2002730124455423542/screens/0a32dfe56df640358837a966104aeb27
+ * @stitch-screen projects/2002730124455423542/screens/e78a1a0531dc47e49bc20cf32001380c
  * @stitch-screen-title Parental Insight Dashboard
  * @stitch-status converted
  * @stitch-last-sync 2026-02-13
@@ -302,6 +302,16 @@ type RoutineMedicationRow = {
         </div>
       </section>
 
+      <section class="reflection-entry">
+        <a class="reflection-button" routerLink="/incidents/new">
+          <span class="left">
+            <span class="title">Log a Moment</span>
+            <span class="subtitle">Capture a behavioral moment in under a minute.</span>
+          </span>
+          <span class="material-symbols-outlined chevron">arrow_forward_ios</span>
+        </a>
+      </section>
+
       <section class="section behavior">
         <header class="section-header">
           <h2>Behavioral Moments</h2>
@@ -343,13 +353,6 @@ type RoutineMedicationRow = {
           <div class="behavior-empty">No behavioral moments recorded recently.</div>
         }
       </section>
-
-      <div class="log-moment-wrap">
-        <a class="log-moment-button" routerLink="/incidents/new">
-          <span class="material-symbols-outlined">bolt</span>
-          <span>Log Moment</span>
-        </a>
-      </div>
     </div>
   `,
   styles: [`
@@ -1042,36 +1045,6 @@ type RoutineMedicationRow = {
       color: #475569;
       font-size: 0.75rem;
       line-height: 1.4;
-    }
-
-    .log-moment-wrap {
-      position: fixed;
-      left: 50%;
-      bottom: calc(6.1rem + env(safe-area-inset-bottom, 0px));
-      transform: translateX(-50%);
-      width: min(100%, 28rem);
-      padding: 0 1.5rem;
-      box-sizing: border-box;
-      z-index: 40;
-      max-width: 100%;
-    }
-
-    .log-moment-button {
-      min-height: 56px;
-      width: 100%;
-      border-radius: 1rem;
-      background: #8b5cf6;
-      box-shadow: 0 16px 30px -10px rgba(139, 92, 246, 0.45);
-      color: #fff;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
     }
 
     .error {
