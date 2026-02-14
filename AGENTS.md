@@ -17,6 +17,7 @@ TrackIt operating guide for coding agents.
 4. `docs/runbooks/`
 5. `docs/references/`
 6. `docs/decisions/`
+7. `docs/backlog/` — exploratory ideas and deferred plans
 
 ## Repository Doc Map
 
@@ -44,7 +45,9 @@ docs/
 |   |-- repo-conventions.md
 |   |-- stitch-migration.md
 |   `-- stitch-workflow.md
-`-- decisions/
+|-- decisions/
+|   `-- README.md
+`-- backlog/
     `-- README.md
 ```
 
