@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const TRACKER_PATH = 'docs/architecture/stitch-migration.md';
+const TRACKER_PATH = 'docs/references/stitch-migration.md';
 const COMPONENT_ROOT = 'frontend/src/app';
 const REQUIRED_STITCH_FIELDS = [
   'stitch-project',
