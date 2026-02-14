@@ -55,7 +55,7 @@ docs/
 - API conventions: `docs/architecture/api-conventions.md`
 - Data and time modeling: `docs/architecture/data-modeling.md`
 - Auth flow: `docs/architecture/auth-flow.md`
-- Naming and commit conventions: `docs/references/repo-conventions.md`
+- Naming and Git conventions: `docs/references/repo-conventions.md`
 - Development commands: `docs/references/development-commands.md`
 - Environment variables: `docs/references/environment-variables.md`
 

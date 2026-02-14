@@ -28,3 +28,7 @@ Examples:
 - `feat(incidents): add ABC behavior tracking`
 - `fix(auth): resolve Google button race condition`
 - `docs(architecture): update data modeling guide`
+
+## Merging Feature Branches
+
+- **ALWAYS** Merge feature branches using a squash merge
