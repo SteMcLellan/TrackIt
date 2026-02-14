@@ -1,410 +1,778 @@
-import { httpResource } from '@angular/common/http';
-import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { PageTitleComponent } from '../../shared/ui/page/page-title.component';
-import { DateRangeOption, DateRangeSelectorComponent } from '../../shared/ui/filters/date-range-selector.component';
-import { CardComponent } from '../../shared/ui/card.component';
-import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  OnDestroy,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal
+} from '@angular/core';
 import { ParticipantService } from '../../shared/services/participant.service';
-import { BehaviorIncidentService } from '../../shared/services/behavior-incident.service';
-import { MedicationService } from '../../shared/services/medication.service';
-import { MedicationLogService } from '../../shared/services/medication-log.service';
-import { TimelineEvent, TimelineResponse, TimelineSourceType } from '../../shared/models/timeline-event';
-import { BehaviorIncident } from '../../shared/models/behavior-incident';
-import { Medication } from '../../shared/models/medication';
-import { MedicationLog } from '../../shared/models/medication-log';
-import { environment } from '../../../environments/environment';
+import { TimelineService } from '../../shared/services/timeline.service';
+import { TimelineEvent, TimelineSourceType } from '../../shared/models/timeline-event';
 
-type DetailRecord = Record<string, BehaviorIncident | Medication | MedicationLog>;
-type LoadingRecord = Record<string, boolean>;
-type ErrorRecord = Record<string, string>;
-
-const typeLabels: Record<TimelineSourceType, string> = {
-  incident: 'Incident',
-  medication_log: 'Medication log',
-  medication: 'Medication'
+type TimelineSection = {
+  logLocalDate: string;
+  label: string;
+  items: TimelineEvent[];
 };
 
+const PAGE_SIZE = 25;
+const ROLLING_RANGE_DAYS = 90;
+const FEED_SOURCE_TYPES: TimelineSourceType[] = [
+  'incident',
+  'medication_log',
+  'medication',
+  'daily_reflection'
+];
+
+/**
+ * @stitch-project projects/2002730124455423542
+ * @stitch-screen projects/2002730124455423542/screens/a166f2fb385e4f7484f507dc2a886165
+ * @stitch-screen-title TrackIt Timeline Feed
+ * @stitch-status converted
+ * @stitch-last-sync 2026-02-14
+ */
 @Component({
   selector: 'app-timeline',
-  imports: [
-    RouterLink,
-    DatePipe,
-    PageTitleComponent,
-    DateRangeSelectorComponent,
-    CardComponent,
-    SkeletonComponent
-  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="layout">
-      <app-page-title
-        title="Timeline"
-        subtitle="Interleaved events across incidents, medications, and medication logs."
-      />
+    <section class="timeline-page">
+      <header class="page-head">
+        <h1>Timeline</h1>
+        <p>All Activity in one place</p>
+      </header>
 
-      <app-date-range-selector
-        [selectedRange]="rangeDays()"
-        (rangeChanged)="setRange($event)"
-      />
+      @if (!activeParticipantId()) {
+        <p class="status error" role="alert">Select a participant to view timeline events.</p>
+      } @else if (isInitialLoading()) {
+        <div class="status loading">Loading timeline feed...</div>
+      } @else if (loadError() && events().length === 0) {
+        <p class="status error" role="alert">{{ loadError() }}</p>
+      } @else if (sections().length === 0) {
+        <p class="status muted">No timeline events found in the last 90 days.</p>
+      } @else {
+        <div class="timeline-feed" role="feed" aria-label="Timeline feed">
+          @for (section of sections(); track section.logLocalDate) {
+            <div class="day-label">{{ section.label }}</div>
+            <div class="day-group">
+              <div class="timeline-line" aria-hidden="true"></div>
+              @for (event of section.items; track event.id) {
+                <article class="entry" role="article">
+                  <div
+                    class="entry-node"
+                    [class.entry-node-incident]="event.sourceType === 'incident'"
+                    [class.entry-node-medication-log]="event.sourceType === 'medication_log'"
+                    [class.entry-node-medication]="event.sourceType === 'medication'"
+                    [class.entry-node-daily-reflection]="event.sourceType === 'daily_reflection'"
+                  >
+                    <span class="material-symbols-outlined">{{ sourceIcon(event.sourceType) }}</span>
+                  </div>
+                  <div class="entry-card">
+                    <div class="entry-head">
+                      <h2>{{ event.summary.title }}</h2>
+                      <span class="entry-time">{{ formatEventTime(event) }}</span>
+                    </div>
 
-      <app-card class="card">
-        <div class="type-filters" role="group" aria-label="Timeline type filter">
-          @for (option of sourceTypeOptions; track option.value) {
-            <button
-              type="button"
-              class="type-pill"
-              [class.active]="typeFilter() === option.value"
-              [attr.aria-pressed]="typeFilter() === option.value"
-              (click)="setTypeFilter(option.value)"
-            >
-              {{ option.label }}
-            </button>
-          }
-        </div>
+                    @if (event.summary.subtitle) {
+                      <p class="entry-copy">{{ event.summary.subtitle }}</p>
+                    }
 
-        @if (!activeParticipantId()) {
-          <p class="error" role="alert">Select a participant to view timeline events.</p>
-          <a class="select-link" routerLink="/participants">Select participant &rarr;</a>
-        } @else if (timelineResource.isLoading()) {
-          <ul class="list" role="list" aria-label="Loading timeline">
-            @for (i of [1, 2, 3, 4]; track i) {
-              <li class="event skeleton-item">
-                <app-skeleton width="120px" height="0.8rem" />
-                <app-skeleton width="70%" height="1rem" />
-              </li>
-            }
-          </ul>
-        } @else if (timelineResource.error()) {
-          <p class="error" role="alert">Unable to load timeline.</p>
-        } @else if (events().length === 0) {
-          <p class="muted">No events in the selected range.</p>
-        } @else {
-          <ul class="list" role="list">
-            @for (event of events(); track event.id) {
-              <li class="event">
-                <button
-                  type="button"
-                  class="event-header"
-                  (click)="toggleExpanded(event)"
-                  [attr.aria-expanded]="expandedEventId() === event.id"
-                >
-                  <span class="event-time">
-                    {{ event.eventAtUtc | date: 'MMM d, h:mm a' }}
-                  </span>
-                  <span class="event-type">{{ sourceTypeLabel(event.sourceType) }}</span>
-                  <span class="event-title">{{ event.summary.title }}</span>
-                  @if (event.summary.subtitle) {
-                    <span class="event-subtitle">{{ event.summary.subtitle }}</span>
-                  }
-                </button>
+                    @if (event.sourceType === 'incident' && incidentChipLabel(event); as chipLabel) {
+                      <div class="chip-row">
+                        <span class="chip chip-violet">{{ chipLabel }}</span>
+                      </div>
+                    }
 
-                @if (expandedEventId() === event.id) {
-                  <div class="event-detail">
-                    @if (isLoadingDetail(event.id)) {
-                      <p class="muted">Loading details...</p>
-                    } @else if (detailError(event.id)) {
-                      <p class="error" role="alert">{{ detailError(event.id) }}</p>
-                    } @else {
-                      @if (event.sourceType === 'incident' && incidentDetail(event.id)) {
-                        <div class="detail-grid">
-                          <p><strong>Antecedent:</strong> {{ incidentDetail(event.id)!.antecedent }}</p>
-                          <p><strong>Behavior:</strong> {{ incidentDetail(event.id)!.behavior }}</p>
-                          <p><strong>Consequence:</strong> {{ incidentDetail(event.id)!.consequence }}</p>
-                        </div>
-                      } @else if (event.sourceType === 'medication' && medicationDetail(event.id)) {
-                        <div class="detail-grid">
-                          <p><strong>Name:</strong> {{ medicationDetail(event.id)!.name }}</p>
-                          <p><strong>Dosage:</strong> {{ medicationDetail(event.id)!.dosageText }}</p>
-                          <p><strong>Frequency:</strong> {{ medicationDetail(event.id)!.frequencyText }}</p>
-                        </div>
-                      } @else if (event.sourceType === 'medication_log' && medicationLogDetail(event.id)) {
-                        <div class="detail-grid">
-                          <p><strong>Status:</strong> {{ medicationLogDetail(event.id)!.status }}</p>
-                          <p><strong>Date:</strong> {{ medicationLogDetail(event.id)!.logLocalDate }}</p>
-                          <p><strong>Occurrence:</strong> {{ medicationLogDetail(event.id)!.occurrenceKey }}</p>
-                        </div>
-                      } @else {
-                        <p class="muted">No additional detail available.</p>
-                      }
+                    @if (event.sourceType === 'medication_log') {
+                      <div class="entry-meta">
+                        <p class="dose">{{ occurrenceLabel(event) }}</p>
+                        @if (medicationLabel(event); as medication) {
+                          <span class="dot">•</span>
+                          <p class="medication">{{ medication }}</p>
+                        }
+                      </div>
+                    }
+
+                    @if (event.sourceType === 'daily_reflection' && reflectionChipLabels(event).length > 0) {
+                      <div class="chip-row">
+                        @for (label of reflectionChipLabels(event); track label) {
+                          <span class="chip chip-sky">{{ label }}</span>
+                        }
+                      </div>
                     }
                   </div>
-                }
-              </li>
-            }
-          </ul>
-        }
-      </app-card>
-    </div>
+                </article>
+              }
+            </div>
+          }
+
+          <div #loadMoreSentinel class="load-more-sentinel" aria-hidden="true"></div>
+
+          @if (isLoadingMore()) {
+            <div class="spinner-wrap" aria-label="Loading more timeline events">
+              <div class="spinner"></div>
+            </div>
+          } @else if (loadError()) {
+            <p class="status error end-label" role="alert">{{ loadError() }}</p>
+          } @else if (!canLoadMore() && !loadError()) {
+            <p class="status muted end-label">You&apos;re all caught up.</p>
+          }
+        </div>
+      }
+    </section>
   `,
   styles: [`
-    .layout {
-      display: grid;
-      gap: var(--space-4, 1rem);
-      padding-bottom: var(--space-6, 1.5rem);
-    }
-    .card {
+    :host {
+      display: block;
       width: 100%;
       max-width: 100%;
-      box-sizing: border-box;
+      background: var(--color-ghost-white-canvas, #fcfcfd);
     }
-    .type-filters {
-      display: flex;
-      gap: var(--space-2, 0.5rem);
-      flex-wrap: wrap;
-      margin-bottom: var(--space-3, 0.75rem);
-    }
-    .type-pill {
-      border: 1px solid #cbd5e1;
-      background: #fff;
-      border-radius: 999px;
-      min-height: 44px;
-      padding: 0.4rem 0.75rem;
-      font-weight: 600;
-      color: #0f172a;
-    }
-    .type-pill.active {
-      border-color: var(--color-primary, #0c4a6e);
-      background: rgba(12, 74, 110, 0.1);
-      color: var(--color-primary, #0c4a6e);
-    }
-    .list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: grid;
-      gap: var(--space-2, 0.5rem);
-    }
-    .event {
-      border: 1px solid #e2e8f0;
-      border-radius: var(--radius-2, 0.5rem);
-      overflow: hidden;
-      background: #fff;
-    }
-    .event-header {
+
+    .timeline-page {
       width: 100%;
-      border: none;
-      background: #fff;
+      max-width: 100%;
+      padding: 1.5rem 1.5rem 1rem;
+      box-sizing: border-box;
+      overflow-x: hidden;
+      background: var(--color-ghost-white-canvas, #fcfcfd);
+    }
+
+    .page-head {
       display: grid;
       gap: 0.25rem;
-      text-align: left;
-      padding: var(--space-3, 0.75rem);
-      min-height: 44px;
-      max-width: 100%;
+      padding-bottom: 0.5rem;
     }
-    .event-time {
-      font-size: var(--font-size-sm, 0.8125rem);
+
+    h1 {
+      margin: 0;
+      color: var(--color-midnight-slate, #1e293b);
+      font-size: 1.55rem;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .page-head p {
+      margin: 0;
       color: var(--color-text-muted, #64748b);
-    }
-    .event-type {
-      display: inline-flex;
-      align-self: flex-start;
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--color-primary, #0c4a6e);
-      font-weight: 700;
-    }
-    .event-title {
-      font-weight: 700;
-      color: #0f172a;
-      word-break: break-word;
-    }
-    .event-subtitle {
-      color: #334155;
       font-size: var(--font-size-sm, 0.8125rem);
-      word-break: break-word;
+      font-weight: 500;
     }
-    .event-detail {
-      border-top: 1px solid #e2e8f0;
-      padding: var(--space-3, 0.75rem);
-      background: #f8fafc;
+
+    .status {
+      margin: 0.75rem 0 0;
+      font-size: var(--font-size-sm, 0.8125rem);
+      line-height: 1.45;
     }
-    .detail-grid {
-      display: grid;
-      gap: 0.4rem;
-      max-width: 100%;
-    }
-    .detail-grid p {
-      margin: 0;
-      word-break: break-word;
-    }
-    .error {
-      margin: 0;
+
+    .status.error {
       color: #b91c1c;
       font-weight: 600;
     }
-    .muted {
-      margin: 0;
+
+    .status.loading,
+    .status.muted {
       color: var(--color-text-muted, #64748b);
     }
-    .select-link {
+
+    .timeline-feed {
+      display: grid;
+      gap: 0.75rem;
+      padding-top: 0.35rem;
+    }
+
+    .day-label {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      margin: 0;
+      padding: 0.85rem 0 0.3rem;
+      background: rgba(252, 252, 253, 0.9);
+      backdrop-filter: blur(4px);
+      color: var(--color-vital-emerald, #10b981);
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .day-group {
+      position: relative;
+      display: grid;
+      gap: 1rem;
+      padding-left: 2rem;
+    }
+
+    .timeline-line {
+      position: absolute;
+      left: 0.72rem;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--color-border, #e2e8f0);
+    }
+
+    .entry {
+      position: relative;
+    }
+
+    .entry-node {
+      position: absolute;
+      left: -2rem;
+      top: 0.6rem;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 999px;
+      border: 4px solid var(--color-ghost-white-canvas, #fcfcfd);
       display: inline-flex;
-      margin-top: var(--space-2, 0.5rem);
-      color: var(--color-primary, #0c4a6e);
-      text-decoration: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .entry-node .material-symbols-outlined {
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .entry-node-incident {
+      background: rgba(139, 92, 246, 0.16);
+      color: var(--color-electric-violet, #8b5cf6);
+    }
+
+    .entry-node-medication-log {
+      background: rgba(16, 185, 129, 0.14);
+      color: var(--color-vital-emerald, #10b981);
+    }
+
+    .entry-node-medication {
+      background: rgba(245, 158, 11, 0.14);
+      color: var(--color-energetic-amber, #f59e0b);
+    }
+
+    .entry-node-daily-reflection {
+      background: rgba(14, 165, 233, 0.14);
+      color: var(--color-sky-azure, #0ea5e9);
+    }
+
+    .entry-card {
+      background: #fff;
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 0.75rem;
+      padding: 0.85rem;
+      box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
+    }
+
+    .entry-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .entry-head h2 {
+      margin: 0;
+      font-size: 0.88rem;
+      line-height: 1.25;
+      font-weight: 700;
+      color: var(--color-midnight-slate, #1e293b);
+    }
+
+    .entry-time {
+      color: var(--color-text-muted, #64748b);
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .entry-copy {
+      margin: 0;
+      color: #475569;
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .entry-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-top: 0.3rem;
+      min-height: 1.1rem;
+      flex-wrap: wrap;
+    }
+
+    .entry-meta p {
+      margin: 0;
+    }
+
+    .dose {
+      color: var(--color-midnight-slate, #1e293b);
+      font-size: 0.76rem;
       font-weight: 600;
     }
-    .skeleton-item {
-      padding: var(--space-3, 0.75rem);
-      display: grid;
+
+    .dot {
+      color: var(--color-text-muted, #64748b);
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+
+    .medication {
+      color: var(--color-text-muted, #64748b);
+      font-size: 0.71rem;
+      font-weight: 500;
+    }
+
+    .chip-row {
+      margin-top: 0.45rem;
+      display: flex;
+      flex-wrap: wrap;
       gap: 0.35rem;
+    }
+
+    .chip {
+      border-radius: 0.3rem;
+      padding: 0.1rem 0.42rem;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .chip-violet {
+      background: rgba(139, 92, 246, 0.14);
+      color: var(--color-electric-violet, #8b5cf6);
+      text-transform: uppercase;
+    }
+
+    .chip-sky {
+      background: rgba(14, 165, 233, 0.14);
+      color: var(--color-sky-azure, #0ea5e9);
+    }
+
+    .load-more-sentinel {
+      width: 100%;
+      height: 1px;
+      margin-top: -0.2rem;
+    }
+
+    .spinner-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 0.8rem 0 0.2rem;
+    }
+
+    .spinner {
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 999px;
+      border: 2px solid var(--color-vital-emerald, #10b981);
+      border-top-color: transparent;
+      animation: spin 900ms linear infinite;
+    }
+
+    .end-label {
+      padding: 0.5rem 0 0.2rem;
+      text-align: center;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   `]
 })
-export class TimelineComponent {
+export class TimelineComponent implements AfterViewInit, OnDestroy {
   private readonly participants = inject(ParticipantService);
-  private readonly incidents = inject(BehaviorIncidentService);
-  private readonly medications = inject(MedicationService);
-  private readonly medicationLogs = inject(MedicationLogService);
+  private readonly timeline = inject(TimelineService);
 
   readonly activeParticipantId = this.participants.activeParticipantId;
-  readonly rangeDays = signal<DateRangeOption>(7);
-  readonly typeFilter = signal<'all' | TimelineSourceType>('all');
-  readonly expandedEventId = signal<string | null>(null);
-  readonly details = signal<DetailRecord>({});
-  readonly detailLoading = signal<LoadingRecord>({});
-  readonly detailErrors = signal<ErrorRecord>({});
+  readonly events = signal<TimelineEvent[]>([]);
+  readonly nextToken = signal<string | null>(null);
+  readonly isInitialLoading = signal(false);
+  readonly isLoadingMore = signal(false);
+  readonly loadError = signal<string | null>(null);
+  readonly canLoadMore = computed(() => this.nextToken() !== null && !this.isInitialLoading() && !this.isLoadingMore());
+  readonly sections = computed<TimelineSection[]>(() => this.groupByLocalDate(this.events()));
 
-  readonly sourceTypeOptions = [
-    { value: 'all' as const, label: 'All' },
-    { value: 'incident' as const, label: 'Incidents' },
-    { value: 'medication_log' as const, label: 'Medication Logs' },
-    { value: 'medication' as const, label: 'Medications' }
-  ];
+  private requestVersion = 0;
+  private currentRangeStartUtc = '';
+  private currentRangeEndUtc = '';
+  private loadMoreObserver: IntersectionObserver | null = null;
+  private loadMoreSentinelRef: ElementRef<HTMLDivElement> | null = null;
 
-  readonly timelineResource = httpResource<TimelineResponse>(() => {
-    const participantId = this.activeParticipantId();
-    const range = this.rangeDays();
-    const filter = this.typeFilter();
-    const endUtc = new Date().toISOString();
-    const startUtc = new Date(Date.now() - range * 24 * 60 * 60 * 1000).toISOString();
-
-    if (!participantId) {
-      return {
-        url: `${environment.apiBaseUrl}/participants/unknown/timeline`,
-        method: 'GET',
-        params: { '$startUtc': startUtc, '$endUtc': endUtc, '$top': '1' }
-      };
-    }
-
-    const params: Record<string, string> = {
-      '$startUtc': startUtc,
-      '$endUtc': endUtc,
-      '$top': '200',
-      '$orderBy': 'eventAtUtc desc'
-    };
-    if (filter !== 'all') {
-      params['$types'] = filter;
-    }
-
-    return {
-      url: `${environment.apiBaseUrl}/participants/${participantId}/timeline`,
-      method: 'GET',
-      params
-    };
-  });
-
-  readonly events = computed(() => (
-    this.timelineResource.hasValue() ? this.timelineResource.value().items : []
-  ));
-
-  setRange(range: DateRangeOption): void {
-    this.rangeDays.set(range);
+  @ViewChild('loadMoreSentinel')
+  set loadMoreSentinel(value: ElementRef<HTMLDivElement> | undefined) {
+    this.loadMoreSentinelRef = value ?? null;
+    this.observeLoadMoreSentinel();
   }
 
-  setTypeFilter(value: 'all' | TimelineSourceType): void {
-    this.typeFilter.set(value);
-  }
-
-  sourceTypeLabel(sourceType: TimelineSourceType): string {
-    return typeLabels[sourceType];
-  }
-
-  toggleExpanded(event: TimelineEvent): void {
-    const current = this.expandedEventId();
-    if (current === event.id) {
-      this.expandedEventId.set(null);
-      return;
-    }
-    this.expandedEventId.set(event.id);
-    this.loadDetails(event);
-  }
-
-  isLoadingDetail(eventId: string): boolean {
-    return this.detailLoading()[eventId] === true;
-  }
-
-  detailError(eventId: string): string | null {
-    return this.detailErrors()[eventId] || null;
-  }
-
-  incidentDetail(eventId: string): BehaviorIncident | null {
-    const detail = this.details()[eventId];
-    return detail && 'antecedent' in detail ? detail as BehaviorIncident : null;
-  }
-
-  medicationDetail(eventId: string): Medication | null {
-    const detail = this.details()[eventId];
-    return detail && 'dosageText' in detail ? detail as Medication : null;
-  }
-
-  medicationLogDetail(eventId: string): MedicationLog | null {
-    const detail = this.details()[eventId];
-    return detail && 'occurrenceKey' in detail ? detail as MedicationLog : null;
-  }
-
-  private loadDetails(event: TimelineEvent): void {
-    if (this.details()[event.id] || this.detailLoading()[event.id]) {
-      return;
-    }
-
-    const participantId = this.activeParticipantId();
-    if (!participantId) {
-      return;
-    }
-
-    this.detailLoading.update((state) => ({ ...state, [event.id]: true }));
-    this.detailErrors.update((state) => ({ ...state, [event.id]: '' }));
-
-    const complete = () => {
-      this.detailLoading.update((state) => ({ ...state, [event.id]: false }));
-    };
-
-    const handleError = () => {
-      this.detailErrors.update((state) => ({ ...state, [event.id]: 'Unable to load event details.' }));
-      complete();
-    };
-
-    if (event.sourceType === 'incident') {
-      this.incidents.getIncident(participantId, event.sourceId).subscribe({
-        next: (value) => {
-          this.details.update((state) => ({ ...state, [event.id]: value }));
-          complete();
-        },
-        error: handleError
-      });
-      return;
-    }
-
-    if (event.sourceType === 'medication') {
-      this.medications.getMedication(participantId, event.sourceId).subscribe({
-        next: (value) => {
-          this.details.update((state) => ({ ...state, [event.id]: value }));
-          complete();
-        },
-        error: handleError
-      });
-      return;
-    }
-
-    this.medicationLogs.getLog(participantId, event.sourceId).subscribe({
-      next: (value) => {
-        this.details.update((state) => ({ ...state, [event.id]: value }));
-        complete();
+  constructor() {
+    effect(
+      () => {
+        const participantId = this.activeParticipantId();
+        this.resetFeedState();
+        this.requestVersion += 1;
+        if (!participantId) {
+          return;
+        }
+        this.loadInitialPage(participantId, this.requestVersion);
       },
-      error: handleError
+      { allowSignalWrites: true }
+    );
+  }
+
+  ngAfterViewInit(): void {
+    if (typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    this.loadMoreObserver = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) {
+          return;
+        }
+        this.loadNextPage();
+      },
+      { root: null, rootMargin: '0px 0px 180px 0px', threshold: 0 }
+    );
+    this.observeLoadMoreSentinel();
+  }
+
+  ngOnDestroy(): void {
+    this.loadMoreObserver?.disconnect();
+  }
+
+  sourceIcon(sourceType: TimelineSourceType): string {
+    if (sourceType === 'incident') return 'priority_high';
+    if (sourceType === 'medication_log') return 'medical_services';
+    if (sourceType === 'daily_reflection') return 'edit_note';
+    return 'medication';
+  }
+
+  incidentChipLabel(event: TimelineEvent): string | null {
+    const functionValue = this.extractTagValue(event, 'function:');
+    if (functionValue) {
+      return functionValue.replace(/_/g, ' ');
+    }
+    return event.summary.function ? event.summary.function.replace(/_/g, ' ') : null;
+  }
+
+  occurrenceLabel(event: TimelineEvent): string {
+    const occurrence = event.summary.occurrenceKey ?? this.extractTagValue(event, 'occurrence:');
+    if (!occurrence) {
+      return 'Dose logged';
+    }
+    if (occurrence.startsWith('as-needed')) {
+      return 'As needed';
+    }
+    if (occurrence.startsWith('dose-')) {
+      return `Dose ${occurrence.slice(5)}`;
+    }
+    return occurrence.replace(/-/g, ' ');
+  }
+
+  medicationLabel(event: TimelineEvent): string | null {
+    if (event.summary.medicationName) {
+      return event.summary.medicationName;
+    }
+    return event.summary.medicationId ?? null;
+  }
+
+  reflectionChipLabels(event: TimelineEvent): string[] {
+    const tags = event.tags ?? [];
+    const labels: string[] = [];
+    const entries: Array<{ prefix: string; label: string }> = [
+      { prefix: 'mood_band:', label: 'Mood' },
+      { prefix: 'focus_band:', label: 'Focus' },
+      { prefix: 'energy_band:', label: 'Energy' },
+      { prefix: 'sleep_band:', label: 'Sleep' }
+    ];
+
+    for (const entry of entries) {
+      const value = tags.find((tag) => tag.startsWith(entry.prefix))?.slice(entry.prefix.length);
+      if (!value) {
+        continue;
+      }
+      labels.push(`${entry.label}: ${value.replace(/_/g, ' ')}`);
+    }
+    return labels.slice(0, 2);
+  }
+
+  formatEventTime(event: TimelineEvent): string {
+    if (event.logLocalTime) {
+      return this.formatTimeLabel(event.logLocalTime);
+    }
+
+    const parsed = new Date(event.eventAtUtc);
+    if (Number.isNaN(parsed.getTime())) {
+      return 'Time n/a';
+    }
+    const hh = String(parsed.getHours()).padStart(2, '0');
+    const mm = String(parsed.getMinutes()).padStart(2, '0');
+    return this.formatTimeLabel(`${hh}:${mm}`);
+  }
+
+  private loadInitialPage(participantId: string, requestVersion: number): void {
+    const range = this.buildRangeWindow();
+    this.currentRangeStartUtc = range.startUtc;
+    this.currentRangeEndUtc = range.endUtc;
+
+    this.isInitialLoading.set(true);
+    this.timeline.listTimeline(participantId, {
+      startUtc: range.startUtc,
+      endUtc: range.endUtc,
+      top: PAGE_SIZE,
+      orderBy: 'eventAtUtc desc',
+      types: FEED_SOURCE_TYPES
+    }).subscribe({
+      next: (response) => {
+        if (requestVersion !== this.requestVersion) {
+          return;
+        }
+        this.events.set(this.normalizeEvents(response.items ?? []));
+        this.nextToken.set(response.nextToken ?? null);
+        this.loadError.set(null);
+        this.isInitialLoading.set(false);
+      },
+      error: () => {
+        if (requestVersion !== this.requestVersion) {
+          return;
+        }
+        this.loadError.set('Unable to load timeline feed right now.');
+        this.isInitialLoading.set(false);
+      }
     });
+  }
+
+  private loadNextPage(): void {
+    if (!this.canLoadMore()) {
+      return;
+    }
+
+    const participantId = this.activeParticipantId();
+    const nextToken = this.nextToken();
+    if (!participantId || !nextToken) {
+      return;
+    }
+
+    const requestVersion = this.requestVersion;
+    this.isLoadingMore.set(true);
+    this.timeline.listTimeline(participantId, {
+      startUtc: this.currentRangeStartUtc,
+      endUtc: this.currentRangeEndUtc,
+      top: PAGE_SIZE,
+      skipToken: nextToken,
+      orderBy: 'eventAtUtc desc',
+      types: FEED_SOURCE_TYPES
+    }).subscribe({
+      next: (response) => {
+        if (requestVersion !== this.requestVersion) {
+          return;
+        }
+        this.events.update((current) => this.mergeAndNormalizeEvents(current, response.items ?? []));
+        this.nextToken.set(response.nextToken ?? null);
+        this.loadError.set(null);
+        this.isLoadingMore.set(false);
+      },
+      error: () => {
+        if (requestVersion !== this.requestVersion) {
+          return;
+        }
+        this.loadError.set('Unable to load more timeline events.');
+        this.isLoadingMore.set(false);
+      }
+    });
+  }
+
+  private observeLoadMoreSentinel(): void {
+    if (!this.loadMoreObserver || !this.loadMoreSentinelRef) {
+      return;
+    }
+    this.loadMoreObserver.disconnect();
+    this.loadMoreObserver.observe(this.loadMoreSentinelRef.nativeElement);
+  }
+
+  private buildRangeWindow(): { startUtc: string; endUtc: string } {
+    const end = new Date();
+    const start = new Date(end.getTime() - ROLLING_RANGE_DAYS * 24 * 60 * 60 * 1000);
+    return {
+      startUtc: start.toISOString(),
+      endUtc: end.toISOString()
+    };
+  }
+
+  private resetFeedState(): void {
+    this.events.set([]);
+    this.nextToken.set(null);
+    this.loadError.set(null);
+    this.isInitialLoading.set(false);
+    this.isLoadingMore.set(false);
+    this.currentRangeStartUtc = '';
+    this.currentRangeEndUtc = '';
+  }
+
+  private mergeAndNormalizeEvents(current: TimelineEvent[], incoming: TimelineEvent[]): TimelineEvent[] {
+    if (incoming.length === 0) {
+      return current;
+    }
+    return this.normalizeEvents([...current, ...incoming]);
+  }
+
+  private normalizeEvents(items: TimelineEvent[]): TimelineEvent[] {
+    if (items.length < 2) {
+      return items;
+    }
+
+    const dedupedBySourceEntity = new Map<string, TimelineEvent>();
+    for (const item of items) {
+      const key = this.sourceEntityKey(item);
+      const existing = dedupedBySourceEntity.get(key);
+      if (!existing) {
+        dedupedBySourceEntity.set(key, item);
+        continue;
+      }
+      if (this.compareProjectedAtUtc(item, existing) > 0) {
+        dedupedBySourceEntity.set(key, item);
+      }
+    }
+
+    const dedupedByDisplayFingerprint = new Map<string, TimelineEvent>();
+    for (const item of dedupedBySourceEntity.values()) {
+      const key = this.displayFingerprintKey(item);
+      const existing = dedupedByDisplayFingerprint.get(key);
+      if (!existing) {
+        dedupedByDisplayFingerprint.set(key, item);
+        continue;
+      }
+      if (this.compareProjectedAtUtc(item, existing) > 0) {
+        dedupedByDisplayFingerprint.set(key, item);
+      }
+    }
+
+    return Array.from(dedupedByDisplayFingerprint.values()).sort((left, right) => (
+      this.toMillis(right.eventAtUtc) - this.toMillis(left.eventAtUtc)
+    ));
+  }
+
+  private sourceEntityKey(item: TimelineEvent): string {
+    if (item.sourceType && item.sourceId) {
+      return `${item.sourceType}|${item.sourceId}`;
+    }
+    return `${item.id}|${item.eventAtUtc}`;
+  }
+
+  private displayFingerprintKey(item: TimelineEvent): string {
+    const summary = item.summary;
+    return [
+      item.sourceType,
+      item.operation,
+      item.eventAtUtc,
+      item.logLocalDate,
+      item.logLocalTime ?? '',
+      summary.title,
+      summary.subtitle ?? '',
+      summary.status ?? '',
+      summary.function ?? '',
+      summary.place ?? '',
+      summary.medicationId ?? '',
+      summary.medicationName ?? '',
+      summary.occurrenceKey ?? ''
+    ].join('|');
+  }
+
+  private compareProjectedAtUtc(left: TimelineEvent, right: TimelineEvent): number {
+    return this.toMillis(left.projectedAtUtc) - this.toMillis(right.projectedAtUtc);
+  }
+
+  private toMillis(value: string): number {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  private groupByLocalDate(items: TimelineEvent[]): TimelineSection[] {
+    if (items.length === 0) {
+      return [];
+    }
+
+    const grouped = new Map<string, TimelineEvent[]>();
+    for (const item of items) {
+      const key = item.logLocalDate;
+      const bucket = grouped.get(key);
+      if (bucket) {
+        bucket.push(item);
+      } else {
+        grouped.set(key, [item]);
+      }
+    }
+
+    return Array.from(grouped.entries()).map(([logLocalDate, groupItems]) => ({
+      logLocalDate,
+      label: this.formatDayLabel(logLocalDate),
+      items: groupItems
+    }));
+  }
+
+  private formatDayLabel(logLocalDate: string): string {
+    const date = this.parseDateOnly(logLocalDate);
+    if (!date) {
+      return logLocalDate;
+    }
+
+    const today = this.localDateOnly(new Date());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const localDate = this.localDateOnly(date);
+    const monthDay = this.formatMonthDay(localDate);
+    if (localDate.getTime() === today.getTime()) {
+      return `Today, ${monthDay}`;
+    }
+    if (localDate.getTime() === yesterday.getTime()) {
+      return `Yesterday, ${monthDay}`;
+    }
+
+    const weekday = localDate.toLocaleDateString('en-US', { weekday: 'long' });
+    return `${weekday}, ${monthDay}`;
+  }
+
+  private parseDateOnly(value: string): Date | null {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return null;
+    }
+    const parsed = new Date(`${value}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  private localDateOnly(value: Date): Date {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+
+  private formatMonthDay(value: Date): string {
+    return value.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  private formatTimeLabel(value: string): string {
+    const [hourRaw, minuteRaw] = value.split(':');
+    const hour = Number(hourRaw);
+    const minute = Number(minuteRaw);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+      return value;
+    }
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`;
+  }
+
+  private extractTagValue(event: TimelineEvent, prefix: string): string | null {
+    const match = (event.tags ?? []).find((tag) => tag.startsWith(prefix));
+    return match ? match.slice(prefix.length) : null;
   }
 }

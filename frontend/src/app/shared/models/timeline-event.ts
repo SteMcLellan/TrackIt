@@ -1,4 +1,4 @@
-export type TimelineSourceType = 'incident' | 'medication_log' | 'medication';
+export type TimelineSourceType = 'incident' | 'medication_log' | 'medication' | 'daily_reflection';
 
 export type TimelineEventOperation = 'upsert' | 'delete';
 
@@ -10,6 +10,12 @@ export type TimelineEventSummary = {
   place?: string;
   medicationId?: string;
   medicationName?: string;
+  occurrenceKey?: string;
+  moodScore?: number;
+  focusScore?: number;
+  energyScore?: number;
+  sleepScore?: number;
+  journalNotePreview?: string;
 };
 
 export type TimelineEvent = {

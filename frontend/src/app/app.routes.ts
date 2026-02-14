@@ -9,6 +9,7 @@ import { MedicationListComponent } from './features/medications/medication-list.
 import { MedicationLogComponent } from './features/medications/medication-log.component';
 import { MedicationAdherenceComponent } from './features/medications/medication-adherence.component';
 import { TimelineComponent } from './features/timeline/timeline.component';
+import { TimelineLegacyComponent } from './features/timeline/timeline-legacy.component';
 import { ParticipantCreateComponent } from './features/participants/participant-create.component';
 import { ParticipantDetailComponent } from './features/participants/participant-detail.component';
 import { ParticipantListComponent } from './features/participants/participant-list.component';
@@ -16,7 +17,6 @@ import { ParticipantStartComponent } from './features/participants/participant-s
 import { InviteAcceptComponent } from './features/invites/invite-accept.component';
 import { ShellComponent } from './shell/shell.component';
 import { InsightsDashboardComponent } from './features/insights/insights-dashboard.component';
-import { TimelinePlaceholderComponent } from './features/timeline/timeline-placeholder.component';
 import { ProfileDashboardComponent } from './features/profile/profile-dashboard.component';
 import { DailyReflectionComponent } from './features/daily-reflection/daily-reflection.component';
 
@@ -34,7 +34,7 @@ export const appRoutes: Routes = [
       { path: '', redirectTo: 'insights', pathMatch: 'full' },
       { path: 'insights', component: InsightsDashboardComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'daily-reflection', component: DailyReflectionComponent, canActivate: [ActiveParticipantGuard] },
-      { path: 'timeline', component: TimelinePlaceholderComponent, canActivate: [ActiveParticipantGuard] },
+      { path: 'timeline', component: TimelineComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'profile', component: ProfileDashboardComponent, canActivate: [ActiveParticipantGuard] }
     ]
   },
@@ -46,7 +46,7 @@ export const appRoutes: Routes = [
   { path: 'medications', component: MedicationLogComponent, canActivate: [AuthGuard] },
   { path: 'medications/list', component: MedicationListComponent, canActivate: [AuthGuard] },
   { path: 'medications/history', component: MedicationAdherenceComponent, canActivate: [AuthGuard] },
-  { path: 'timeline-legacy', component: TimelineComponent, canActivate: [AuthGuard, ActiveParticipantGuard] },
+  { path: 'timeline-legacy', component: TimelineLegacyComponent, canActivate: [AuthGuard, ActiveParticipantGuard] },
   { path: 'participants', component: ParticipantListComponent, canActivate: [AuthGuard] },
   { path: 'participants/start', component: ParticipantStartComponent, canActivate: [AuthGuard] },
   { path: 'participants/new', component: ParticipantCreateComponent, canActivate: [AuthGuard] },

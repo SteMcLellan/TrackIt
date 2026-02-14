@@ -33,10 +33,10 @@ This tracker covers **Screen tier** components and the canonical **Shell** compo
 
 ## Coverage Summary
 
-- Total in scope: `29`
-- Converted: `9`
+- Total in scope: `30`
+- Converted: `10`
 - Not converted: `20`
-- Completion: `31.0%` (`9/29`)
+- Completion: `33.3%` (`10/30`)
 
 ## Component Inventory
 
@@ -65,7 +65,8 @@ This tracker covers **Screen tier** components and the canonical **Shell** compo
 | frontend/src/app/features/participants/participant-list.component.ts | No | - | - |
 | frontend/src/app/features/participants/participant-start.component.ts | No | - | - |
 | frontend/src/app/features/profile/profile-dashboard.component.ts | Yes | projects/2002730124455423542/screens/6a3a33ded32c4f688c10ff3f109a4623 | Profile Dashboard |
-| frontend/src/app/features/timeline/timeline.component.ts | No | - | - |
+| frontend/src/app/features/timeline/timeline-legacy.component.ts | No | - | Legacy fallback route at `/timeline-legacy` |
+| frontend/src/app/features/timeline/timeline.component.ts | Yes | projects/2002730124455423542/screens/a166f2fb385e4f7484f507dc2a886165 | TrackIt Timeline Feed |
 | frontend/src/app/shell/bottom-nav.component.ts | Yes | projects/2002730124455423542/screens/efcaceb73e4746e2a655f9d447f9f420 | Parental Insight Dashboard shell navigation |
 | frontend/src/app/shell/shell.component.ts | Yes | projects/2002730124455423542/screens/efcaceb73e4746e2a655f9d447f9f420 | Parental Insight Dashboard shell layout |
 | frontend/src/app/shell/top-bar.component.ts | Yes | projects/2002730124455423542/screens/efcaceb73e4746e2a655f9d447f9f420 | Parental Insight Dashboard top app bar |
