@@ -59,6 +59,7 @@ docs/
 - Data and time modeling: `docs/architecture/data-modeling.md`
 - Auth flow: `docs/architecture/auth-flow.md`
 - Naming and Git conventions: `docs/references/repo-conventions.md`
+    - When executing any Git commands always follow repo-conventions.md.
 - Development commands: `docs/references/development-commands.md`
 - Environment variables: `docs/references/environment-variables.md`
 
