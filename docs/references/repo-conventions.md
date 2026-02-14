@@ -31,4 +31,8 @@ Examples:
 
 ## Merging Feature Branches
 
-- **ALWAYS** Merge feature branches using a squash merge
+- **ALWAYS** land feature branches into `main` with a squash commit (`git merge --squash <branch>`), never a merge commit.
+- The squash commit message **must** follow the commit format in this doc: `<type>(<scope>): <subject>`.
+- Before writing the squash commit message, summarize source-branch changes and pick message type/scope from that summary:
+  - `git log --oneline main..<branch>`
+  - `git diff --stat main...<branch>`
