@@ -7,11 +7,13 @@ import { MedicationLog } from '../models/medication-log';
 export type UpsertMedicationLogRequest = {
   status: 'taken' | 'not_taken';
   logTzOffsetMinutes: number;
+  logLocalTime?: string;
   occurrenceKey?: string;
 };
 
 export type CreateAsNeededMedicationLogRequest = {
   logTzOffsetMinutes: number;
+  logLocalTime?: string;
 };
 
 @Injectable({ providedIn: 'root' })

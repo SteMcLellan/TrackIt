@@ -12,15 +12,18 @@ import { MedicationLogDocument } from '../models/medication-log';
 import { MedicationDocument } from '../models/medication';
 import { projectMedicationLogToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+import { computeUtcFromLocal, isTimeOnly } from '../shared/validators';
 
 type UpsertMedicationLogRequest = {
   status: 'taken' | 'not_taken';
   logTzOffsetMinutes: number;
+  logLocalTime?: string;
   occurrenceKey?: string;
 };
 
 type CreateAsNeededMedicationLogRequest = {
   logTzOffsetMinutes: number;
+  logLocalTime?: string;
 };
 
 const maxPageSize = 100;
@@ -99,6 +102,18 @@ function validateUpsertRequest(
       message: 'logTzOffsetMinutes must be a valid timezone offset.'
     });
   }
+  if (
+    typeof body.logLocalTime !== 'undefined' &&
+    (typeof body.logLocalTime !== 'string' || !isTimeOnly(body.logLocalTime.trim()))
+  ) {
+    errors.push({ id: 'medicationLogs.logLocalTime.invalid', message: 'logLocalTime must be HH:mm.' });
+  }
+  if (body.status === 'not_taken' && typeof body.logLocalTime !== 'undefined') {
+    errors.push({
+      id: 'medicationLogs.logLocalTime.notTaken.invalid',
+      message: 'logLocalTime is only allowed when status is taken.'
+    });
+  }
   return errors;
 }
 
@@ -119,6 +134,12 @@ function validateAsNeededCreateRequest(
       id: 'medicationLogs.offset.invalid',
       message: 'logTzOffsetMinutes must be a valid timezone offset.'
     });
+  }
+  if (
+    typeof body.logLocalTime !== 'undefined' &&
+    (typeof body.logLocalTime !== 'string' || !isTimeOnly(body.logLocalTime.trim()))
+  ) {
+    errors.push({ id: 'medicationLogs.logLocalTime.invalid', message: 'logLocalTime must be HH:mm.' });
   }
   return errors;
 }
@@ -258,37 +279,33 @@ const upsertMedicationLogHandler = withErrorHandling(
       return buildValidationError(medicationWindowErrors);
     }
 
-    if (medication.frequency === 'as-needed') {
-      return buildValidationError([
-        {
-          id: 'medicationLogs.frequency.route.invalid',
-          message: 'As-needed medications must use the as-needed log endpoint.'
-        }
-      ]);
-    }
-
     const occurrenceKey = parsed.value.occurrenceKey?.trim();
     if (!occurrenceKey) {
       return buildValidationError([
         {
           id: 'medicationLogs.occurrence.required',
-          message: 'occurrenceKey is required for scheduled medications.'
+          message: 'occurrenceKey is required.'
         }
       ]);
     }
 
-    const allowedOccurrenceKeys = scheduledOccurrenceKeys(medication.frequency);
-    if (!allowedOccurrenceKeys.includes(occurrenceKey)) {
-      return buildValidationError([
-        {
-          id: 'medicationLogs.occurrence.invalid',
-          message: `occurrenceKey is not valid for frequency ${medication.frequency}.`
-        }
-      ]);
+    if (medication.frequency !== 'as-needed') {
+      const allowedOccurrenceKeys = scheduledOccurrenceKeys(medication.frequency);
+      if (!allowedOccurrenceKeys.includes(occurrenceKey)) {
+        return buildValidationError([
+          {
+            id: 'medicationLogs.occurrence.invalid',
+            message: `occurrenceKey is not valid for frequency ${medication.frequency}.`
+          }
+        ]);
+      }
     }
 
     const logId = `medlog_${medicationId}_${logLocalDate}_${occurrenceKey}`;
     const existing = await containers.medicationLogs.item(logId, participantId).read<MedicationLogDocument>();
+    if (medication.frequency === 'as-needed' && !existing.resource) {
+      return { status: 404, jsonBody: { message: 'Medication log not found.' } };
+    }
 
     const base: MedicationLogDocument = existing.resource ?? {
       id: logId,
@@ -301,10 +318,23 @@ const upsertMedicationLogHandler = withErrorHandling(
       createdAtUtc: now.toISOString(),
       updatedAtUtc: now.toISOString()
     };
+    const incomingLogLocalTime = typeof parsed.value.logLocalTime === 'string'
+      ? parsed.value.logLocalTime.trim()
+      : undefined;
+    const logLocalTime = parsed.value.status === 'taken'
+      ? (incomingLogLocalTime ?? base.logLocalTime)
+      : undefined;
+    const takenAtUtc = parsed.value.status === 'taken'
+      ? (logLocalTime
+        ? computeUtcFromLocal(logLocalDate, logLocalTime, parsed.value.logTzOffsetMinutes)
+        : base.takenAtUtc)
+      : undefined;
 
     const updated: MedicationLogDocument = {
       ...base,
       logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
+      logLocalTime,
+      takenAtUtc,
       occurrenceKey,
       status: parsed.value.status,
       updatedAtUtc: now.toISOString()
@@ -387,12 +417,19 @@ const createAsNeededMedicationLogHandler = withErrorHandling(
     const timestamp = Date.now();
     const occurrenceKey = `as-needed-${timestamp}-${randomUUID().slice(0, 8)}`;
     const nowIso = now.toISOString();
+    const logLocalTime = typeof parsed.value.logLocalTime === 'string'
+      ? parsed.value.logLocalTime.trim()
+      : undefined;
     const created: MedicationLogDocument = {
       id: `medlog_${medicationId}_${logLocalDate}_${occurrenceKey}`,
       participantId,
       medicationId,
       logLocalDate,
+      logLocalTime,
       logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
+      takenAtUtc: logLocalTime
+        ? computeUtcFromLocal(logLocalDate, logLocalTime, parsed.value.logTzOffsetMinutes)
+        : undefined,
       occurrenceKey,
       status: 'taken',
       createdAtUtc: nowIso,

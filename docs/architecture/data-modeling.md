@@ -55,7 +55,7 @@ For daily reflections:
 For items where time-of-day matters:
 - `logLocalTime`
 - `logTzOffsetMinutes`
-- Computed UTC instant (for example `occurredAtUtc`)
+- Computed UTC instant (for example `occurredAtUtc`, `takenAtUtc`)
 
 Why both local and UTC:
 - Local fields match user mental model and day grouping.
@@ -96,7 +96,7 @@ The EventIndex document shape is defined in `api/src/models/event-index.ts`.
 
 ### Event time mapping by source
 - Incident: `eventAtUtc = occurredAtUtc`
-- Medication log: derived from `logLocalDate` + `logTzOffsetMinutes` (currently day-granularity time)
+- Medication log: `eventAtUtc = takenAtUtc` when present; fallback to local date/time-derived UTC (or day-granularity if time is missing)
 - Medication lifecycle projection: `updatedAtUtc` (or `archivedAtUtc` for archive transition)
 - Daily reflection: `updatedAtUtc` (latest save instant for the local day entry)
 
@@ -105,6 +105,7 @@ The EventIndex document shape is defined in `api/src/models/event-index.ts`.
 - `logLocalTime` must be valid `HH:mm` (`00:00` to `23:59`).
 - `logTzOffsetMinutes` must be finite and bounded (for example `[-840, 840]`).
 - UTC instant fields must parse and end with `Z`.
+- For medication logs with `status = not_taken`, omit `logLocalTime` and `takenAtUtc`.
 
 ## Computing UTC for Time-Based Events
 For domain writes, compute UTC instants server-side from local fields:

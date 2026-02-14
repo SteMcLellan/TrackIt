@@ -10,6 +10,7 @@ import { DailyReflectionSummaryResponse, MetricSummary } from '../../shared/mode
 import { AuthService } from '../../shared/services/auth.service';
 import { MedicationLogService } from '../../shared/services/medication-log.service';
 import { ParticipantService } from '../../shared/services/participant.service';
+import { computeTzOffsetMinutes } from '../../shared/utils/datetime';
 import { environment } from '../../../environments/environment';
 
 type ParticipantsResponse = CollectionResponse<Participant>;
@@ -46,6 +47,11 @@ type RoutineMedicationRow = {
   source: RoutineRowSource;
   status: 'taken' | 'not_taken';
   logId?: string;
+  logLocalDate?: string;
+  logLocalTime?: string;
+  logTzOffsetMinutes?: number;
+  takenAtUtc?: string;
+  occurrenceKey?: string;
   takenTimeLabel?: string;
 };
 
@@ -179,6 +185,33 @@ type RoutineMedicationRow = {
                               <p class="medication-subtitle">
                                 {{ row.medication.dosageText }} - {{ medicationFrequencyLabel(row.medication) }}
                               </p>
+                              @if (row.status === 'taken') {
+                                <div class="scheduled-time-row">
+                                  <span class="material-symbols-outlined">check_circle</span>
+                                  <span class="event-time-copy">Taken -</span>
+                                  @if (isEditingTime(row.id)) {
+                                    <input
+                                      class="status-time-input"
+                                      type="time"
+                                      [value]="editingTimeValue()"
+                                      (pointerdown)="$event.stopPropagation()"
+                                      (input)="onTimeEditorInput($event)"
+                                      (keydown)="onTimeEditorKeydown($event, row)"
+                                      (blur)="saveTimeEdit(row)"
+                                    />
+                                  } @else {
+                                    <button
+                                      class="status-time-button"
+                                      type="button"
+                                      [disabled]="isSaving(row.id)"
+                                      (pointerdown)="$event.stopPropagation()"
+                                      (click)="openTimeEditor(row, $event)"
+                                    >
+                                      {{ row.takenTimeLabel ?? 'Set time' }}
+                                    </button>
+                                  }
+                                </div>
+                              }
                             </div>
                           </div>
 
@@ -191,9 +224,6 @@ type RoutineMedicationRow = {
                                   <span class="material-symbols-outlined">check</span>
                                   <span>Taken</span>
                                 </span>
-                                @if (row.takenTimeLabel) {
-                                  <span class="status-time">{{ row.takenTimeLabel }}</span>
-                                }
                               </div>
                             } @else {
                               <span class="status-chip not-taken">
@@ -281,7 +311,28 @@ type RoutineMedicationRow = {
                                   (lostpointercapture)="onSwipeCancel(eventRow.id)"
                                 >
                                   <span class="material-symbols-outlined">check_circle</span>
-                                  <span>Taken - {{ eventRow.takenTimeLabel ?? 'Time n/a' }}</span>
+                                  <span class="event-time-copy">Taken -</span>
+                                  @if (isEditingTime(eventRow.id)) {
+                                    <input
+                                      class="status-time-input"
+                                      type="time"
+                                      [value]="editingTimeValue()"
+                                      (pointerdown)="$event.stopPropagation()"
+                                      (input)="onTimeEditorInput($event)"
+                                      (keydown)="onTimeEditorKeydown($event, eventRow)"
+                                      (blur)="saveTimeEdit(eventRow)"
+                                    />
+                                  } @else {
+                                    <button
+                                      class="status-time-button"
+                                      type="button"
+                                      [disabled]="isSaving(eventRow.id)"
+                                      (pointerdown)="$event.stopPropagation()"
+                                      (click)="openTimeEditor(eventRow, $event)"
+                                    >
+                                      {{ eventRow.takenTimeLabel ?? 'Set time' }}
+                                    </button>
+                                  }
                                 </div>
                               </article>
                             }
@@ -828,6 +879,10 @@ type RoutineMedicationRow = {
       flex-shrink: 0;
     }
 
+    .event-time-copy {
+      white-space: nowrap;
+    }
+
     .medication-meta {
       min-width: 0;
       display: flex;
@@ -888,6 +943,25 @@ type RoutineMedicationRow = {
       font-weight: 500;
     }
 
+    .scheduled-time-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      min-height: 1.35rem;
+      color: #64748b;
+      font-size: 0.62rem;
+      font-weight: 600;
+      width: max-content;
+      max-width: 100%;
+    }
+
+    .scheduled-time-row .material-symbols-outlined {
+      font-size: 0.85rem;
+      line-height: 1;
+      color: #10b981;
+      flex-shrink: 0;
+    }
+
     .status-meta {
       min-height: 44px;
       display: inline-flex;
@@ -943,7 +1017,12 @@ type RoutineMedicationRow = {
       border-color: rgba(100, 116, 139, 0.25);
     }
 
-    .status-time {
+    .status-time-button {
+      border: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
       color: #94a3b8;
       font-size: 0.58rem;
       font-weight: 700;
@@ -951,6 +1030,22 @@ type RoutineMedicationRow = {
       text-transform: uppercase;
       letter-spacing: 0.09em;
       white-space: nowrap;
+    }
+
+    .status-time-button:disabled {
+      cursor: default;
+      opacity: 0.7;
+    }
+
+    .status-time-input {
+      height: 1.35rem;
+      border-radius: 0.35rem;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: #fff;
+      color: #334155;
+      font-size: 0.62rem;
+      font-weight: 600;
+      padding: 0 0.2rem;
     }
 
     .incident-card {
@@ -1082,6 +1177,8 @@ export class InsightsDashboardComponent {
   readonly todayLocalDate = signal(this.formatLocalDate(new Date()));
   readonly metricSkeleton = [1, 2, 3, 4];
   readonly savingMap = signal<Record<string, boolean>>({});
+  readonly editingTimeRowId = signal<string | null>(null);
+  readonly editingTimeValue = signal('');
   readonly swipeOffsetMap = signal<Record<string, number>>({});
   readonly swipeActiveMap = signal<Record<string, boolean>>({});
   readonly routineError = signal<string | null>(null);
@@ -1242,6 +1339,11 @@ export class InsightsDashboardComponent {
             source: 'as-needed-log',
             status: 'taken',
             logId: log.id,
+            logLocalDate: log.logLocalDate,
+            logLocalTime: log.logLocalTime,
+            logTzOffsetMinutes: log.logTzOffsetMinutes,
+            takenAtUtc: log.takenAtUtc,
+            occurrenceKey: log.occurrenceKey,
             takenTimeLabel: this.formatTakenTime(log)
           });
         }
@@ -1256,6 +1358,11 @@ export class InsightsDashboardComponent {
         source: 'scheduled',
         status,
         logId: latest?.id,
+        logLocalDate: latest?.logLocalDate,
+        logLocalTime: latest?.logLocalTime,
+        logTzOffsetMinutes: latest?.logTzOffsetMinutes,
+        takenAtUtc: latest?.takenAtUtc,
+        occurrenceKey: latest?.occurrenceKey,
         takenTimeLabel: status === 'taken' && latest ? this.formatTakenTime(latest) : undefined
       });
     }
@@ -1310,6 +1417,8 @@ export class InsightsDashboardComponent {
         this.cachedMedications.set([]);
         this.cachedLogs.set([]);
         this.routineLoadedOnce.set(false);
+        this.editingTimeRowId.set(null);
+        this.editingTimeValue.set('');
       },
       { allowSignalWrites: true }
     );
@@ -1324,6 +1433,20 @@ export class InsightsDashboardComponent {
         }
         if (this.medicationsResource.hasValue() && this.logsResource.hasValue()) {
           this.routineLoadedOnce.set(true);
+        }
+      },
+      { allowSignalWrites: true }
+    );
+
+    effect(
+      () => {
+        const editingRowId = this.editingTimeRowId();
+        if (!editingRowId) {
+          return;
+        }
+        const stillExists = this.routineRows().some((row) => row.id === editingRowId);
+        if (!stillExists) {
+          this.cancelTimeEdit();
         }
       },
       { allowSignalWrites: true }
@@ -1374,8 +1497,98 @@ export class InsightsDashboardComponent {
     return Math.max(0, total - this.AS_NEEDED_EVENT_PREVIEW_LIMIT);
   }
 
+  isEditingTime(rowId: string): boolean {
+    return this.editingTimeRowId() === rowId;
+  }
+
+  openTimeEditor(row: RoutineMedicationRow, event: Event): void {
+    event.stopPropagation();
+    if (row.status !== 'taken' || this.isSaving(row.id)) {
+      return;
+    }
+
+    const initialValue = this.resolveEditableTimeValue(row) ?? this.currentLocalTime();
+    this.routineError.set(null);
+    this.editingTimeRowId.set(row.id);
+    this.editingTimeValue.set(initialValue);
+  }
+
+  onTimeEditorInput(event: Event): void {
+    const target = event.target as HTMLInputElement | null;
+    if (!target) {
+      return;
+    }
+    this.editingTimeValue.set(target.value);
+  }
+
+  onTimeEditorKeydown(event: KeyboardEvent, row: RoutineMedicationRow): void {
+    event.stopPropagation();
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.saveTimeEdit(row);
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cancelTimeEdit();
+    }
+  }
+
+  saveTimeEdit(row: RoutineMedicationRow): void {
+    if (!this.isEditingTime(row.id) || this.isSaving(row.id)) {
+      return;
+    }
+
+    const participantId = this.activeParticipantId();
+    if (!participantId) {
+      this.cancelTimeEdit();
+      return;
+    }
+
+    const logLocalTime = this.editingTimeValue().trim();
+    if (!this.isValidTimeInput(logLocalTime)) {
+      this.routineError.set('Please enter a valid time.');
+      return;
+    }
+
+    const occurrenceKey = this.resolveOccurrenceKey(row);
+    if (!occurrenceKey) {
+      this.routineError.set('Unable to update time for this medication log.');
+      return;
+    }
+
+    const logLocalDate = row.logLocalDate ?? this.todayLocalDate();
+    const logTzOffsetMinutes = computeTzOffsetMinutes(logLocalDate, logLocalTime);
+    this.cancelTimeEdit();
+    this.setSaving(row.id, true);
+    this.routineError.set(null);
+
+    this.medicationLogs
+      .upsertLog(participantId, row.medication.id, logLocalDate, {
+        status: 'taken',
+        logLocalTime,
+        logTzOffsetMinutes,
+        occurrenceKey
+      })
+      .subscribe({
+        next: () => {
+          this.setSaving(row.id, false);
+          this.refreshTick.update((value) => value + 1);
+        },
+        error: () => {
+          this.setSaving(row.id, false);
+          this.routineError.set('Unable to save medication time. Please try again.');
+        }
+      });
+  }
+
+  cancelTimeEdit(): void {
+    this.editingTimeRowId.set(null);
+    this.editingTimeValue.set('');
+  }
+
   onSwipeStart(event: PointerEvent, row: RoutineMedicationRow): void {
-    if (event.button !== 0 || this.isSaving(row.id)) {
+    if (event.button !== 0 || this.isSaving(row.id) || this.isEditingTime(row.id)) {
       return;
     }
 
@@ -1482,11 +1695,15 @@ export class InsightsDashboardComponent {
     this.routineError.set(null);
     this.setSaving(row.id, true);
     const logLocalDate = this.todayLocalDate();
-    const logTzOffsetMinutes = -new Date().getTimezoneOffset();
+    const logLocalTime = this.currentLocalTime();
+    const logTzOffsetMinutes = computeTzOffsetMinutes(logLocalDate, logLocalTime);
 
     if (frequency === 'as-needed') {
       this.medicationLogs
-        .createAsNeededLog(participantId, row.medication.id, logLocalDate, { logTzOffsetMinutes })
+        .createAsNeededLog(participantId, row.medication.id, logLocalDate, {
+          logLocalTime,
+          logTzOffsetMinutes
+        })
         .subscribe({
           next: () => {
             this.setSaving(row.id, false);
@@ -1503,6 +1720,7 @@ export class InsightsDashboardComponent {
     this.medicationLogs
       .upsertLog(participantId, row.medication.id, logLocalDate, {
         status: 'taken',
+        logLocalTime,
         logTzOffsetMinutes,
         occurrenceKey: this.defaultOccurrenceKey(frequency)
       })
@@ -1615,6 +1833,20 @@ export class InsightsDashboardComponent {
   }
 
   private logSortTimeMs(log: MedicationLog): number {
+    if (log.takenAtUtc) {
+      const takenAt = Date.parse(log.takenAtUtc);
+      if (Number.isFinite(takenAt)) {
+        return takenAt;
+      }
+    }
+
+    if (log.logLocalTime) {
+      const localAsUtc = Date.parse(`${log.logLocalDate}T${log.logLocalTime}:00.000Z`);
+      if (Number.isFinite(localAsUtc)) {
+        return localAsUtc - log.logTzOffsetMinutes * 60_000;
+      }
+    }
+
     const updated = Date.parse(log.updatedAtUtc);
     if (Number.isFinite(updated)) {
       return updated;
@@ -1624,16 +1856,79 @@ export class InsightsDashboardComponent {
   }
 
   private formatTakenTime(log: MedicationLog): string | undefined {
+    if (log.logLocalTime) {
+      return this.formatTimeLabel(log.logLocalTime);
+    }
+
+    if (log.takenAtUtc) {
+      const derived = this.localTimeFromUtc(log.takenAtUtc, log.logTzOffsetMinutes);
+      if (derived) {
+        return this.formatTimeLabel(derived);
+      }
+    }
+
     const utcMillis = this.logSortTimeMs(log);
     if (!Number.isFinite(utcMillis) || utcMillis <= 0) {
       return undefined;
     }
-
     const localMillis = utcMillis + log.logTzOffsetMinutes * 60_000;
     const localInstant = new Date(localMillis);
     const hh = String(localInstant.getUTCHours()).padStart(2, '0');
     const mm = String(localInstant.getUTCMinutes()).padStart(2, '0');
     return this.formatTimeLabel(`${hh}:${mm}`);
+  }
+
+  private resolveEditableTimeValue(row: RoutineMedicationRow): string | null {
+    if (row.logLocalTime) {
+      return row.logLocalTime;
+    }
+    if (row.takenAtUtc) {
+      return this.localTimeFromUtc(row.takenAtUtc, row.logTzOffsetMinutes ?? -new Date().getTimezoneOffset());
+    }
+    return null;
+  }
+
+  private resolveOccurrenceKey(row: RoutineMedicationRow): string | null {
+    if (row.occurrenceKey) {
+      return row.occurrenceKey;
+    }
+    if (row.source !== 'scheduled') {
+      return null;
+    }
+    const frequency = this.resolveMedicationFrequency(row.medication);
+    if (!frequency || frequency === 'as-needed') {
+      return null;
+    }
+    return this.defaultOccurrenceKey(frequency);
+  }
+
+  private localTimeFromUtc(isoUtc: string, logTzOffsetMinutes: number): string | null {
+    const utcMillis = Date.parse(isoUtc);
+    if (!Number.isFinite(utcMillis)) {
+      return null;
+    }
+    const localMillis = utcMillis + logTzOffsetMinutes * 60_000;
+    const localInstant = new Date(localMillis);
+    const hh = String(localInstant.getUTCHours()).padStart(2, '0');
+    const mm = String(localInstant.getUTCMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+
+  private currentLocalTime(): string {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+
+  private isValidTimeInput(value: string): boolean {
+    if (!/^\d{2}:\d{2}$/.test(value)) {
+      return false;
+    }
+    const [hourRaw, minuteRaw] = value.split(':');
+    const hour = Number(hourRaw);
+    const minute = Number(minuteRaw);
+    return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
   }
 
   private resolveMedicationFrequency(medication: Medication): MedicationFrequency | null {

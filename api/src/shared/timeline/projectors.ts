@@ -89,12 +89,16 @@ export function projectMedicationLogToEventIndex(
   operation: EventOperation = 'upsert'
 ): EventIndexDocument {
   const sourceVersion = log.updatedAtUtc || log.createdAtUtc;
-  const eventAtUtc = computeUtcFromLocal(log.logLocalDate, '00:00', log.logTzOffsetMinutes);
+  const eventAtUtc = log.takenAtUtc
+    ?? (log.logLocalTime
+      ? computeUtcFromLocal(log.logLocalDate, log.logLocalTime, log.logTzOffsetMinutes)
+      : computeUtcFromLocal(log.logLocalDate, '00:00', log.logTzOffsetMinutes));
 
   return buildBaseEvent({
     participantId: log.participantId,
     eventAtUtc,
     logLocalDate: log.logLocalDate,
+    logLocalTime: log.logLocalTime,
     logTzOffsetMinutes: log.logTzOffsetMinutes,
     sourceType: 'medication_log',
     sourceId: log.id,
