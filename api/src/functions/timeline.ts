@@ -5,34 +5,31 @@ import { withErrorHandling } from '../shared/auth';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { readParticipantLink } from '../shared/data/participants';
 import {
-  applyTimelineClusters,
   buildTimelineAnchorQuery,
+  buildTimelineByLocalDateQuery,
+  buildTimelineNextDateQuery,
   buildTimelineRangeQuery
 } from '../shared/data/event-index';
 import { EventIndexDocument, EventSourceType } from '../models/event-index';
+import { projectDailyTimelineItems } from '../shared/timeline/daily-projection';
 
 const sourceTypeOptions: EventSourceType[] = ['incident', 'medication_log', 'medication', 'daily_reflection'];
 const defaultSourceTypeFilter: EventSourceType[] = ['incident', 'medication_log', 'medication'];
+const MAX_DAYS_PER_REQUEST = 7;
+const MAX_TIMELINE_ITEMS = 500;
+
+type ListTimelineResponse = {
+  items: EventIndexDocument[];
+  nextCursorDate: string | null;
+  windowStartDate: string;
+  windowEndDate: string;
+  projectionMode: 'daily-final-state';
+};
 
 function isTimelineQueryEnabled(): boolean {
   const value = (process.env.TIMELINE_QUERY_ENABLED || 'true').toLowerCase();
   return value !== 'false' && value !== '0';
 }
-
-type TimelineItemResponse = EventIndexDocument & { clusterId?: string };
-
-type ClusterSummary = {
-  clusterId: string;
-  startUtc: string;
-  endUtc: string;
-  itemCount: number;
-};
-
-type ListTimelineResponse = {
-  items: TimelineItemResponse[];
-  nextToken: string | null;
-  clusters?: ClusterSummary[];
-};
 
 function isIsoUtc(value: string | null): boolean {
   if (!value || !value.endsWith('Z')) {
@@ -40,6 +37,25 @@ function isIsoUtc(value: string | null): boolean {
   }
   const parsed = Date.parse(value);
   return Number.isFinite(parsed);
+}
+
+function isDateOnly(value: string | null): boolean {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const [year, month, day] = value.split('-').map((part) => Number(part));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+function addDaysDateOnly(value: string, days: number): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function parseSourceTypes(value: string | null): EventSourceType[] | undefined {
@@ -64,25 +80,6 @@ function parseTags(value: string | null): string[] | undefined {
   return parsed.length > 0 ? parsed : undefined;
 }
 
-function parseTop(value: string | null): number {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 100;
-  }
-  return Math.min(parsed, 500);
-}
-
-function parseClusterMinutes(value: string | null): number | null {
-  if (!value) {
-    return null;
-  }
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return null;
-  }
-  return Math.min(parsed, 180);
-}
-
 function parseSortOrder(value: string | null): 'asc' | 'desc' {
   if (!value) {
     return 'desc';
@@ -97,28 +94,26 @@ function parseSortOrder(value: string | null): 'asc' | 'desc' {
   return 'desc';
 }
 
-function buildClusterSummaries(items: Array<EventIndexDocument & { clusterId: string }>): ClusterSummary[] {
-  const map = new Map<string, ClusterSummary>();
-  for (const item of items) {
-    const existing = map.get(item.clusterId);
-    if (!existing) {
-      map.set(item.clusterId, {
-        clusterId: item.clusterId,
-        startUtc: item.eventAtUtc,
-        endUtc: item.eventAtUtc,
-        itemCount: 1
-      });
-      continue;
-    }
-    if (item.eventAtUtc < existing.startUtc) {
-      existing.startUtc = item.eventAtUtc;
-    }
-    if (item.eventAtUtc > existing.endUtc) {
-      existing.endUtc = item.eventAtUtc;
-    }
-    existing.itemCount += 1;
+function parseDays(value: string | null): number {
+  if (!value) {
+    return 1;
   }
-  return Array.from(map.values());
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return 1;
+  }
+  return Math.min(parsed, MAX_DAYS_PER_REQUEST);
+}
+
+function validateTimelineListRequest(date: string | null, cursorDate: string | null): ValidationErrorDetail[] {
+  const errors: ValidationErrorDetail[] = [];
+  if (!isDateOnly(date)) {
+    errors.push({ id: 'timeline.date.invalid', message: 'date must be YYYY-MM-DD.' });
+  }
+  if (cursorDate && !isDateOnly(cursorDate)) {
+    errors.push({ id: 'timeline.cursorDate.invalid', message: 'cursorDate must be YYYY-MM-DD.' });
+  }
+  return errors;
 }
 
 function validateTimelineRequest(startUtc: string | null, endUtc: string | null): ValidationErrorDetail[] {
@@ -152,20 +147,17 @@ const listTimelineHandler = withErrorHandling(
       ]);
     }
 
-    const startUtc = req.query.get('$startUtc');
-    const endUtc = req.query.get('$endUtc');
-    const errors = validateTimelineRequest(startUtc, endUtc);
+    const date = req.query.get('date');
+    const cursorDate = req.query.get('cursorDate');
+    const errors = validateTimelineListRequest(date, cursorDate);
     if (errors.length > 0) {
       return buildValidationError(errors);
     }
 
-    // Backward compatibility: existing clients that omit $types expect only legacy source types.
     const sourceTypes = parseSourceTypes(req.query.get('$types')) ?? defaultSourceTypeFilter;
-    const tags = parseTags(req.query.get('$tags'));
-    const top = parseTop(req.query.get('$top'));
-    const skipToken = req.query.get('$skipToken');
-    const sortOrder = parseSortOrder(req.query.get('$orderBy'));
-    const clusterMinutes = parseClusterMinutes(req.query.get('$clusterMinutes'));
+    const days = parseDays(req.query.get('days'));
+    const windowEndDate = cursorDate ?? date!;
+    const windowStartDate = addDaysDateOnly(windowEndDate, -(days - 1));
 
     const { containers } = await buildCosmos();
     const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
@@ -173,39 +165,39 @@ const listTimelineHandler = withErrorHandling(
       return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
     }
 
-    const query = buildTimelineRangeQuery({
+    const query = buildTimelineByLocalDateQuery({
       participantId,
-      startUtc: startUtc!,
-      endUtc: endUtc!,
-      sourceTypes,
-      tags,
-      sortOrder
+      startDate: windowStartDate,
+      endDate: windowEndDate,
+      sourceTypes
     });
 
     const response = await containers.eventIndex.items.query<EventIndexDocument>(query, {
       partitionKey: participantId,
-      maxItemCount: top,
-      continuationToken: skipToken ?? undefined
+      maxItemCount: MAX_TIMELINE_ITEMS
     }).fetchNext();
 
-    const baseItems = response.resources ?? [];
-    if (!clusterMinutes) {
-      const payload: ListTimelineResponse = {
-        items: baseItems,
-        nextToken: response.continuationToken ?? null
-      };
-      return { status: 200, jsonBody: payload };
-    }
+    const projected = projectDailyTimelineItems(response.resources ?? []);
 
-    const clusteredAscending = applyTimelineClusters(baseItems, clusterMinutes);
-    const clusteredItems = sortOrder === 'asc'
-      ? clusteredAscending
-      : [...clusteredAscending].sort((a, b) => b.eventAtUtc.localeCompare(a.eventAtUtc));
+    const nextCursorResponse = await containers.eventIndex.items.query<{ logLocalDate: string }>(
+      buildTimelineNextDateQuery({
+        participantId,
+        beforeDate: windowStartDate,
+        sourceTypes
+      }),
+      {
+        partitionKey: participantId,
+        maxItemCount: 1
+      }
+    ).fetchNext();
+    const nextCursorDate = nextCursorResponse.resources?.[0]?.logLocalDate ?? null;
 
     const payload: ListTimelineResponse = {
-      items: clusteredItems,
-      nextToken: response.continuationToken ?? null,
-      clusters: buildClusterSummaries(clusteredAscending)
+      items: projected,
+      nextCursorDate,
+      windowStartDate,
+      windowEndDate,
+      projectionMode: 'daily-final-state'
     };
     return { status: 200, jsonBody: payload };
   }
@@ -240,7 +232,6 @@ const timelineContextHandler = withErrorHandling(
       return Math.min(parsed, 180);
     })();
 
-    // Backward compatibility for existing timeline context consumers.
     const sourceTypes = parseSourceTypes(req.query.get('$types')) ?? defaultSourceTypeFilter;
     const tags = parseTags(req.query.get('$tags'));
     const sortOrder = parseSortOrder(req.query.get('$orderBy'));
@@ -264,6 +255,10 @@ const timelineContextHandler = withErrorHandling(
     const anchorMillis = new Date(anchor.eventAtUtc).getTime();
     const rangeStart = new Date(anchorMillis - minutes * 60 * 1000).toISOString();
     const rangeEnd = new Date(anchorMillis + minutes * 60 * 1000).toISOString();
+    const validationErrors = validateTimelineRequest(rangeStart, rangeEnd);
+    if (validationErrors.length > 0) {
+      return buildValidationError(validationErrors);
+    }
     const query = buildTimelineRangeQuery({
       participantId,
       startUtc: rangeStart,

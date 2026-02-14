@@ -31,6 +31,11 @@ Reserve thrown errors for unexpected failures.
 - Preserve UTC plus local context requirements from `docs/architecture/data-modeling.md`.
 - Keep domain containers as source of truth and projection logic idempotent.
 
+## Timeline Read Contracts
+
+- `GET /participants/{participantId}/timeline` is a projected read model (day-window final state), not a raw event stream.
+- `GET /participants/{participantId}/event-index` is the raw append-only stream for audit/debug use cases.
+
 ## Related Docs
 
 - `docs/architecture/auth-flow.md`

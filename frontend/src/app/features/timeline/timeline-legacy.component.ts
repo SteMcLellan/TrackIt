@@ -280,22 +280,20 @@ export class TimelineLegacyComponent {
     const participantId = this.activeParticipantId();
     const range = this.rangeDays();
     const filter = this.typeFilter();
-    const endUtc = new Date().toISOString();
-    const startUtc = new Date(Date.now() - range * 24 * 60 * 60 * 1000).toISOString();
+    const date = new Date().toISOString().slice(0, 10);
+    const days = String(Math.min(range, 7));
 
     if (!participantId) {
       return {
         url: `${environment.apiBaseUrl}/participants/unknown/timeline`,
         method: 'GET',
-        params: { '$startUtc': startUtc, '$endUtc': endUtc, '$top': '1' }
+        params: { date, days: '1' }
       };
     }
 
     const params: Record<string, string> = {
-      '$startUtc': startUtc,
-      '$endUtc': endUtc,
-      '$top': '200',
-      '$orderBy': 'eventAtUtc desc'
+      date,
+      days
     };
     if (filter !== 'all') {
       params['$types'] = filter;

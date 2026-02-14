@@ -68,6 +68,9 @@ The EventIndex document shape is defined in `api/src/models/event-index.ts`.
 - Append-only projection from domain writes and backfill.
 - Domain documents remain authoritative.
 - Each projection entry stores minimal timeline fields plus a pointer to source.
+- Read contracts:
+  - `GET /participants/{participantId}/timeline` returns projected day-window final state for UI.
+  - `GET /participants/{participantId}/event-index` returns raw append-only rows for audit/debug.
 
 ### Key fields
 - `participantId`

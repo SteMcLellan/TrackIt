@@ -20,8 +20,7 @@ type TimelineSection = {
   items: TimelineEvent[];
 };
 
-const PAGE_SIZE = 25;
-const ROLLING_RANGE_DAYS = 90;
+const DAYS_PER_REQUEST = 1;
 const FEED_SOURCE_TYPES: TimelineSourceType[] = [
   'incident',
   'medication_log',
@@ -53,7 +52,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       } @else if (loadError() && events().length === 0) {
         <p class="status error" role="alert">{{ loadError() }}</p>
       } @else if (sections().length === 0) {
-        <p class="status muted">No timeline events found in the last 90 days.</p>
+        <p class="status muted">No timeline events found.</p>
       } @else {
         <div class="timeline-feed" role="feed" aria-label="Timeline feed">
           @for (section of sections(); track section.logLocalDate) {
@@ -395,16 +394,15 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
 
   readonly activeParticipantId = this.participants.activeParticipantId;
   readonly events = signal<TimelineEvent[]>([]);
-  readonly nextToken = signal<string | null>(null);
+  readonly nextCursorDate = signal<string | null>(null);
   readonly isInitialLoading = signal(false);
   readonly isLoadingMore = signal(false);
   readonly loadError = signal<string | null>(null);
-  readonly canLoadMore = computed(() => this.nextToken() !== null && !this.isInitialLoading() && !this.isLoadingMore());
+  readonly canLoadMore = computed(() => this.nextCursorDate() !== null && !this.isInitialLoading() && !this.isLoadingMore());
   readonly sections = computed<TimelineSection[]>(() => this.groupByLocalDate(this.events()));
 
   private requestVersion = 0;
-  private currentRangeStartUtc = '';
-  private currentRangeEndUtc = '';
+  private anchorDate = '';
   private loadMoreObserver: IntersectionObserver | null = null;
   private loadMoreSentinelRef: ElementRef<HTMLDivElement> | null = null;
 
@@ -521,24 +519,20 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
   }
 
   private loadInitialPage(participantId: string, requestVersion: number): void {
-    const range = this.buildRangeWindow();
-    this.currentRangeStartUtc = range.startUtc;
-    this.currentRangeEndUtc = range.endUtc;
+    this.anchorDate = this.todayDateOnly();
 
     this.isInitialLoading.set(true);
     this.timeline.listTimeline(participantId, {
-      startUtc: range.startUtc,
-      endUtc: range.endUtc,
-      top: PAGE_SIZE,
-      orderBy: 'eventAtUtc desc',
+      date: this.anchorDate,
+      days: DAYS_PER_REQUEST,
       types: FEED_SOURCE_TYPES
     }).subscribe({
       next: (response) => {
         if (requestVersion !== this.requestVersion) {
           return;
         }
-        this.events.set(this.normalizeEvents(response.items ?? []));
-        this.nextToken.set(response.nextToken ?? null);
+        this.events.set(response.items ?? []);
+        this.nextCursorDate.set(response.nextCursorDate ?? null);
         this.loadError.set(null);
         this.isInitialLoading.set(false);
       },
@@ -558,27 +552,25 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
     }
 
     const participantId = this.activeParticipantId();
-    const nextToken = this.nextToken();
-    if (!participantId || !nextToken) {
+    const nextCursorDate = this.nextCursorDate();
+    if (!participantId || !nextCursorDate) {
       return;
     }
 
     const requestVersion = this.requestVersion;
     this.isLoadingMore.set(true);
     this.timeline.listTimeline(participantId, {
-      startUtc: this.currentRangeStartUtc,
-      endUtc: this.currentRangeEndUtc,
-      top: PAGE_SIZE,
-      skipToken: nextToken,
-      orderBy: 'eventAtUtc desc',
+      date: this.anchorDate,
+      cursorDate: nextCursorDate,
+      days: DAYS_PER_REQUEST,
       types: FEED_SOURCE_TYPES
     }).subscribe({
       next: (response) => {
         if (requestVersion !== this.requestVersion) {
           return;
         }
-        this.events.update((current) => this.mergeAndNormalizeEvents(current, response.items ?? []));
-        this.nextToken.set(response.nextToken ?? null);
+        this.events.update((current) => this.mergeById(current, response.items ?? []));
+        this.nextCursorDate.set(response.nextCursorDate ?? null);
         this.loadError.set(null);
         this.isLoadingMore.set(false);
       },
@@ -600,101 +592,29 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
     this.loadMoreObserver.observe(this.loadMoreSentinelRef.nativeElement);
   }
 
-  private buildRangeWindow(): { startUtc: string; endUtc: string } {
-    const end = new Date();
-    const start = new Date(end.getTime() - ROLLING_RANGE_DAYS * 24 * 60 * 60 * 1000);
-    return {
-      startUtc: start.toISOString(),
-      endUtc: end.toISOString()
-    };
-  }
-
   private resetFeedState(): void {
     this.events.set([]);
-    this.nextToken.set(null);
+    this.nextCursorDate.set(null);
     this.loadError.set(null);
     this.isInitialLoading.set(false);
     this.isLoadingMore.set(false);
-    this.currentRangeStartUtc = '';
-    this.currentRangeEndUtc = '';
+    this.anchorDate = '';
   }
 
-  private mergeAndNormalizeEvents(current: TimelineEvent[], incoming: TimelineEvent[]): TimelineEvent[] {
+  private mergeById(current: TimelineEvent[], incoming: TimelineEvent[]): TimelineEvent[] {
     if (incoming.length === 0) {
       return current;
     }
-    return this.normalizeEvents([...current, ...incoming]);
-  }
 
-  private normalizeEvents(items: TimelineEvent[]): TimelineEvent[] {
-    if (items.length < 2) {
-      return items;
-    }
-
-    const dedupedBySourceEntity = new Map<string, TimelineEvent>();
-    for (const item of items) {
-      const key = this.sourceEntityKey(item);
-      const existing = dedupedBySourceEntity.get(key);
-      if (!existing) {
-        dedupedBySourceEntity.set(key, item);
-        continue;
-      }
-      if (this.compareProjectedAtUtc(item, existing) > 0) {
-        dedupedBySourceEntity.set(key, item);
+    const existingIds = new Set(current.map((item) => item.id));
+    const appended: TimelineEvent[] = [...current];
+    for (const item of incoming) {
+      if (!existingIds.has(item.id)) {
+        appended.push(item);
+        existingIds.add(item.id);
       }
     }
-
-    const dedupedByDisplayFingerprint = new Map<string, TimelineEvent>();
-    for (const item of dedupedBySourceEntity.values()) {
-      const key = this.displayFingerprintKey(item);
-      const existing = dedupedByDisplayFingerprint.get(key);
-      if (!existing) {
-        dedupedByDisplayFingerprint.set(key, item);
-        continue;
-      }
-      if (this.compareProjectedAtUtc(item, existing) > 0) {
-        dedupedByDisplayFingerprint.set(key, item);
-      }
-    }
-
-    return Array.from(dedupedByDisplayFingerprint.values()).sort((left, right) => (
-      this.toMillis(right.eventAtUtc) - this.toMillis(left.eventAtUtc)
-    ));
-  }
-
-  private sourceEntityKey(item: TimelineEvent): string {
-    if (item.sourceType && item.sourceId) {
-      return `${item.sourceType}|${item.sourceId}`;
-    }
-    return `${item.id}|${item.eventAtUtc}`;
-  }
-
-  private displayFingerprintKey(item: TimelineEvent): string {
-    const summary = item.summary;
-    return [
-      item.sourceType,
-      item.operation,
-      item.eventAtUtc,
-      item.logLocalDate,
-      item.logLocalTime ?? '',
-      summary.title,
-      summary.subtitle ?? '',
-      summary.status ?? '',
-      summary.function ?? '',
-      summary.place ?? '',
-      summary.medicationId ?? '',
-      summary.medicationName ?? '',
-      summary.occurrenceKey ?? ''
-    ].join('|');
-  }
-
-  private compareProjectedAtUtc(left: TimelineEvent, right: TimelineEvent): number {
-    return this.toMillis(left.projectedAtUtc) - this.toMillis(right.projectedAtUtc);
-  }
-
-  private toMillis(value: string): number {
-    const parsed = Date.parse(value);
-    return Number.isNaN(parsed) ? 0 : parsed;
+    return appended;
   }
 
   private groupByLocalDate(items: TimelineEvent[]): TimelineSection[] {
@@ -753,6 +673,10 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
 
   private localDateOnly(value: Date): Date {
     return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+
+  private todayDateOnly(): string {
+    return new Date().toISOString().slice(0, 10);
   }
 
   private formatMonthDay(value: Date): string {

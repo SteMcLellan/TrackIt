@@ -49,6 +49,10 @@ export type TimelineCluster = {
 
 export type TimelineResponse = {
   items: TimelineEvent[];
-  nextToken: string | null;
+  nextCursorDate: string | null;
+  windowStartDate: string;
+  windowEndDate: string;
+  projectionMode: 'daily-final-state';
+  nextToken?: string | null;
   clusters?: TimelineCluster[];
 };

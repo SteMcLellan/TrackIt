@@ -10,6 +10,19 @@ export type ListTimelineQueryOptions = {
   sortOrder: 'asc' | 'desc';
 };
 
+export type ListTimelineByDateOptions = {
+  participantId: string;
+  startDate: string;
+  endDate: string;
+  sourceTypes?: EventSourceType[];
+};
+
+export type FindNextTimelineDateOptions = {
+  participantId: string;
+  beforeDate: string;
+  sourceTypes?: EventSourceType[];
+};
+
 export function buildTimelineRangeQuery(options: ListTimelineQueryOptions): SqlQuerySpec {
   const conditions: string[] = [
     'c.participantId = @participantId',
@@ -37,6 +50,58 @@ export function buildTimelineRangeQuery(options: ListTimelineQueryOptions): SqlQ
 
   return {
     query: `SELECT * FROM c WHERE ${conditions.join(' AND ')} ORDER BY c.eventAtUtc ${options.sortOrder === 'asc' ? 'ASC' : 'DESC'}`,
+    parameters
+  };
+}
+
+export function buildTimelineByLocalDateQuery(options: ListTimelineByDateOptions): SqlQuerySpec {
+  const conditions: string[] = [
+    'c.participantId = @participantId',
+    'c.logLocalDate >= @startDate',
+    'c.logLocalDate <= @endDate'
+  ];
+  const parameters: SqlParameter[] = [
+    { name: '@participantId', value: options.participantId },
+    { name: '@startDate', value: options.startDate },
+    { name: '@endDate', value: options.endDate }
+  ];
+
+  if (options.sourceTypes && options.sourceTypes.length > 0) {
+    conditions.push('ARRAY_CONTAINS(@sourceTypes, c.sourceType)');
+    parameters.push({ name: '@sourceTypes', value: options.sourceTypes });
+  }
+
+  return {
+    query: `
+      SELECT * FROM c
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY c.logLocalDate ASC, c.eventAtUtc ASC
+    `,
+    parameters
+  };
+}
+
+export function buildTimelineNextDateQuery(options: FindNextTimelineDateOptions): SqlQuerySpec {
+  const conditions: string[] = [
+    'c.participantId = @participantId',
+    'c.logLocalDate < @beforeDate'
+  ];
+  const parameters: SqlParameter[] = [
+    { name: '@participantId', value: options.participantId },
+    { name: '@beforeDate', value: options.beforeDate }
+  ];
+
+  if (options.sourceTypes && options.sourceTypes.length > 0) {
+    conditions.push('ARRAY_CONTAINS(@sourceTypes, c.sourceType)');
+    parameters.push({ name: '@sourceTypes', value: options.sourceTypes });
+  }
+
+  return {
+    query: `
+      SELECT TOP 1 c.logLocalDate FROM c
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY c.logLocalDate DESC
+    `,
     parameters
   };
 }
