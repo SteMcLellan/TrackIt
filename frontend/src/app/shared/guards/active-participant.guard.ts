@@ -13,22 +13,29 @@ import { ParticipantService } from '../services/participant.service';
 export const ActiveParticipantGuard: CanActivateFn = () => {
   const participantsService = inject(ParticipantService);
   const router = inject(Router);
+  const currentUrl = router.url || '';
 
   if (participantsService.activeParticipantId()) {
+    return true;
+  }
+
+  // Profile is the fallback page for users without an active participant.
+  // Allow it through to avoid redirect loops when this guard is applied there.
+  if (currentUrl.startsWith('/profile')) {
     return true;
   }
 
   return participantsService.listParticipants(2).pipe(
     map((response) => {
       if (response.items.length === 0) {
-        return router.parseUrl('/participants/start');
+        return router.parseUrl('/profile');
       }
       if (response.items.length === 1) {
         participantsService.setActiveParticipant(response.items[0].id);
         return true;
       }
-      return router.parseUrl('/participants');
+      return router.parseUrl('/profile');
     }),
-    catchError(() => of(router.parseUrl('/participants')))
+    catchError(() => of(router.parseUrl('/profile')))
   );
 };

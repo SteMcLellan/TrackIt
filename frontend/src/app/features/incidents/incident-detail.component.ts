@@ -39,7 +39,7 @@ const functionLabels: Record<BehaviorFunction, string> = {
 
       @if (!activeParticipantId()) {
         <p class="error" role="alert">Select a participant to view incidents.</p>
-        <a class="button secondary" routerLink="/participants">Select participant</a>
+        <a class="button secondary" routerLink="/profile">Select participant</a>
       } @else if (incidentResource.isLoading()) {
         <p class="muted">Loading incident...</p>
       } @else if (incidentResource.error()) {

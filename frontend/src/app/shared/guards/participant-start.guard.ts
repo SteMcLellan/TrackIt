@@ -13,7 +13,7 @@ export const ParticipantStartGuard: CanActivateFn = () => {
   return participantsService.listParticipants(1).pipe(
     map((response) => {
       if (response.items.length === 0) {
-        return router.parseUrl('/participants/start');
+        return router.parseUrl('/profile');
       }
       return true;
     }),

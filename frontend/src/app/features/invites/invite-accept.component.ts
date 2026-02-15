@@ -35,8 +35,8 @@ type AcceptStatus = 'loading' | 'success' | 'already-linked' | 'error';
               <button class="button" type="button" (click)="setActiveAndGo()">
                 Set as active & go to Home
               </button>
-              <a class="button secondary" [routerLink]="['/participants', participantId()]">
-                View participant
+              <a class="button secondary" routerLink="/profile">
+                Go to profile
               </a>
             </div>
           </div>
@@ -56,8 +56,8 @@ type AcceptStatus = 'loading' | 'success' | 'already-linked' | 'error';
               <button class="button" type="button" (click)="setActiveAndGo()">
                 Set as active & go to Home
               </button>
-              <a class="button secondary" routerLink="/participants">
-                View all participants
+              <a class="button secondary" routerLink="/profile">
+                Go to profile
               </a>
             </div>
           </div>
@@ -75,8 +75,8 @@ type AcceptStatus = 'loading' | 'success' | 'already-linked' | 'error';
             <p class="error-message">{{ errorMessage() }}</p>
             <p class="muted">Ask the person who shared this invite to generate a new one.</p>
             <div class="actions">
-              <a class="button secondary" routerLink="/participants">
-                Go to participants
+              <a class="button secondary" routerLink="/profile">
+                Go to profile
               </a>
               <a class="button secondary" routerLink="/home">
                 Go to Activity

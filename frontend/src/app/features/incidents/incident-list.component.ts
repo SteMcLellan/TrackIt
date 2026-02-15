@@ -62,7 +62,7 @@ const functionLabels: Record<BehaviorFunction, string> = {
 
       @if (!activeParticipantId()) {
         <p class="error" role="alert">Select a participant to view incidents.</p>
-        <a class="select-link" routerLink="/participants">Select participant &rarr;</a>
+        <a class="select-link" routerLink="/profile">Select participant &rarr;</a>
       } @else if (incidentsResource.isLoading()) {
         <ul class="list" role="list" aria-label="Loading incidents">
           @for (i of [1, 2, 3]; track i) {

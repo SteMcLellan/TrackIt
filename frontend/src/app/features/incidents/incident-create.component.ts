@@ -66,7 +66,7 @@ function formatTime(dateStr: string): string {
       @if (!activeParticipantId()) {
         <h2>Log an incident</h2>
         <p class="error" role="alert">Select a participant before logging an incident.</p>
-        <a class="button secondary" routerLink="/participants">Select participant</a>
+        <a class="button secondary" routerLink="/profile">Select participant</a>
       } @else if (created()) {
         <h2>Incident saved</h2>
         <p class="muted">You can log another or return later.</p>

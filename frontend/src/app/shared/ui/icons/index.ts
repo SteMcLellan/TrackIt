@@ -10,9 +10,6 @@ export { PlusIconComponent } from './plus-icon.component';
 
 // Action icons
 export { CloseIconComponent } from './close-icon.component';
-export { CheckmarkIconComponent } from './checkmark-icon.component';
-export { XIconComponent } from './x-icon.component';
-export { ChevronRightIconComponent } from './chevron-right-icon.component';
 export { ArrowRightIconComponent } from './arrow-right-icon.component';
 export { NotesIconComponent } from './notes-icon.component';
 
