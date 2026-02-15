@@ -34,12 +34,12 @@ import { filter, map } from 'rxjs';
   styles: [`
     .bottom-nav {
       position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
+      left: 0;
+      right: 0;
       bottom: 0;
       z-index: 50;
-      width: min(100%, 28rem);
       max-width: 28rem;
+      margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
