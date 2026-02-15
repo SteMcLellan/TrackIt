@@ -37,6 +37,10 @@ These three colors form the shared visual language of the TrackIt brand. They ap
 | Midnight Slate | `#1e293b` | Primary body and heading text on light surfaces |
 | Signal Blue | `#137fec` | Project accent; links, selected states, and focus rings (not primary CTA fill) |
 | Sky Azure | `#0ea5e9` | Focus and cognitive metric indicators (dashboard only) |
+| Soft Violet | `#f5f3ff` | Section tint for behavior/function containers and profile accent surfaces |
+| Soft Amber | `#fffbeb` | Section tint for antecedent containers and warm contextual grouping |
+| Soft Emerald | `#ecfdf5` | Section tint for consequence/success containers |
+| Soft Azure | `#f0f9ff` | Section tint for place/context containers and informational grouping |
 
 ### Brand-Only Colors
 

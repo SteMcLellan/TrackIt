@@ -90,14 +90,14 @@ import { ChipCategory } from '../models/incident-chip-options';
       transform: scale(0.97);
     }
     .chip.selected {
-      background: var(--color-primary, #0c4a6e);
-      border-color: var(--color-primary, #0c4a6e);
+      background: var(--chip-selected-bg, var(--color-primary, #0c4a6e));
+      border-color: var(--chip-selected-border, var(--chip-selected-bg, var(--color-primary, #0c4a6e)));
       color: #fff;
-      box-shadow: 0 2px 4px rgba(12, 74, 110, 0.2);
+      box-shadow: var(--chip-selected-shadow, 0 2px 4px rgba(12, 74, 110, 0.2));
     }
     .chip.selected:hover {
-      background: #0a3d5c;
-      border-color: #0a3d5c;
+      background: var(--chip-selected-hover-bg, var(--chip-selected-bg, #0a3d5c));
+      border-color: var(--chip-selected-hover-border, var(--chip-selected-border, var(--chip-selected-hover-bg, #0a3d5c)));
     }
   `]
 })

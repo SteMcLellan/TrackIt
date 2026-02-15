@@ -7,10 +7,13 @@ function isProjectionEnabled(): boolean {
 }
 
 export async function appendTimelineEvent(
-  container: Container,
+  container: Container | undefined,
   event: EventIndexDocument
 ): Promise<void> {
   if (!isProjectionEnabled()) {
+    return;
+  }
+  if (!container || !('items' in container) || !container.items) {
     return;
   }
   await container.items.upsert(event);

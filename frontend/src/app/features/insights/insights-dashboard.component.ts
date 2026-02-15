@@ -354,7 +354,7 @@ type RoutineMedicationRow = {
       </section>
 
       <section class="reflection-entry">
-        <a class="reflection-button" routerLink="/incidents/new">
+        <a class="reflection-button" routerLink="/behavioral-moments/new">
           <span class="left">
             <span class="title">Log a Moment</span>
             <span class="subtitle">Record what happened, when, and why.</span>

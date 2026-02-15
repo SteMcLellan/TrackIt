@@ -41,6 +41,16 @@
   --color-border: #e2e8f0;
   --color-bg: #f1f5f9;
   --color-ghost-white-canvas: #fcfcfd;
+  --color-midnight-slate: #1e293b;
+  --color-signal-blue: #137fec;
+  --color-electric-violet: #8b5cf6;
+  --color-vital-emerald: #10b981;
+  --color-energetic-amber: #f59e0b;
+  --color-sky-azure: #0ea5e9;
+  --color-soft-violet: #f5f3ff;
+  --color-soft-amber: #fffbeb;
+  --color-soft-emerald: #ecfdf5;
+  --color-soft-azure: #f0f9ff;
 
   /* Radius */
   --radius-1: 0.25rem;

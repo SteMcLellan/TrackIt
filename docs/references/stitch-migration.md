@@ -33,10 +33,10 @@ This tracker covers **Screen tier** components and the canonical **Shell** compo
 
 ## Coverage Summary
 
-- Total in scope: `30`
-- Converted: `10`
+- Total in scope: `31`
+- Converted: `11`
 - Not converted: `20`
-- Completion: `33.3%` (`10/30`)
+- Completion: `35.5%` (`11/31`)
 
 ## Component Inventory
 
@@ -47,7 +47,8 @@ This tracker covers **Screen tier** components and the canonical **Shell** compo
 | frontend/src/app/features/daily-reflection/daily-reflection.component.ts | Yes | projects/2002730124455423542/screens/57dc91ea7516465ea3bb05ba8f35b7d9 | Daily Reflection Entry |
 | frontend/src/app/features/dashboard/dashboard.component.ts | No | - | - |
 | frontend/src/app/features/home/home.component.ts | No | - | - |
-| frontend/src/app/features/insights/insights-dashboard.component.ts | Yes | projects/2002730124455423542/screens/efcaceb73e4746e2a655f9d447f9f420 | Parental Insight Dashboard |
+| frontend/src/app/features/insights/insights-dashboard.component.ts | Yes | projects/2002730124455423542/screens/e78a1a0531dc47e49bc20cf32001380c | Parental Insight Dashboard |
+| frontend/src/app/features/incidents/behavioral-moment-create.component.ts | Yes | projects/2002730124455423542/screens/a511d931a59c4dc59eaeb7bccc96a542 | Log Behavioral Moment Form |
 | frontend/src/app/features/incidents/incident-create.component.ts | No | - | - |
 | frontend/src/app/features/incidents/incident-detail.component.ts | No | - | - |
 | frontend/src/app/features/incidents/incident-edit-form.component.ts | No | - | - |

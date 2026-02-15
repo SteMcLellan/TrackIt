@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { AuthGuard } from './shared/guards/auth.guard';
 import { ActiveParticipantGuard } from './shared/guards/active-participant.guard';
 import { LoginComponent } from './features/auth/login.component';
+import { BehavioralMomentCreateComponent } from './features/incidents/behavioral-moment-create.component';
 import { IncidentCreateComponent } from './features/incidents/incident-create.component';
 import { IncidentDetailComponent } from './features/incidents/incident-detail.component';
 import { IncidentListComponent } from './features/incidents/incident-list.component';
@@ -33,6 +34,7 @@ export const appRoutes: Routes = [
   { path: 'home', redirectTo: '/insights', pathMatch: 'full' },
   { path: 'analytics', redirectTo: '/insights', pathMatch: 'full' },
   { path: 'incidents', component: IncidentListComponent, canActivate: [AuthGuard] },
+  { path: 'behavioral-moments/new', component: BehavioralMomentCreateComponent, canActivate: [AuthGuard] },
   { path: 'incidents/new', component: IncidentCreateComponent, canActivate: [AuthGuard] },
   { path: 'incidents/:id', component: IncidentDetailComponent, canActivate: [AuthGuard] }
 ];
