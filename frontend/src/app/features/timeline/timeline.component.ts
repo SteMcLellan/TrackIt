@@ -20,7 +20,8 @@ type TimelineSection = {
   items: TimelineEvent[];
 };
 
-const DAYS_PER_REQUEST = 1;
+const DAYS_PER_REQUEST = 7;
+const MAX_EMPTY_AUTOLOAD_ATTEMPTS = 365;
 const FEED_SOURCE_TYPES: TimelineSourceType[] = [
   'incident',
   'medication_log',
@@ -403,6 +404,7 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
 
   private requestVersion = 0;
   private anchorDate = '';
+  private emptyAutoloadAttempts = 0;
   private loadMoreObserver: IntersectionObserver | null = null;
   private loadMoreSentinelRef: ElementRef<HTMLDivElement> | null = null;
 
@@ -422,6 +424,29 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
           return;
         }
         this.loadInitialPage(participantId, this.requestVersion);
+      },
+      { allowSignalWrites: true }
+    );
+
+    effect(
+      () => {
+        const participantId = this.activeParticipantId();
+        const hasEvents = this.events().length > 0;
+        const nextCursorDate = this.nextCursorDate();
+        const isLoading = this.isInitialLoading() || this.isLoadingMore();
+        const loadError = this.loadError();
+
+        if (!participantId || hasEvents || isLoading || loadError || !nextCursorDate) {
+          return;
+        }
+
+        if (this.emptyAutoloadAttempts >= MAX_EMPTY_AUTOLOAD_ATTEMPTS) {
+          this.loadError.set('Unable to find timeline events for this participant.');
+          return;
+        }
+
+        this.emptyAutoloadAttempts += 1;
+        this.loadNextPage();
       },
       { allowSignalWrites: true }
     );
@@ -599,6 +624,7 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
     this.isInitialLoading.set(false);
     this.isLoadingMore.set(false);
     this.anchorDate = '';
+    this.emptyAutoloadAttempts = 0;
   }
 
   private mergeById(current: TimelineEvent[], incoming: TimelineEvent[]): TimelineEvent[] {
@@ -676,7 +702,11 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
   }
 
   private todayDateOnly(): string {
-    return new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private formatMonthDay(value: Date): string {
