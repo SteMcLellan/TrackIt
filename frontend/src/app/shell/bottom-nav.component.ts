@@ -34,16 +34,16 @@ import { filter, map } from 'rxjs';
   styles: [`
     .bottom-nav {
       position: fixed;
-      left: 0;
-      right: 0;
+      left: 50%;
+      transform: translateX(-50%);
       bottom: 0;
       z-index: 50;
+      width: min(100%, 28rem);
       max-width: 28rem;
-      margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.625rem 2.5rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+      padding: 0.5rem 1.25rem calc(0.375rem + env(safe-area-inset-bottom, 0px));
       border-top: 1px solid #f1f5f9;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
@@ -80,7 +80,7 @@ import { filter, map } from 'rxjs';
 
     @media (max-width: 480px) {
       .bottom-nav {
-        padding: 0.5rem 1.25rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        padding: 0.4375rem 1rem calc(0.25rem + env(safe-area-inset-bottom, 0px));
       }
 
       .material-symbols-outlined {
