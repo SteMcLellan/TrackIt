@@ -55,6 +55,7 @@ This tracker covers **Screen tier** components and the canonical **Shell** compo
 | frontend/src/app/features/incidents/incident-list.component.ts | No | - | - |
 | frontend/src/app/features/incidents/incident-list-item.component.ts | No | - | - |
 | frontend/src/app/features/invites/invite-accept.component.ts | No | - | - |
+| frontend/src/app/features/medications/medications-dashboard.component.ts | Yes | projects/2002730124455423542/screens/1c407bc5614340b7bd19044f71ece31c | Medication Command Center |
 | frontend/src/app/features/medications/medication-adherence.component.ts | No | - | - |
 | frontend/src/app/features/medications/medication-checkin.component.ts | No | - | - |
 | frontend/src/app/features/medications/medication-dots-strip.component.ts | No | - | - |

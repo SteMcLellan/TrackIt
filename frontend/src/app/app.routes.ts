@@ -12,6 +12,7 @@ import { ShellComponent } from './shell/shell.component';
 import { InsightsDashboardComponent } from './features/insights/insights-dashboard.component';
 import { ProfileDashboardComponent } from './features/profile/profile-dashboard.component';
 import { DailyReflectionComponent } from './features/daily-reflection/daily-reflection.component';
+import { MedicationsDashboardComponent } from './features/medications/medications-dashboard.component';
 
 /**
  * Application routes for the TrackIt frontend.
@@ -26,6 +27,7 @@ export const appRoutes: Routes = [
     children: [
       { path: '', redirectTo: 'insights', pathMatch: 'full' },
       { path: 'insights', component: InsightsDashboardComponent, canActivate: [ActiveParticipantGuard] },
+      { path: 'medications', component: MedicationsDashboardComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'daily-reflection', component: DailyReflectionComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'timeline', component: TimelineComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'profile', component: ProfileDashboardComponent, canActivate: [ActiveParticipantGuard] }
