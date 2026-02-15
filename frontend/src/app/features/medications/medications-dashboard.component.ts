@@ -1,5 +1,5 @@
 import { httpResource } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { CollectionResponse } from '../../shared/models/collection';
 import { MedicationLog } from '../../shared/models/medication-log';
 import { Medication } from '../../shared/models/medication';
@@ -174,27 +174,15 @@ type ScheduledMedicationCard = {
                           <span class="taken-time-copy">
                             {{ doseSlotLabel(row, card) }} — {{ row.takenTimeLabel ?? 'Time n/a' }}
                           </span>
-                          @if (isEditingTime(row.id)) {
-                            <input
-                              class="time-input"
-                              type="time"
-                              [value]="editingTimeValue()"
-                              (pointerdown)="$event.stopPropagation()"
-                              (input)="onTimeEditorInput($event)"
-                              (keydown)="onTimeEditorKeydown($event, row)"
-                              (blur)="saveTimeEdit(row)"
-                            />
-                          } @else {
-                            <button
-                              class="time-edit-button"
-                              type="button"
-                              [disabled]="isSaving(row.id)"
-                              (pointerdown)="$event.stopPropagation()"
-                              (click)="openTimeEditor(row, $event)"
-                            >
-                              <span class="material-symbols-outlined">edit</span>
-                            </button>
-                          }
+                          <button
+                            class="time-edit-button"
+                            type="button"
+                            [disabled]="isSaving(row.id)"
+                            (pointerdown)="$event.stopPropagation()"
+                            (click)="openTimeEditor(row, $event)"
+                          >
+                            <span class="material-symbols-outlined">edit</span>
+                          </button>
                         } @else {
                           <span class="material-symbols-outlined dose-pending-icon">radio_button_unchecked</span>
                           <span class="dose-pending-copy">{{ doseSlotLabel(row, card) }}</span>
@@ -256,27 +244,15 @@ type ScheduledMedicationCard = {
                         <span class="taken-time-copy">
                           Taken — {{ eventRow.takenTimeLabel ?? 'Time n/a' }}
                         </span>
-                        @if (isEditingTime(eventRow.id)) {
-                          <input
-                            class="time-input"
-                            type="time"
-                            [value]="editingTimeValue()"
-                            (pointerdown)="$event.stopPropagation()"
-                            (input)="onTimeEditorInput($event)"
-                            (keydown)="onTimeEditorKeydown($event, eventRow)"
-                            (blur)="saveTimeEdit(eventRow)"
-                          />
-                        } @else {
-                          <button
-                            class="time-edit-button"
-                            type="button"
-                            [disabled]="isSaving(eventRow.id)"
-                            (pointerdown)="$event.stopPropagation()"
-                            (click)="openTimeEditor(eventRow, $event)"
-                          >
-                            <span class="material-symbols-outlined">edit</span>
-                          </button>
-                        }
+                        <button
+                          class="time-edit-button"
+                          type="button"
+                          [disabled]="isSaving(eventRow.id)"
+                          (pointerdown)="$event.stopPropagation()"
+                          (click)="openTimeEditor(eventRow, $event)"
+                        >
+                          <span class="material-symbols-outlined">edit</span>
+                        </button>
                       </div>
                       @if (isSaving(eventRow.id)) {
                         <span class="status-saving">Saving...</span>
@@ -323,6 +299,16 @@ type ScheduledMedicationCard = {
         }
       </section>
     </div>
+    <input
+      #timePickerInput
+      class="hidden-time-picker"
+      type="time"
+      [value]="timePickerValue()"
+      (change)="onTimePickerChange($event)"
+      (blur)="onTimePickerBlur()"
+      tabindex="-1"
+      aria-hidden="true"
+    />
   `,
   styles: [`
     :host {
@@ -722,15 +708,14 @@ type ScheduledMedicationCard = {
       opacity: 0.5;
     }
 
-    .time-input {
-      height: 1.25rem;
-      border-radius: 0.25rem;
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      background: #fff;
-      color: #334155;
-      font-size: 0.625rem;
-      font-weight: 600;
-      padding: 0 0.2rem;
+    .hidden-time-picker {
+      position: fixed;
+      left: -9999px;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .status-meta {
@@ -813,13 +798,15 @@ type ScheduledMedicationCard = {
 export class MedicationsDashboardComponent {
   private readonly participantService = inject(ParticipantService);
   private readonly medicationLogs = inject(MedicationLogService);
+  @ViewChild('timePickerInput') private readonly timePickerInput?: ElementRef<HTMLInputElement>;
 
   readonly activeParticipantId = this.participantService.activeParticipantId;
   readonly todayLocalDate = signal(this.formatLocalDate(new Date()));
 
   readonly savingMap = signal<Record<string, boolean>>({});
-  readonly editingTimeRowId = signal<string | null>(null);
-  readonly editingTimeValue = signal('');
+  readonly timePickerRowId = signal<string | null>(null);
+  readonly timePickerInitialValue = signal('');
+  readonly timePickerValue = signal('');
   readonly swipeOffsetMap = signal<Record<string, number>>({});
   readonly swipeActiveMap = signal<Record<string, boolean>>({});
   readonly routineError = signal<string | null>(null);
@@ -1011,8 +998,7 @@ export class MedicationsDashboardComponent {
       this.cachedMedications.set([]);
       this.cachedLogs.set([]);
       this.routineLoadedOnce.set(false);
-      this.editingTimeRowId.set(null);
-      this.editingTimeValue.set('');
+      this.clearTimePickerState();
     }, { allowSignalWrites: true });
 
     effect(() => {
@@ -1022,10 +1008,10 @@ export class MedicationsDashboardComponent {
     }, { allowSignalWrites: true });
 
     effect(() => {
-      const editingRowId = this.editingTimeRowId();
-      if (!editingRowId) return;
-      const stillExists = this.routineRows().some(row => row.id === editingRowId);
-      if (!stillExists) this.cancelTimeEdit();
+      const pickerRowId = this.timePickerRowId();
+      if (!pickerRowId) return;
+      const stillExists = this.routineRows().some(row => row.id === pickerRowId);
+      if (!stillExists) this.clearTimePickerState();
     }, { allowSignalWrites: true });
   }
 
@@ -1043,7 +1029,7 @@ export class MedicationsDashboardComponent {
   }
 
   onSwipeStart(event: PointerEvent, row: RoutineMedicationRow): void {
-    if (event.button !== 0 || this.isSaving(row.id) || this.isEditingTime(row.id)) return;
+    if (event.button !== 0 || this.isSaving(row.id)) return;
     this.onSwipeCancel(row.id);
     const surface = event.currentTarget as HTMLElement | null;
     surface?.setPointerCapture(event.pointerId);
@@ -1168,42 +1154,59 @@ export class MedicationsDashboardComponent {
 
   // --- Time editing ---
 
-  isEditingTime(rowId: string): boolean { return this.editingTimeRowId() === rowId; }
-
   openTimeEditor(row: RoutineMedicationRow, event: Event): void {
     event.stopPropagation();
     if (row.status !== 'taken' || this.isSaving(row.id)) return;
     const initialValue = this.resolveEditableTimeValue(row) ?? this.currentLocalTime();
     this.routineError.set(null);
-    this.editingTimeRowId.set(row.id);
-    this.editingTimeValue.set(initialValue);
+    this.timePickerRowId.set(row.id);
+    this.timePickerInitialValue.set(initialValue);
+    this.timePickerValue.set(initialValue);
+    queueMicrotask(() => this.presentTimePicker());
   }
 
-  onTimeEditorInput(event: Event): void {
+  onTimePickerChange(event: Event): void {
+    const rowId = this.timePickerRowId();
+    if (!rowId) return;
+    const row = this.routineRows().find(item => item.id === rowId);
+    if (!row || this.isSaving(row.id)) {
+      this.clearTimePickerState();
+      return;
+    }
+
     const target = event.target as HTMLInputElement | null;
-    if (target) this.editingTimeValue.set(target.value);
+    if (!target) {
+      this.clearTimePickerState();
+      return;
+    }
+    const logLocalTime = target.value.trim();
+    if (!this.isValidTimeInput(logLocalTime)) {
+      this.clearTimePickerState();
+      return;
+    }
+    if (logLocalTime === this.timePickerInitialValue()) {
+      this.clearTimePickerState();
+      return;
+    }
+    this.saveTimeEdit(row, logLocalTime);
   }
 
-  onTimeEditorKeydown(event: KeyboardEvent, row: RoutineMedicationRow): void {
-    event.stopPropagation();
-    if (event.key === 'Enter') { event.preventDefault(); this.saveTimeEdit(row); return; }
-    if (event.key === 'Escape') { event.preventDefault(); this.cancelTimeEdit(); }
+  onTimePickerBlur(): void {
+    this.clearTimePickerState();
   }
 
-  saveTimeEdit(row: RoutineMedicationRow): void {
-    if (!this.isEditingTime(row.id) || this.isSaving(row.id)) return;
+  saveTimeEdit(row: RoutineMedicationRow, logLocalTime: string): void {
+    if (this.isSaving(row.id)) return;
     const participantId = this.activeParticipantId();
-    if (!participantId) { this.cancelTimeEdit(); return; }
-
-    const logLocalTime = this.editingTimeValue().trim();
-    if (!this.isValidTimeInput(logLocalTime)) { this.routineError.set('Please enter a valid time.'); return; }
+    if (!participantId) { this.clearTimePickerState(); return; }
+    if (!this.isValidTimeInput(logLocalTime)) { return; }
 
     const occurrenceKey = row.occurrenceKey;
     if (!occurrenceKey) { this.routineError.set('Unable to update time for this log.'); return; }
 
     const logLocalDate = row.logLocalDate ?? this.todayLocalDate();
     const logTzOffsetMinutes = computeTzOffsetMinutes(logLocalDate, logLocalTime);
-    this.cancelTimeEdit();
+    this.clearTimePickerState();
     this.setSaving(row.id, true);
     this.routineError.set(null);
 
@@ -1215,9 +1218,25 @@ export class MedicationsDashboardComponent {
       });
   }
 
-  cancelTimeEdit(): void {
-    this.editingTimeRowId.set(null);
-    this.editingTimeValue.set('');
+  private presentTimePicker(): void {
+    const input = this.timePickerInput?.nativeElement;
+    if (!input || !this.timePickerRowId()) return;
+
+    input.value = this.timePickerValue();
+    const picker = input as HTMLInputElement & { showPicker?: () => void };
+    if (typeof picker.showPicker === 'function') {
+      picker.showPicker();
+      return;
+    }
+
+    input.focus();
+    input.click();
+  }
+
+  private clearTimePickerState(): void {
+    this.timePickerRowId.set(null);
+    this.timePickerInitialValue.set('');
+    this.timePickerValue.set('');
   }
 
   // --- Helpers ---
