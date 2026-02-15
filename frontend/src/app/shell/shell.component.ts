@@ -41,8 +41,7 @@ import { ShellBottomNavComponent } from './bottom-nav.component';
 
     main {
       flex: 1;
-      overflow-y: auto;
-      overscroll-behavior-y: contain;
+      min-height: 0;
       padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
       background: var(--color-ghost-white-canvas, #fcfcfd);
     }
