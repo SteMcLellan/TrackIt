@@ -35,6 +35,7 @@ docs/
 |   `-- participant-association.md
 |-- product-specs/
 |   |-- behavior-tracking-abc.md
+|   |-- medication-command-center.md
 |   `-- medication-frequency.md
 |-- runbooks/
 |   |-- common-dev-tasks.md
