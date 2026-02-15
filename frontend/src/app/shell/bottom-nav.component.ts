@@ -43,7 +43,7 @@ import { filter, map } from 'rxjs';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1.25rem 2.5rem calc(2rem + env(safe-area-inset-bottom, 0px));
+      padding: 0.625rem 2.5rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
       border-top: 1px solid #f1f5f9;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
@@ -53,12 +53,12 @@ import { filter, map } from 'rxjs';
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.375rem;
+      gap: 0.25rem;
       color: #94a3b8;
       text-decoration: none;
       transition: color var(--transition-fast, 120ms ease);
       min-width: 44px;
-      min-height: 44px;
+      min-height: 40px;
       justify-content: center;
     }
 
@@ -76,6 +76,20 @@ import { filter, map } from 'rxjs';
       text-transform: uppercase;
       letter-spacing: -0.04em;
       line-height: 1;
+    }
+
+    @media (max-width: 480px) {
+      .bottom-nav {
+        padding: 0.5rem 1.25rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+      }
+
+      .material-symbols-outlined {
+        font-size: 24px;
+      }
+
+      .label {
+        font-size: 8px;
+      }
     }
   `]
 })

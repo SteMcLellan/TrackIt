@@ -43,7 +43,7 @@ import { ShellBottomNavComponent } from './bottom-nav.component';
       flex: 1;
       overflow-y: auto;
       overscroll-behavior-y: contain;
-      padding-bottom: calc(8rem + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
       background: var(--color-ghost-white-canvas, #fcfcfd);
     }
   `]
