@@ -4,10 +4,12 @@ import { MedicationLogDocument } from '../../models/medication-log';
 import { MedicationDocument } from '../../models/medication';
 import { DailyReflectionDocument } from '../../models/daily-reflection';
 import { computeUtcFromLocal } from '../validators';
+import { medicationDaypartFromLocalTime } from './daypart';
+import { reflectionBucketLabel } from './reflection-labels';
 
 export type MedicationProjectionAction = 'created' | 'updated' | 'archived' | 'snapshot';
 
-export const EVENT_INDEX_PROJECTION_VERSION = 1;
+export const EVENT_INDEX_PROJECTION_VERSION = 2;
 
 function uniqueTags(tags: string[]): string[] {
   return Array.from(new Set(tags.filter((tag) => tag.trim().length > 0)));
@@ -117,10 +119,11 @@ export function projectMedicationLogToEventIndex(
     ],
     summary: {
       title: log.status === 'taken' ? 'Medication taken' : 'Medication not taken',
-      subtitle: `${medication?.name || log.medicationId} • ${log.occurrenceKey}`,
+      subtitle: buildMedicationLogSubtitle(log.logLocalTime, medication),
       status: log.status,
       medicationId: log.medicationId,
       medicationName: medication?.name,
+      dosageText: medication?.dosageText,
       occurrenceKey: log.occurrenceKey
     }
   });
@@ -170,17 +173,24 @@ export function projectMedicationToEventIndex(
   });
 }
 
-function toScoreBand(value: number): string {
-  if (value <= 24) {
-    return 'very_low';
+function buildMedicationLogSubtitle(
+  logLocalTime: string | undefined,
+  medication?: MedicationDocument
+): string {
+  const daypart = logLocalTime ? medicationDaypartFromLocalTime(logLocalTime) : null;
+  const daypartLabel = daypart ?? 'Dose logged';
+
+  if (medication?.name && medication?.dosageText) {
+    return `${daypartLabel} • ${medication.name} ${medication.dosageText}`;
   }
-  if (value <= 49) {
-    return 'low';
+  if (medication?.name) {
+    return `${daypartLabel} • ${medication.name}`;
   }
-  if (value <= 74) {
-    return 'medium';
-  }
-  return 'high';
+  return daypartLabel;
+}
+
+function toLabelTag(dimension: 'mood' | 'focus' | 'energy' | 'sleep', score: number): string {
+  return reflectionBucketLabel(dimension, score).toLowerCase().replace(/\s+/g, '_');
 }
 
 function buildJournalPreview(note?: string): string | undefined {
@@ -214,15 +224,15 @@ export function projectDailyReflectionToEventIndex(
     operation,
     tags: [
       'type:daily_reflection',
-      `mood_band:${toScoreBand(reflection.moodScore)}`,
-      `focus_band:${toScoreBand(reflection.focusScore)}`,
-      `energy_band:${toScoreBand(reflection.energyScore)}`,
-      `sleep_band:${toScoreBand(reflection.sleepScore)}`,
+      `mood_band:${toLabelTag('mood', reflection.moodScore)}`,
+      `focus_band:${toLabelTag('focus', reflection.focusScore)}`,
+      `energy_band:${toLabelTag('energy', reflection.energyScore)}`,
+      `sleep_band:${toLabelTag('sleep', reflection.sleepScore)}`,
       `operation:${operation}`
     ],
     summary: {
       title: 'Daily reflection',
-      subtitle: `Mood ${reflection.moodScore} | Focus ${reflection.focusScore} | Energy ${reflection.energyScore} | Sleep ${reflection.sleepScore}`,
+      subtitle: buildJournalPreview(reflection.journalNote),
       moodScore: reflection.moodScore,
       focusScore: reflection.focusScore,
       energyScore: reflection.energyScore,

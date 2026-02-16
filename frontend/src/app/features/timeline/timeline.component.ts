@@ -14,6 +14,7 @@ import { ParticipantService } from '../../shared/services/participant.service';
 import { TimelineService } from '../../shared/services/timeline.service';
 import { TimelineEvent, TimelineSourceType } from '../../shared/models/timeline-event';
 import { medicationDaypartFromDate, medicationDaypartFromLocalTime } from '../../shared/utils/medication-daypart';
+import { ReflectionChip, ReflectionFacet, resolveReflectionChip } from '../../shared/utils/reflection-labels';
 
 type TimelineSection = {
   logLocalDate: string;
@@ -98,10 +99,10 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
                       </div>
                     }
 
-                    @if (event.sourceType === 'daily_reflection' && reflectionChipLabels(event).length > 0) {
+                    @if (event.sourceType === 'daily_reflection' && reflectionChips(event).length > 0) {
                       <div class="chip-row">
-                        @for (label of reflectionChipLabels(event); track label) {
-                          <span class="chip chip-sky">{{ label }}</span>
+                        @for (chip of reflectionChips(event); track chip.label) {
+                          <span class="chip" [class]="chip.colorClass">{{ chip.label }}</span>
                         }
                       </div>
                     }
@@ -359,6 +360,16 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       color: var(--color-sky-azure, #0ea5e9);
     }
 
+    .chip-emerald {
+      background: rgba(16, 185, 129, 0.14);
+      color: var(--color-vital-emerald, #10b981);
+    }
+
+    .chip-amber {
+      background: rgba(245, 158, 11, 0.14);
+      color: var(--color-energetic-amber, #f59e0b);
+    }
+
     .load-more-sentinel {
       width: 100%;
       height: 1px;
@@ -504,30 +515,32 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
   }
 
   medicationLabel(event: TimelineEvent): string | null {
-    if (event.summary.medicationName) {
-      return event.summary.medicationName;
+    const name = event.summary.medicationName;
+    if (!name) {
+      return event.summary.medicationId ?? null;
     }
-    return event.summary.medicationId ?? null;
+    const dosage = event.summary.dosageText;
+    return dosage ? `${name} ${dosage}` : name;
   }
 
-  reflectionChipLabels(event: TimelineEvent): string[] {
+  reflectionChips(event: TimelineEvent): ReflectionChip[] {
     const tags = event.tags ?? [];
-    const labels: string[] = [];
-    const entries: Array<{ prefix: string; label: string }> = [
-      { prefix: 'mood_band:', label: 'Mood' },
-      { prefix: 'focus_band:', label: 'Focus' },
-      { prefix: 'energy_band:', label: 'Energy' },
-      { prefix: 'sleep_band:', label: 'Sleep' }
+    const chips: ReflectionChip[] = [];
+    const facets: Array<{ prefix: string; facet: ReflectionFacet }> = [
+      { prefix: 'mood_band:', facet: 'mood' },
+      { prefix: 'focus_band:', facet: 'focus' },
+      { prefix: 'energy_band:', facet: 'energy' },
+      { prefix: 'sleep_band:', facet: 'sleep' }
     ];
 
-    for (const entry of entries) {
-      const value = tags.find((tag) => tag.startsWith(entry.prefix))?.slice(entry.prefix.length);
+    for (const { prefix, facet } of facets) {
+      const value = tags.find((tag) => tag.startsWith(prefix))?.slice(prefix.length);
       if (!value) {
         continue;
       }
-      labels.push(`${entry.label}: ${value.replace(/_/g, ' ')}`);
+      chips.push(resolveReflectionChip(facet, value));
     }
-    return labels.slice(0, 2);
+    return chips;
   }
 
   formatEventTime(event: TimelineEvent): string {

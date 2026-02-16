@@ -10,6 +10,7 @@ export type TimelineEventSummary = {
   place?: string;
   medicationId?: string;
   medicationName?: string;
+  dosageText?: string;
   occurrenceKey?: string;
   moodScore?: number;
   focusScore?: number;
