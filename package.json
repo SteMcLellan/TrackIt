@@ -6,7 +6,6 @@
     "frontend"
   ],
   "scripts": {
-    "audit:stitch-migration": "node tools/stitch/audit-migration.mjs",
     "build": "npm run build:frontend && npm run build:api",
     "build:api": "npm --workspace api run build",
     "build:frontend": "npm --workspace frontend run build",

@@ -28,8 +28,8 @@ This runbook captures common implementation workflows in TrackIt.
 
 1. Implement component from Stitch design.
 2. Add required Stitch metadata block above `@Component(...)`.
-3. Update `docs/references/stitch-migration.md`.
-4. Run `npm run audit:stitch-migration`.
+3. Update `DESIGN.md` if new reusable patterns were introduced.
+4. Run `npm run build:frontend`.
 
 ## Related Docs
 

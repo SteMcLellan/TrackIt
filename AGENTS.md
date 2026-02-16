@@ -44,7 +44,6 @@ docs/
 |   |-- development-commands.md
 |   |-- environment-variables.md
 |   |-- repo-conventions.md
-|   |-- stitch-migration.md
 |   `-- stitch-workflow.md
 |-- decisions/
 |   `-- README.md
@@ -68,4 +67,3 @@ docs/
 
 - Project: `projects/2002730124455423542`
 - Workflow: `docs/references/stitch-workflow.md`
-- Tracker: `docs/references/stitch-migration.md`

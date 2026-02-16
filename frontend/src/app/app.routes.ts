@@ -3,12 +3,9 @@ import { AuthGuard } from './shared/guards/auth.guard';
 import { ActiveParticipantGuard } from './shared/guards/active-participant.guard';
 import { LoginComponent } from './features/auth/login.component';
 import { BehavioralMomentCreateComponent } from './features/incidents/behavioral-moment-create.component';
-import { IncidentCreateComponent } from './features/incidents/incident-create.component';
-import { IncidentDetailComponent } from './features/incidents/incident-detail.component';
-import { IncidentListComponent } from './features/incidents/incident-list.component';
 import { TimelineComponent } from './features/timeline/timeline.component';
 import { InviteAcceptComponent } from './features/invites/invite-accept.component';
-import { ShellComponent } from './shell/shell.component';
+import { ShellComponent } from './shared/ui/page/shell.component';
 import { InsightsDashboardComponent } from './features/insights/insights-dashboard.component';
 import { ProfileDashboardComponent } from './features/profile/profile-dashboard.component';
 import { DailyReflectionComponent } from './features/daily-reflection/daily-reflection.component';
@@ -29,14 +26,9 @@ export const appRoutes: Routes = [
       { path: 'insights', component: InsightsDashboardComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'medications', component: MedicationsDashboardComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'daily-reflection', component: DailyReflectionComponent, canActivate: [ActiveParticipantGuard] },
+      { path: 'behavioral-moments/new', component: BehavioralMomentCreateComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'timeline', component: TimelineComponent, canActivate: [ActiveParticipantGuard] },
       { path: 'profile', component: ProfileDashboardComponent, canActivate: [ActiveParticipantGuard] }
     ]
-  },
-  { path: 'home', redirectTo: '/insights', pathMatch: 'full' },
-  { path: 'analytics', redirectTo: '/insights', pathMatch: 'full' },
-  { path: 'incidents', component: IncidentListComponent, canActivate: [AuthGuard] },
-  { path: 'behavioral-moments/new', component: BehavioralMomentCreateComponent, canActivate: [AuthGuard] },
-  { path: 'incidents/new', component: IncidentCreateComponent, canActivate: [AuthGuard] },
-  { path: 'incidents/:id', component: IncidentDetailComponent, canActivate: [AuthGuard] }
+  }
 ];

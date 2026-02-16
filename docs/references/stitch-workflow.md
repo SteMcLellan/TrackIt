@@ -13,7 +13,7 @@ Not every component needs a Stitch screen. Use this model to decide:
 
 | Tier | What belongs here | Stitch involvement |
 |---|---|---|
-| **Screen** | Feature page components — each represents a distinct user-visible surface | Generate + track in `stitch-migration.md` |
+| **Screen** | Feature page components — each represents a distinct user-visible surface | Generate when needed, then implement from `DESIGN.md` |
 | **Pattern** | Shared UI components (cards, chips, charts, forms, shell sub-pieces) | Capture in `DESIGN.md`; no individual Stitch screen |
 | **Atom** | Icon components, skeletons, utility components | None — code only |
 
@@ -76,7 +76,7 @@ Use this workflow to brainstorm a specific component or page section using Stitc
 
 5. **Implement the target component only.** Scope the implementation plan and all code changes exclusively to the target component. Do not touch surrounding components, shared layout, or the shell — even if the scratch screen renders them differently.
 
-6. **Discard the scratch screen.** Do not add a tracker entry in `stitch-migration.md`. Do not add `@stitch-*` metadata to the component. The screen was exploratory only.
+6. **Discard the scratch screen.** Do not add `@stitch-*` metadata to the component. The screen was exploratory only.
 
 ### Scope isolation rule
 
@@ -113,12 +113,6 @@ Rules:
 - `@stitch-status` must be `converted` when migrated.
 - `@stitch-last-sync` records **when the code was initially derived from Stitch** — it is a provenance marker, not an active sync target. Do not update it unless the component is re-derived from a new or revised Stitch screen.
 
-## Migration Tracking
-
-- Tracker location: `docs/references/stitch-migration.md`
-- Audit command: `npm run audit:stitch-migration`
-- Tracker scope: Screen-tier and Shell components only (see Component Tier Model above).
-
 ## Shell Parity Checklist
 
 Use this before accepting a Stitch screen update:
@@ -129,6 +123,5 @@ Use this before accepting a Stitch screen update:
 
 ## Related Docs
 
-- `docs/references/stitch-migration.md`
 - `docs/runbooks/common-dev-tasks.md`
 - `DESIGN.md`
