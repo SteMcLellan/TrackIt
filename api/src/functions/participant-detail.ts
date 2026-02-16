@@ -1,10 +1,8 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
-import { readParticipant, readParticipantLink } from '../shared/data/participants';
+import { readParticipant } from '../shared/data/participants';
 import { ParticipantDocument } from '../models/participant';
 
 type UpdateParticipantRequest = {
@@ -12,7 +10,7 @@ type UpdateParticipantRequest = {
   birthDate?: string;
 };
 
-function isDateOnly(value: string): boolean {
+export function isDateOnly(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
   }
@@ -25,7 +23,7 @@ function isDateOnly(value: string): boolean {
   );
 }
 
-function calculateAgeYears(birthDate: string): number {
+export function calculateAgeYears(birthDate: string): number {
   const [year, month, day] = birthDate.split('-').map((part) => Number(part));
   const today = new Date();
   let age = today.getUTCFullYear() - year;
@@ -36,7 +34,7 @@ function calculateAgeYears(birthDate: string): number {
   return age;
 }
 
-function normalizeParticipantForResponse(participant: ParticipantDocument): Omit<ParticipantDocument, 'ageYears'> & { ageYears: number | null } {
+export function normalizeParticipantForResponse(participant: ParticipantDocument): Omit<ParticipantDocument, 'ageYears'> & { ageYears: number | null } {
   if (typeof participant.birthDate === 'string' && isDateOnly(participant.birthDate)) {
     return {
       ...participant,
@@ -49,47 +47,22 @@ function normalizeParticipantForResponse(participant: ParticipantDocument): Omit
   };
 }
 
-const readParticipantHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.id;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'participants.id.required', message: 'Participant id is required.' }
-      ]);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
-    const participant = await readParticipant(containers.participants, participantId);
+const readParticipantInnerHandler = async (
+  ctx: ParticipantContext
+): Promise<HttpResponseInit> => {
+    const participant = await readParticipant(ctx.containers.participants, ctx.participantId);
     if (!participant) {
       return { status: 404, jsonBody: { message: 'Participant not found.' } };
     }
 
-    return { status: 200, jsonBody: { ...normalizeParticipantForResponse(participant), role: link.role } };
-  }
-);
+    return { status: 200, jsonBody: { ...normalizeParticipantForResponse(participant), role: ctx.link.role } };
+  };
 
-const updateParticipantHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.id;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'participants.id.required', message: 'Participant id is required.' }
-      ]);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-    if (link.role !== 'manager') {
+const updateParticipantInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
+    if (ctx.link.role !== 'manager') {
       return { status: 403, jsonBody: { message: 'Participant update requires manager role.' } };
     }
 
@@ -129,7 +102,7 @@ const updateParticipantHandler = withErrorHandling(
       return buildValidationError(updates);
     }
 
-    const participant = await readParticipant(containers.participants, participantId);
+    const participant = await readParticipant(ctx.containers.participants, ctx.participantId);
     if (!participant) {
       return { status: 404, jsonBody: { message: 'Participant not found.' } };
     }
@@ -152,10 +125,25 @@ const updateParticipantHandler = withErrorHandling(
           : participant.ageYears ?? null
     };
 
-    await containers.participants.items.upsert(updated);
+    await ctx.containers.participants.items.upsert(updated);
 
-    return { status: 200, jsonBody: { ...normalizeParticipantForResponse(updated), role: link.role } };
-  }
+    return { status: 200, jsonBody: { ...normalizeParticipantForResponse(updated), role: ctx.link.role } };
+  };
+
+const readParticipantHandler = withParticipantContext(
+  {
+    participantParamName: 'id',
+    missingParticipantErrorId: 'participants.id.required'
+  },
+  readParticipantInnerHandler
+);
+
+const updateParticipantHandler = withParticipantContext(
+  {
+    participantParamName: 'id',
+    missingParticipantErrorId: 'participants.id.required'
+  },
+  updateParticipantInnerHandler
 );
 
 app.http('participant-detail-get', {
@@ -172,4 +160,4 @@ app.http('participant-detail-patch', {
   handler: updateParticipantHandler
 });
 
-export { readParticipantHandler, updateParticipantHandler };
+export { readParticipantHandler, updateParticipantHandler, readParticipantInnerHandler, updateParticipantInnerHandler };

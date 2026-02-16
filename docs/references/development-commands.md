@@ -9,6 +9,7 @@ npm run dev:all
 npm run lint
 npm run format
 npm run build
+npm run test:api
 ```
 
 ## Notes

@@ -38,6 +38,7 @@ docs/
 |   |-- medication-command-center.md
 |   `-- medication-frequency.md
 |-- runbooks/
+|   |-- api-testing.md
 |   |-- common-dev-tasks.md
 |   `-- frontend-build-verification.md
 |-- references/

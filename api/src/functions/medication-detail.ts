@@ -1,11 +1,8 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { readMedication } from '../shared/data/medications';
-import { readParticipantLink } from '../shared/data/participants';
 import { MedicationDocument, MedicationFrequency } from '../models/medication';
 import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
@@ -31,7 +28,7 @@ function isNonEmpty(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isDateOnly(value: string): boolean {
+export function isDateOnly(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
   }
@@ -69,7 +66,7 @@ function hasLegacyFrequencyTextField(value: unknown): boolean {
   return typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, 'frequencyText');
 }
 
-function validateUpdateRequest(body: UpdateMedicationRequest): ValidationErrorDetail[] {
+export function validateUpdateRequest(body: UpdateMedicationRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
   const frequency = typeof body.frequency === 'string' ? body.frequency.trim() : undefined;
 
@@ -101,22 +98,15 @@ function validateUpdateRequest(body: UpdateMedicationRequest): ValidationErrorDe
   return errors;
 }
 
-const updateMedicationHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const updateMedicationInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const medicationId = req.params.medicationId;
-    if (!participantId || !medicationId) {
+    if (!medicationId) {
       return buildValidationError([
-        { id: 'medications.participantId.required', message: 'Participant id is required.' },
         { id: 'medications.medicationId.required', message: 'Medication id is required.' }
       ]);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
     }
 
     const parsed = await parseJsonBody<UpdateMedicationRequest>(req, {
@@ -141,7 +131,7 @@ const updateMedicationHandler = withErrorHandling(
       return buildValidationError(errors);
     }
 
-    const existing = await readMedication(containers.medications, participantId, medicationId);
+    const existing = await readMedication(ctx.containers.medications, ctx.participantId, medicationId);
     if (!existing) {
       return { status: 404, jsonBody: { message: 'Medication not found.' } };
     }
@@ -172,42 +162,46 @@ const updateMedicationHandler = withErrorHandling(
       updatedAtUtc: new Date().toISOString()
     };
 
-    await containers.medications.items.upsert(updated);
+    await ctx.containers.medications.items.upsert(updated);
     const action = !existing.archivedAtUtc && updated.archivedAtUtc ? 'archived' : 'updated';
     await appendTimelineEvent(
-      containers.eventIndex,
+      ctx.containers.eventIndex,
       projectMedicationToEventIndex(updated, action)
     );
 
     return { status: 200, jsonBody: updated };
-  }
-);
+  };
 
-const readMedicationHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const readMedicationInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const medicationId = req.params.medicationId;
-    if (!participantId || !medicationId) {
+    if (!medicationId) {
       return buildValidationError([
-        { id: 'medications.participantId.required', message: 'Participant id is required.' },
         { id: 'medications.medicationId.required', message: 'Medication id is required.' }
       ]);
     }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
-    const medication = await readMedication(containers.medications, participantId, medicationId);
+    const medication = await readMedication(ctx.containers.medications, ctx.participantId, medicationId);
     if (!medication) {
       return { status: 404, jsonBody: { message: 'Medication not found.' } };
     }
 
     return { status: 200, jsonBody: medication };
-  }
+  };
+
+const updateMedicationHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'medications.participantId.required'
+  },
+  updateMedicationInnerHandler
+);
+
+const readMedicationHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'medications.participantId.required'
+  },
+  readMedicationInnerHandler
 );
 
 app.http('medication-detail-get', {
@@ -224,4 +218,4 @@ app.http('medication-detail-patch', {
   handler: updateMedicationHandler
 });
 
-export { readMedicationHandler, updateMedicationHandler };
+export { readMedicationHandler, updateMedicationHandler, readMedicationInnerHandler, updateMedicationInnerHandler };

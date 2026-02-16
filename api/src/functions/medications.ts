@@ -1,12 +1,9 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { randomUUID } from 'crypto';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { buildMedicationListQuery } from '../shared/data/medications';
-import { readParticipantLink } from '../shared/data/participants';
 import { MedicationDocument, MedicationFrequency } from '../models/medication';
 import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
@@ -32,7 +29,7 @@ function isNonEmpty(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isDateOnly(value: string): boolean {
+export function isDateOnly(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
   }
@@ -52,7 +49,7 @@ function isNullableDateOnly(value: unknown): value is string | null | undefined 
   return typeof value === 'string' && isDateOnly(value);
 }
 
-function parsePageSize(value?: string | null): number {
+export function parsePageSize(value?: string | null): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 25;
@@ -60,7 +57,7 @@ function parsePageSize(value?: string | null): number {
   return Math.min(parsed, maxPageSize);
 }
 
-function parseIncludeArchived(value?: string | null): boolean {
+export function parseIncludeArchived(value?: string | null): boolean {
   return value === 'true' || value === '1';
 }
 
@@ -68,7 +65,7 @@ function hasLegacyFrequencyTextField(value: unknown): boolean {
   return typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, 'frequencyText');
 }
 
-function validateCreateRequest(body: CreateMedicationRequest): ValidationErrorDetail[] {
+export function validateCreateRequest(body: CreateMedicationRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
   const frequency = typeof body.frequency === 'string' ? body.frequency.trim() : '';
 
@@ -106,29 +103,17 @@ type ListMedicationsResponse = {
   nextToken: string | null;
 };
 
-const listMedicationsHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'medications.participantId.required', message: 'Participant id is required.' }
-      ]);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
+const listMedicationsInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const pageSize = parsePageSize(req.query.get('pageSize'));
     const nextToken = req.query.get('nextToken');
     const includeArchived = parseIncludeArchived(req.query.get('includeArchived'));
-    const query = buildMedicationListQuery(participantId, includeArchived);
+    const query = buildMedicationListQuery(ctx.participantId, includeArchived);
 
-    const response = await containers.medications.items.query<MedicationDocument>(query, {
-      partitionKey: participantId,
+    const response = await ctx.containers.medications.items.query<MedicationDocument>(query, {
+      partitionKey: ctx.participantId,
       maxItemCount: pageSize,
       continuationToken: nextToken ?? undefined
     }).fetchNext();
@@ -138,25 +123,12 @@ const listMedicationsHandler = withErrorHandling(
       nextToken: response.continuationToken ?? null
     };
     return { status: 200, jsonBody: payload };
-  }
-);
+  };
 
-const createMedicationHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'medications.participantId.required', message: 'Participant id is required.' }
-      ]);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
+const createMedicationInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const parsed = await parseJsonBody<CreateMedicationRequest>(req, {
       id: 'medications.body.invalid',
       message: 'Request body must be valid JSON.'
@@ -183,7 +155,7 @@ const createMedicationHandler = withErrorHandling(
     const frequency = parsed.value.frequency.trim() as MedicationFrequency;
     const medication: MedicationDocument = {
       id: `med_${randomUUID()}`,
-      participantId,
+      participantId: ctx.participantId,
       name: parsed.value.name.trim(),
       dosageText: parsed.value.dosageText.trim(),
       frequency,
@@ -195,14 +167,27 @@ const createMedicationHandler = withErrorHandling(
       updatedAtUtc: now
     };
 
-    await containers.medications.items.create(medication);
+    await ctx.containers.medications.items.create(medication);
     await appendTimelineEvent(
-      containers.eventIndex,
+      ctx.containers.eventIndex,
       projectMedicationToEventIndex(medication, 'created')
     );
 
     return { status: 201, jsonBody: medication };
-  }
+  };
+
+const listMedicationsHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'medications.participantId.required'
+  },
+  listMedicationsInnerHandler
+);
+
+const createMedicationHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'medications.participantId.required'
+  },
+  createMedicationInnerHandler
 );
 
 app.http('medications-list', {
@@ -219,4 +204,4 @@ app.http('medications-create', {
   handler: createMedicationHandler
 });
 
-export { listMedicationsHandler, createMedicationHandler };
+export { listMedicationsHandler, createMedicationHandler, listMedicationsInnerHandler, createMedicationInnerHandler };

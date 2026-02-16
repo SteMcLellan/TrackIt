@@ -1,8 +1,6 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { randomUUID } from 'crypto';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { withAuthContext, withParticipantContext, AuthContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
 import { readParticipant, readParticipantLink } from '../shared/data/participants';
 import { ParticipantInviteDocument } from '../models/participant-invite';
@@ -31,16 +29,14 @@ const PARTICIPANT_PREFIX = 'participant_';
 const INVITE_PREFIX = 'invite_';
 const INVITE_TTL_DAYS = 7;
 
-function isParticipantIdValid(participantId?: string | null) {
+export function isParticipantIdValid(participantId?: string | null) {
   return Boolean(participantId && participantId.startsWith(PARTICIPANT_PREFIX));
 }
 
-const readActiveParticipantInviteHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-
-    if (!isParticipantIdValid(participantId)) {
+const readActiveParticipantInviteInnerHandler = async (
+  ctx: ParticipantContext
+): Promise<HttpResponseInit> => {
+    if (!isParticipantIdValid(ctx.participantId)) {
       return buildValidationError([
         {
           id: 'participants.id.invalid',
@@ -48,18 +44,12 @@ const readActiveParticipantInviteHandler = withErrorHandling(
         }
       ]);
     }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-    if (link.role !== 'manager') {
+    if (ctx.link.role !== 'manager') {
       return { status: 403, jsonBody: { message: 'Invite read requires manager role.' } };
     }
 
     const nowIso = new Date().toISOString();
-    const result = await containers.participantInvites.items
+    const result = await ctx.containers.participantInvites.items
       .query<ParticipantInviteDocument>(
         {
           query: `SELECT TOP 1 * FROM c
@@ -69,39 +59,29 @@ const readActiveParticipantInviteHandler = withErrorHandling(
                     AND c.expiresAt >= @now
                   ORDER BY c.createdAt DESC`,
           parameters: [
-            { name: '@participantId', value: participantId },
+            { name: '@participantId', value: ctx.participantId },
             { name: '@now', value: nowIso }
           ]
         },
-        { partitionKey: participantId, maxItemCount: 1 }
+        { partitionKey: ctx.participantId, maxItemCount: 1 }
       )
       .fetchAll();
 
     const invite = result.resources?.[0];
     const response: ActiveParticipantInviteResponse = {
-      participantId,
+      participantId: ctx.participantId,
       inviteId: invite?.id ?? null,
       expiresAt: invite?.expiresAt ?? null,
       createdAt: invite?.createdAt ?? null
     };
 
     return { status: 200, jsonBody: response };
-  }
-);
+  };
 
-app.http('participant-invites-active-get', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'participants/{participantId}/invites/active',
-  handler: readActiveParticipantInviteHandler
-});
-
-const createParticipantInviteHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-
-    if (!isParticipantIdValid(participantId)) {
+const createParticipantInviteInnerHandler = async (
+  ctx: ParticipantContext
+): Promise<HttpResponseInit> => {
+    if (!isParticipantIdValid(ctx.participantId)) {
       return buildValidationError([
         {
           id: 'participants.id.invalid',
@@ -109,17 +89,11 @@ const createParticipantInviteHandler = withErrorHandling(
         }
       ]);
     }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-    if (link.role !== 'manager') {
+    if (ctx.link.role !== 'manager') {
       return { status: 403, jsonBody: { message: 'Invite creation requires manager role.' } };
     }
 
-    const participant = await readParticipant(containers.participants, participantId);
+    const participant = await readParticipant(ctx.containers.participants, ctx.participantId);
     if (!participant) {
       return { status: 404, jsonBody: { message: 'Participant not found.' } };
     }
@@ -128,60 +102,53 @@ const createParticipantInviteHandler = withErrorHandling(
     const nowIso = now.toISOString();
     const expiresAt = new Date(now.getTime() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-    const existingInvites = await containers.participantInvites.items
+    const existingInvites = await ctx.containers.participantInvites.items
       .query<ParticipantInviteDocument>(
         {
           query:
             'SELECT * FROM c WHERE c.participantId = @participantId AND (NOT IS_DEFINED(c.revokedAt)) AND (NOT IS_DEFINED(c.consumedAt))',
-          parameters: [{ name: '@participantId', value: participantId }]
+          parameters: [{ name: '@participantId', value: ctx.participantId }]
         },
-        { partitionKey: participantId }
+        { partitionKey: ctx.participantId }
       )
       .fetchAll();
 
     for (const invite of existingInvites.resources ?? []) {
-      await containers.participantInvites.items.upsert({
+      await ctx.containers.participantInvites.items.upsert({
         ...invite,
         revokedAt: nowIso,
-        revokedByUserId: user.sub
+        revokedByUserId: ctx.user.sub
       });
     }
 
     const inviteId = `${INVITE_PREFIX}${randomUUID()}`;
     const invite: ParticipantInviteDocument = {
       id: inviteId,
-      participantId,
+      participantId: ctx.participantId,
       createdAt: nowIso,
-      createdByUserId: user.sub,
+      createdByUserId: ctx.user.sub,
       expiresAt
     };
 
-    await containers.participantInvites.items.create(invite);
+    await ctx.containers.participantInvites.items.create(invite);
 
     const response: ParticipantInviteResponse = {
-      participantId,
+      participantId: ctx.participantId,
       inviteId,
       expiresAt
     };
 
     return { status: 201, jsonBody: response };
-  }
-);
+  };
 
-app.http('participant-invites-create', {
-  methods: ['POST'],
-  authLevel: 'anonymous',
-  route: 'participants/{participantId}/invites',
-  handler: createParticipantInviteHandler
-});
-
-function isInviteIdValid(inviteId?: string | null) {
+export function isInviteIdValid(inviteId?: string | null) {
   return Boolean(inviteId && inviteId.startsWith(INVITE_PREFIX));
 }
 
-const acceptParticipantInviteHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
+const acceptParticipantInviteInnerHandler = async (
+  ctx: AuthContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const participantId = req.params.participantId;
     const inviteId = req.params.inviteId;
 
@@ -203,10 +170,7 @@ const acceptParticipantInviteHandler = withErrorHandling(
       ]);
     }
 
-    const { containers } = await buildCosmos();
-
-    // Read invite by point read (partition key is participantId)
-    const { resource: invite } = await containers.participantInvites
+    const { resource: invite } = await ctx.containers.participantInvites
       .item(inviteId, participantId)
       .read<ParticipantInviteDocument>();
 
@@ -227,13 +191,13 @@ const acceptParticipantInviteHandler = withErrorHandling(
     }
 
     // Check if participant exists
-    const participant = await readParticipant(containers.participants, participantId);
+    const participant = await readParticipant(ctx.containers.participants, participantId);
     if (!participant) {
       return { status: 404, jsonBody: { message: 'Participant not found.' } };
     }
 
     // Check if user is already linked
-    const existingLink = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
+    const existingLink = await readParticipantLink(ctx.containers.userParticipantLinks, ctx.user.sub, participantId);
     if (existingLink) {
       const response: AcceptInviteResponse = {
         participantId,
@@ -246,21 +210,21 @@ const acceptParticipantInviteHandler = withErrorHandling(
     // Create the user-participant link
     const nowIso = now.toISOString();
     const linkDoc: UserParticipantLinkDocument = {
-      id: `${user.sub}:${participantId}`,
-      userId: user.sub,
+      id: `${ctx.user.sub}:${participantId}`,
+      userId: ctx.user.sub,
       participantId,
       role: 'manager',
       createdAt: nowIso
     };
-    await containers.userParticipantLinks.items.create(linkDoc);
+    await ctx.containers.userParticipantLinks.items.create(linkDoc);
 
     // Mark invite as consumed with optimistic concurrency
     try {
-      await containers.participantInvites.item(inviteId, participantId).replace(
+      await ctx.containers.participantInvites.item(inviteId, participantId).replace(
         {
           ...invite,
           consumedAt: nowIso,
-          consumedByUserId: user.sub
+          consumedByUserId: ctx.user.sub
         },
         { accessCondition: { type: 'IfMatch', condition: invite._etag! } }
       );
@@ -279,8 +243,39 @@ const acceptParticipantInviteHandler = withErrorHandling(
       alreadyLinked: false
     };
     return { status: 200, jsonBody: response };
-  }
+  };
+
+const readActiveParticipantInviteHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'participants.id.invalid',
+    missingParticipantErrorMessage: 'Participant id must start with participant_.'
+  },
+  readActiveParticipantInviteInnerHandler
 );
+
+const createParticipantInviteHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'participants.id.invalid',
+    missingParticipantErrorMessage: 'Participant id must start with participant_.'
+  },
+  createParticipantInviteInnerHandler
+);
+
+const acceptParticipantInviteHandler = withAuthContext(acceptParticipantInviteInnerHandler);
+
+app.http('participant-invites-active-get', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'participants/{participantId}/invites/active',
+  handler: readActiveParticipantInviteHandler
+});
+
+app.http('participant-invites-create', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'participants/{participantId}/invites',
+  handler: createParticipantInviteHandler
+});
 
 app.http('participant-invites-accept', {
   methods: ['POST'],
@@ -289,4 +284,11 @@ app.http('participant-invites-accept', {
   handler: acceptParticipantInviteHandler
 });
 
-export { readActiveParticipantInviteHandler, createParticipantInviteHandler, acceptParticipantInviteHandler };
+export {
+  readActiveParticipantInviteHandler,
+  createParticipantInviteHandler,
+  acceptParticipantInviteHandler,
+  readActiveParticipantInviteInnerHandler,
+  createParticipantInviteInnerHandler,
+  acceptParticipantInviteInnerHandler
+};

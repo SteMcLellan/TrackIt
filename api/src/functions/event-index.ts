@@ -1,16 +1,13 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
-import { readParticipantLink } from '../shared/data/participants';
 import { buildTimelineByLocalDateQuery } from '../shared/data/event-index';
 import { EventIndexDocument, EventSourceType } from '../models/event-index';
 
 const sourceTypeOptions: EventSourceType[] = ['incident', 'medication_log', 'medication', 'daily_reflection'];
 const defaultSourceTypeFilter: EventSourceType[] = ['incident', 'medication_log', 'medication', 'daily_reflection'];
 
-function isDateOnly(value: string | null): boolean {
+export function isDateOnly(value: string | null): boolean {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
   }
@@ -23,7 +20,7 @@ function isDateOnly(value: string | null): boolean {
   );
 }
 
-function parseSourceTypes(value: string | null): EventSourceType[] | undefined {
+export function parseSourceTypes(value: string | null): EventSourceType[] | undefined {
   if (!value) {
     return undefined;
   }
@@ -34,16 +31,10 @@ function parseSourceTypes(value: string | null): EventSourceType[] | undefined {
   return parsed.length > 0 ? parsed : undefined;
 }
 
-const listRawEventIndexByDateHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'eventIndex.participantId.required', message: 'Participant id is required.' }
-      ]);
-    }
-
+const listRawEventIndexByDateInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const date = req.query.get('date');
     if (!isDateOnly(date)) {
       return buildValidationError([
@@ -53,20 +44,14 @@ const listRawEventIndexByDateHandler = withErrorHandling(
 
     const sourceTypes = parseSourceTypes(req.query.get('$types')) ?? defaultSourceTypeFilter;
 
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
     const query = buildTimelineByLocalDateQuery({
-      participantId,
+      participantId: ctx.participantId,
       startDate: date!,
       endDate: date!,
       sourceTypes
     });
-    const response = await containers.eventIndex.items.query<EventIndexDocument>(query, {
-      partitionKey: participantId,
+    const response = await ctx.containers.eventIndex.items.query<EventIndexDocument>(query, {
+      partitionKey: ctx.participantId,
       maxItemCount: 500
     }).fetchNext();
     const items = [...(response.resources ?? [])].sort((left, right) => (
@@ -80,7 +65,13 @@ const listRawEventIndexByDateHandler = withErrorHandling(
         items
       }
     };
-  }
+  };
+
+const listRawEventIndexByDateHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'eventIndex.participantId.required'
+  },
+  listRawEventIndexByDateInnerHandler
 );
 
 app.http('event-index-list', {
@@ -90,4 +81,4 @@ app.http('event-index-list', {
   handler: listRawEventIndexByDateHandler
 });
 
-export { listRawEventIndexByDateHandler };
+export { listRawEventIndexByDateHandler, listRawEventIndexByDateInnerHandler };

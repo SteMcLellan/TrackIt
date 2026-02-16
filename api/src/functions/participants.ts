@@ -1,8 +1,6 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { randomUUID } from 'crypto';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { withAuthContext, AuthContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { listParticipantLinks, readParticipant } from '../shared/data/participants';
@@ -23,7 +21,7 @@ type CreateParticipantRequest = {
   birthDate: string;
 };
 
-function parsePageSize(value?: string | null): number {
+export function parsePageSize(value?: string | null): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 25;
@@ -31,7 +29,7 @@ function parsePageSize(value?: string | null): number {
   return Math.min(parsed, 100);
 }
 
-function normalizeDisplayName(displayName?: string | null): string | undefined {
+export function normalizeDisplayName(displayName?: string | null): string | undefined {
   if (!displayName) {
     return undefined;
   }
@@ -39,7 +37,7 @@ function normalizeDisplayName(displayName?: string | null): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function isDateOnly(value: string): boolean {
+export function isDateOnly(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
   }
@@ -52,7 +50,7 @@ function isDateOnly(value: string): boolean {
   );
 }
 
-function calculateAgeYears(birthDate: string): number {
+export function calculateAgeYears(birthDate: string): number {
   const [year, month, day] = birthDate.split('-').map((part) => Number(part));
   const today = new Date();
   let age = today.getUTCFullYear() - year;
@@ -63,7 +61,7 @@ function calculateAgeYears(birthDate: string): number {
   return age;
 }
 
-function normalizeParticipant(participant: ParticipantDocument): Omit<ParticipantDocument, 'ageYears'> & { ageYears: number | null } {
+export function normalizeParticipant(participant: ParticipantDocument): Omit<ParticipantDocument, 'ageYears'> & { ageYears: number | null } {
   const birthDate = participant.birthDate;
   if (typeof birthDate === 'string' && isDateOnly(birthDate)) {
     return {
@@ -78,7 +76,7 @@ function normalizeParticipant(participant: ParticipantDocument): Omit<Participan
   };
 }
 
-function validateCreateRequest(body: CreateParticipantRequest): ValidationErrorDetail[] {
+export function validateCreateRequest(body: CreateParticipantRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
 
   if (typeof body.birthDate !== 'string' || !isDateOnly(body.birthDate)) {
@@ -96,18 +94,17 @@ function validateCreateRequest(body: CreateParticipantRequest): ValidationErrorD
   return errors;
 }
 
-const listParticipantsHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const { containers } = await buildCosmos();
-
+const listParticipantsInnerHandler = async (
+  ctx: AuthContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const pageSize = parsePageSize(req.query.get('pageSize'));
     const nextToken = req.query.get('nextToken');
-    const linksPage = await listParticipantLinks(containers.userParticipantLinks, user.sub, pageSize, nextToken);
+    const linksPage = await listParticipantLinks(ctx.containers.userParticipantLinks, ctx.user.sub, pageSize, nextToken);
     const items: ParticipantResponse[] = [];
 
     for (const link of linksPage.resources ?? []) {
-      const participant = await readParticipant(containers.participants, link.participantId);
+      const participant = await readParticipant(ctx.containers.participants, link.participantId);
       if (participant) {
         items.push({ ...normalizeParticipant(participant), role: link.role });
       }
@@ -118,14 +115,12 @@ const listParticipantsHandler = withErrorHandling(
       nextToken: linksPage.continuationToken ?? null
     };
     return { status: 200, jsonBody: response };
-  }
-);
+  };
 
-const createParticipantHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const { containers } = await buildCosmos();
-
+const createParticipantInnerHandler = async (
+  ctx: AuthContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const parsed = await parseJsonBody<CreateParticipantRequest>(req, {
       id: 'participants.body.invalid',
       message: 'Request body must be valid JSON.'
@@ -148,23 +143,25 @@ const createParticipantHandler = withErrorHandling(
       birthDate,
       ageYears: Math.max(calculateAgeYears(birthDate), 0),
       createdAt: timestamp,
-      createdByUserId: user.sub
+      createdByUserId: ctx.user.sub
     };
 
-    await containers.participants.items.create(participant);
+    await ctx.containers.participants.items.create(participant);
 
     const link: UserParticipantLinkDocument = {
-      id: `${user.sub}:${participantId}`,
-      userId: user.sub,
+      id: `${ctx.user.sub}:${participantId}`,
+      userId: ctx.user.sub,
       participantId,
       role: 'manager',
       createdAt: timestamp
     };
-    await containers.userParticipantLinks.items.create(link);
+    await ctx.containers.userParticipantLinks.items.create(link);
 
     return { status: 201, jsonBody: normalizeParticipant(participant) };
-  }
-);
+  };
+
+const listParticipantsHandler = withAuthContext(listParticipantsInnerHandler);
+const createParticipantHandler = withAuthContext(createParticipantInnerHandler);
 
 app.http('participants-list', {
   methods: ['GET'],
@@ -180,4 +177,4 @@ app.http('participants-create', {
   handler: createParticipantHandler
 });
 
-export { listParticipantsHandler, createParticipantHandler };
+export { listParticipantsHandler, createParticipantHandler, listParticipantsInnerHandler, createParticipantInnerHandler };

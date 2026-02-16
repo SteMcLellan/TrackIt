@@ -1,11 +1,8 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { readBehaviorIncident } from '../shared/data/behavior-incidents';
-import { readParticipantLink } from '../shared/data/participants';
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
 import { projectIncidentToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
@@ -35,7 +32,7 @@ type UpdateBehaviorIncidentRequest = {
 
 const behaviorFunctionOptions: BehaviorFunction[] = ['sensory', 'tangible', 'escape', 'attention'];
 
-function validateUpdateRequest(body: UpdateBehaviorIncidentRequest): ValidationErrorDetail[] {
+export function validateUpdateRequest(body: UpdateBehaviorIncidentRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
 
   // Check if at least one field is provided
@@ -102,57 +99,38 @@ function validateUpdateRequest(body: UpdateBehaviorIncidentRequest): ValidationE
   return errors;
 }
 
-const readBehaviorIncidentHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const readBehaviorIncidentInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const incidentId = req.params.incidentId;
-    if (!participantId || !incidentId) {
+    if (!incidentId) {
       const errors: ValidationErrorDetail[] = [];
-      if (!participantId) {
-        errors.push({ id: 'incidents.participantId.required', message: 'Participant id is required.' });
-      }
       if (!incidentId) {
         errors.push({ id: 'incidents.incidentId.required', message: 'Incident id is required.' });
       }
       return buildValidationError(errors);
     }
 
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
-    const incident = await readBehaviorIncident(containers.behaviorIncidents, participantId, incidentId);
+    const incident = await readBehaviorIncident(ctx.containers.behaviorIncidents, ctx.participantId, incidentId);
     if (!incident) {
       return { status: 404, jsonBody: { message: 'Incident not found.' } };
     }
 
     return { status: 200, jsonBody: incident };
-  }
-);
+  };
 
-const updateBehaviorIncidentHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const updateBehaviorIncidentInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const incidentId = req.params.incidentId;
-    if (!participantId || !incidentId) {
+    if (!incidentId) {
       const errors: ValidationErrorDetail[] = [];
-      if (!participantId) {
-        errors.push({ id: 'incidents.participantId.required', message: 'Participant id is required.' });
-      }
       if (!incidentId) {
         errors.push({ id: 'incidents.incidentId.required', message: 'Incident id is required.' });
       }
       return buildValidationError(errors);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
     }
 
     const parsed = await parseJsonBody<UpdateBehaviorIncidentRequest>(req, {
@@ -168,7 +146,7 @@ const updateBehaviorIncidentHandler = withErrorHandling(
       return buildValidationError(errors);
     }
 
-    const existing = await readBehaviorIncident(containers.behaviorIncidents, participantId, incidentId);
+    const existing = await readBehaviorIncident(ctx.containers.behaviorIncidents, ctx.participantId, incidentId);
     if (!existing) {
       return { status: 404, jsonBody: { message: 'Incident not found.' } };
     }
@@ -205,43 +183,52 @@ const updateBehaviorIncidentHandler = withErrorHandling(
       placeChip: typeof parsed.value.placeChip === 'string' ? parsed.value.placeChip : existing.placeChip
     };
 
-    await containers.behaviorIncidents.items.upsert(updated);
-    await appendTimelineEvent(containers.eventIndex, projectIncidentToEventIndex(updated));
+    await ctx.containers.behaviorIncidents.items.upsert(updated);
+    await appendTimelineEvent(ctx.containers.eventIndex, projectIncidentToEventIndex(updated));
 
     return { status: 200, jsonBody: updated };
-  }
-);
+  };
 
-const deleteBehaviorIncidentHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const deleteBehaviorIncidentInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const incidentId = req.params.incidentId;
-    if (!participantId || !incidentId) {
+    if (!incidentId) {
       const errors: ValidationErrorDetail[] = [];
-      if (!participantId) {
-        errors.push({ id: 'incidents.participantId.required', message: 'Participant id is required.' });
-      }
       if (!incidentId) {
         errors.push({ id: 'incidents.incidentId.required', message: 'Incident id is required.' });
       }
       return buildValidationError(errors);
     }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
-    const existing = await readBehaviorIncident(containers.behaviorIncidents, participantId, incidentId);
+    const existing = await readBehaviorIncident(ctx.containers.behaviorIncidents, ctx.participantId, incidentId);
     if (!existing) {
       return { status: 404, jsonBody: { message: 'Incident not found.' } };
     }
-    await containers.behaviorIncidents.item(incidentId, participantId).delete();
-    await appendTimelineEvent(containers.eventIndex, projectIncidentToEventIndex(existing, 'delete'));
+    await ctx.containers.behaviorIncidents.item(incidentId, ctx.participantId).delete();
+    await appendTimelineEvent(ctx.containers.eventIndex, projectIncidentToEventIndex(existing, 'delete'));
     return { status: 204 };
-  }
+  };
+
+const readBehaviorIncidentHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'incidents.participantId.required'
+  },
+  readBehaviorIncidentInnerHandler
+);
+
+const updateBehaviorIncidentHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'incidents.participantId.required'
+  },
+  updateBehaviorIncidentInnerHandler
+);
+
+const deleteBehaviorIncidentHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'incidents.participantId.required'
+  },
+  deleteBehaviorIncidentInnerHandler
 );
 
 app.http('behavior-incident-detail-get', {
@@ -265,4 +252,11 @@ app.http('behavior-incident-detail-delete', {
   handler: deleteBehaviorIncidentHandler
 });
 
-export { readBehaviorIncidentHandler, updateBehaviorIncidentHandler, deleteBehaviorIncidentHandler };
+export {
+  readBehaviorIncidentHandler,
+  updateBehaviorIncidentHandler,
+  deleteBehaviorIncidentHandler,
+  readBehaviorIncidentInnerHandler,
+  updateBehaviorIncidentInnerHandler,
+  deleteBehaviorIncidentInnerHandler
+};

@@ -1,74 +1,67 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
 import { readMedicationLog } from '../shared/data/medication-logs';
 import { readMedication } from '../shared/data/medications';
-import { readParticipantLink } from '../shared/data/participants';
 import { projectMedicationLogToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
 
-const readMedicationLogHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const readMedicationLogInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const logId = req.params.logId;
-    if (!participantId || !logId) {
+    if (!logId) {
       return buildValidationError([
-        { id: 'medicationLogs.participantId.required', message: 'Participant id is required.' },
         { id: 'medicationLogs.logId.required', message: 'Log id is required.' }
       ]);
     }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
-    const log = await readMedicationLog(containers.medicationLogs, participantId, logId);
+    const log = await readMedicationLog(ctx.containers.medicationLogs, ctx.participantId, logId);
     if (!log) {
       return { status: 404, jsonBody: { message: 'Medication log not found.' } };
     }
 
     return { status: 200, jsonBody: log };
-  }
-);
+  };
 
-const deleteMedicationLogHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const deleteMedicationLogInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const logId = req.params.logId;
-    if (!participantId || !logId) {
+    if (!logId) {
       return buildValidationError([
-        { id: 'medicationLogs.participantId.required', message: 'Participant id is required.' },
         { id: 'medicationLogs.logId.required', message: 'Log id is required.' }
       ]);
     }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
-    const log = await readMedicationLog(containers.medicationLogs, participantId, logId);
+    const log = await readMedicationLog(ctx.containers.medicationLogs, ctx.participantId, logId);
     if (!log) {
       return { status: 404, jsonBody: { message: 'Medication log not found.' } };
     }
 
-    await containers.medicationLogs.item(logId, participantId).delete();
+    await ctx.containers.medicationLogs.item(logId, ctx.participantId).delete();
 
-    const medication = await readMedication(containers.medications, participantId, log.medicationId);
+    const medication = await readMedication(ctx.containers.medications, ctx.participantId, log.medicationId);
     await appendTimelineEvent(
-      containers.eventIndex,
+      ctx.containers.eventIndex,
       projectMedicationLogToEventIndex(log, medication ?? undefined, 'delete')
     );
 
     return { status: 204 };
-  }
+  };
+
+const readMedicationLogHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'medicationLogs.participantId.required'
+  },
+  readMedicationLogInnerHandler
+);
+
+const deleteMedicationLogHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'medicationLogs.participantId.required'
+  },
+  deleteMedicationLogInnerHandler
 );
 
 app.http('medication-log-detail-get', {
@@ -85,4 +78,4 @@ app.http('medication-log-detail-delete', {
   handler: deleteMedicationLogHandler
 });
 
-export { readMedicationLogHandler, deleteMedicationLogHandler };
+export { readMedicationLogHandler, deleteMedicationLogHandler, readMedicationLogInnerHandler, deleteMedicationLogInnerHandler };

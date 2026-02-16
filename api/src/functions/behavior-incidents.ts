@@ -1,12 +1,9 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { randomUUID } from 'crypto';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { buildBehaviorIncidentListQuery } from '../shared/data/behavior-incidents';
-import { readParticipantLink } from '../shared/data/participants';
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
 import { projectIncidentToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
@@ -37,7 +34,7 @@ type CreateBehaviorIncidentRequest = {
 const behaviorFunctionOptions: BehaviorFunction[] = ['sensory', 'tangible', 'escape', 'attention'];
 const maxPageSize = 100;
 
-function parsePageSize(value?: string | null): number {
+export function parsePageSize(value?: string | null): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 25;
@@ -45,7 +42,7 @@ function parsePageSize(value?: string | null): number {
   return Math.min(parsed, maxPageSize);
 }
 
-function validateCreateRequest(body: CreateBehaviorIncidentRequest): ValidationErrorDetail[] {
+export function validateCreateRequest(body: CreateBehaviorIncidentRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
 
   if (!isNonEmpty(body.antecedent)) {
@@ -86,22 +83,10 @@ type ListBehaviorIncidentsResponse = {
   nextToken: string | null;
 };
 
-const listBehaviorIncidentsHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'incidents.participantId.required', message: 'Participant id is required.' }
-      ]);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
+const listBehaviorIncidentsInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const pageSize = parsePageSize(req.query.get('pageSize'));
     const nextToken = req.query.get('nextToken');
     const functionFilter = req.query.get('function') as BehaviorFunction | null;
@@ -129,13 +114,13 @@ const listBehaviorIncidentsHandler = withErrorHandling(
     }
 
     const query = buildBehaviorIncidentListQuery(
-      participantId,
+      ctx.participantId,
       functionFilter ?? undefined,
       startDate ?? undefined,
       endDate ?? undefined
     );
-    const response = await containers.behaviorIncidents.items.query<BehaviorIncidentDocument>(query, {
-      partitionKey: participantId,
+    const response = await ctx.containers.behaviorIncidents.items.query<BehaviorIncidentDocument>(query, {
+      partitionKey: ctx.participantId,
       maxItemCount: pageSize,
       continuationToken: nextToken ?? undefined
     }).fetchNext();
@@ -145,25 +130,12 @@ const listBehaviorIncidentsHandler = withErrorHandling(
       nextToken: response.continuationToken ?? null
     };
     return { status: 200, jsonBody: payload };
-  }
-);
+  };
 
-const createBehaviorIncidentHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'incidents.participantId.required', message: 'Participant id is required.' }
-      ]);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
+const createBehaviorIncidentInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const parsed = await parseJsonBody<CreateBehaviorIncidentRequest>(req, {
       id: 'incidents.body.invalid',
       message: 'Request body must be valid JSON.'
@@ -186,7 +158,7 @@ const createBehaviorIncidentHandler = withErrorHandling(
 
     const incident: BehaviorIncidentDocument = {
       id: `incident_${randomUUID()}`,
-      participantId,
+      participantId: ctx.participantId,
       antecedent: parsed.value.antecedent.trim(),
       behavior: parsed.value.behavior.trim(),
       consequence: parsed.value.consequence.trim(),
@@ -197,18 +169,31 @@ const createBehaviorIncidentHandler = withErrorHandling(
       place: parsed.value.place.trim(),
       function: parsed.value.function,
       createdAtUtc: now,
-      createdByUserId: user.sub,
+      createdByUserId: ctx.user.sub,
       antecedentChips: parsed.value.antecedentChips,
       behaviorChips: parsed.value.behaviorChips,
       consequenceChips: parsed.value.consequenceChips,
       placeChip: parsed.value.placeChip
     };
 
-    await containers.behaviorIncidents.items.create(incident);
-    await appendTimelineEvent(containers.eventIndex, projectIncidentToEventIndex(incident));
+    await ctx.containers.behaviorIncidents.items.create(incident);
+    await appendTimelineEvent(ctx.containers.eventIndex, projectIncidentToEventIndex(incident));
 
     return { status: 201, jsonBody: incident };
-  }
+  };
+
+const listBehaviorIncidentsHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'incidents.participantId.required'
+  },
+  listBehaviorIncidentsInnerHandler
+);
+
+const createBehaviorIncidentHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'incidents.participantId.required'
+  },
+  createBehaviorIncidentInnerHandler
 );
 
 app.http('behavior-incidents-list', {
@@ -225,4 +210,4 @@ app.http('behavior-incidents-create', {
   handler: createBehaviorIncidentHandler
 });
 
-export { listBehaviorIncidentsHandler, createBehaviorIncidentHandler };
+export { listBehaviorIncidentsHandler, createBehaviorIncidentHandler, listBehaviorIncidentsInnerHandler, createBehaviorIncidentInnerHandler };

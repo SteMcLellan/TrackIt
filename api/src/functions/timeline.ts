@@ -1,9 +1,6 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
-import { readParticipantLink } from '../shared/data/participants';
 import {
   buildTimelineAnchorQuery,
   buildTimelineByLocalDateQuery,
@@ -26,12 +23,12 @@ type ListTimelineResponse = {
   projectionMode: 'daily-final-state';
 };
 
-function isTimelineQueryEnabled(): boolean {
+export function isTimelineQueryEnabled(): boolean {
   const value = (process.env.TIMELINE_QUERY_ENABLED || 'true').toLowerCase();
   return value !== 'false' && value !== '0';
 }
 
-function isIsoUtc(value: string | null): boolean {
+export function isIsoUtc(value: string | null): boolean {
   if (!value || !value.endsWith('Z')) {
     return false;
   }
@@ -39,7 +36,7 @@ function isIsoUtc(value: string | null): boolean {
   return Number.isFinite(parsed);
 }
 
-function isDateOnly(value: string | null): boolean {
+export function isDateOnly(value: string | null): boolean {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
   }
@@ -52,13 +49,13 @@ function isDateOnly(value: string | null): boolean {
   );
 }
 
-function addDaysDateOnly(value: string, days: number): string {
+export function addDaysDateOnly(value: string, days: number): string {
   const date = new Date(`${value}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }
 
-function parseSourceTypes(value: string | null): EventSourceType[] | undefined {
+export function parseSourceTypes(value: string | null): EventSourceType[] | undefined {
   if (!value) {
     return undefined;
   }
@@ -69,7 +66,7 @@ function parseSourceTypes(value: string | null): EventSourceType[] | undefined {
   return parsed.length > 0 ? parsed : undefined;
 }
 
-function parseTags(value: string | null): string[] | undefined {
+export function parseTags(value: string | null): string[] | undefined {
   if (!value) {
     return undefined;
   }
@@ -80,7 +77,7 @@ function parseTags(value: string | null): string[] | undefined {
   return parsed.length > 0 ? parsed : undefined;
 }
 
-function parseSortOrder(value: string | null): 'asc' | 'desc' {
+export function parseSortOrder(value: string | null): 'asc' | 'desc' {
   if (!value) {
     return 'desc';
   }
@@ -94,7 +91,7 @@ function parseSortOrder(value: string | null): 'asc' | 'desc' {
   return 'desc';
 }
 
-function parseDays(value: string | null): number {
+export function parseDays(value: string | null): number {
   if (!value) {
     return 1;
   }
@@ -105,7 +102,7 @@ function parseDays(value: string | null): number {
   return Math.min(parsed, MAX_DAYS_PER_REQUEST);
 }
 
-function validateTimelineListRequest(date: string | null, cursorDate: string | null): ValidationErrorDetail[] {
+export function validateTimelineListRequest(date: string | null, cursorDate: string | null): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
   if (!isDateOnly(date)) {
     errors.push({ id: 'timeline.date.invalid', message: 'date must be YYYY-MM-DD.' });
@@ -116,7 +113,7 @@ function validateTimelineListRequest(date: string | null, cursorDate: string | n
   return errors;
 }
 
-function validateTimelineRequest(startUtc: string | null, endUtc: string | null): ValidationErrorDetail[] {
+export function validateTimelineRequest(startUtc: string | null, endUtc: string | null): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
   if (!isIsoUtc(startUtc)) {
     errors.push({ id: 'timeline.startUtc.invalid', message: '$startUtc must be an ISO UTC value.' });
@@ -133,18 +130,12 @@ function validateTimelineRequest(startUtc: string | null, endUtc: string | null)
   return errors;
 }
 
-const listTimelineHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+const listTimelineInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     if (!isTimelineQueryEnabled()) {
       return { status: 404, jsonBody: { message: 'Timeline query is disabled.' } };
-    }
-
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'timeline.participantId.required', message: 'Participant id is required.' }
-      ]);
     }
 
     const date = req.query.get('date');
@@ -159,34 +150,28 @@ const listTimelineHandler = withErrorHandling(
     const windowEndDate = cursorDate ?? date!;
     const windowStartDate = addDaysDateOnly(windowEndDate, -(days - 1));
 
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
     const query = buildTimelineByLocalDateQuery({
-      participantId,
+      participantId: ctx.participantId,
       startDate: windowStartDate,
       endDate: windowEndDate,
       sourceTypes
     });
 
-    const response = await containers.eventIndex.items.query<EventIndexDocument>(query, {
-      partitionKey: participantId,
+    const response = await ctx.containers.eventIndex.items.query<EventIndexDocument>(query, {
+      partitionKey: ctx.participantId,
       maxItemCount: MAX_TIMELINE_ITEMS
     }).fetchNext();
 
     const projected = projectDailyTimelineItems(response.resources ?? []);
 
-    const nextCursorResponse = await containers.eventIndex.items.query<{ logLocalDate: string }>(
+    const nextCursorResponse = await ctx.containers.eventIndex.items.query<{ logLocalDate: string }>(
       buildTimelineNextDateQuery({
-        participantId,
+        participantId: ctx.participantId,
         beforeDate: windowStartDate,
         sourceTypes
       }),
       {
-        partitionKey: participantId,
+        partitionKey: ctx.participantId,
         maxItemCount: 1
       }
     ).fetchNext();
@@ -200,20 +185,19 @@ const listTimelineHandler = withErrorHandling(
       projectionMode: 'daily-final-state'
     };
     return { status: 200, jsonBody: payload };
-  }
-);
+  };
 
-const timelineContextHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+const timelineContextInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     if (!isTimelineQueryEnabled()) {
       return { status: 404, jsonBody: { message: 'Timeline query is disabled.' } };
     }
 
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
     const sourceType = req.params.sourceType as EventSourceType | undefined;
     const sourceId = req.params.sourceId;
-    if (!participantId || !sourceType || !sourceId) {
+    if (!sourceType || !sourceId) {
       return buildValidationError([
         { id: 'timeline.context.params.required', message: 'Participant, sourceType, and sourceId are required.' }
       ]);
@@ -236,15 +220,9 @@ const timelineContextHandler = withErrorHandling(
     const tags = parseTags(req.query.get('$tags'));
     const sortOrder = parseSortOrder(req.query.get('$orderBy'));
 
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
-    const anchorQuery = buildTimelineAnchorQuery(participantId, sourceType, sourceId);
-    const anchorResponse = await containers.eventIndex.items.query<EventIndexDocument>(anchorQuery, {
-      partitionKey: participantId,
+    const anchorQuery = buildTimelineAnchorQuery(ctx.participantId, sourceType, sourceId);
+    const anchorResponse = await ctx.containers.eventIndex.items.query<EventIndexDocument>(anchorQuery, {
+      partitionKey: ctx.participantId,
       maxItemCount: 1
     }).fetchNext();
     const anchor = anchorResponse.resources?.[0];
@@ -260,7 +238,7 @@ const timelineContextHandler = withErrorHandling(
       return buildValidationError(validationErrors);
     }
     const query = buildTimelineRangeQuery({
-      participantId,
+      participantId: ctx.participantId,
       startUtc: rangeStart,
       endUtc: rangeEnd,
       sourceTypes,
@@ -268,8 +246,8 @@ const timelineContextHandler = withErrorHandling(
       sortOrder
     });
 
-    const response = await containers.eventIndex.items.query<EventIndexDocument>(query, {
-      partitionKey: participantId,
+    const response = await ctx.containers.eventIndex.items.query<EventIndexDocument>(query, {
+      partitionKey: ctx.participantId,
       maxItemCount: 500
     }).fetchNext();
 
@@ -283,7 +261,20 @@ const timelineContextHandler = withErrorHandling(
         items: response.resources ?? []
       }
     };
-  }
+  };
+
+const listTimelineHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'timeline.participantId.required'
+  },
+  listTimelineInnerHandler
+);
+
+const timelineContextHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'timeline.participantId.required'
+  },
+  timelineContextInnerHandler
 );
 
 app.http('timeline-list', {
@@ -300,4 +291,4 @@ app.http('timeline-context', {
   handler: timelineContextHandler
 });
 
-export { listTimelineHandler, timelineContextHandler };
+export { listTimelineHandler, timelineContextHandler, listTimelineInnerHandler, timelineContextInnerHandler };

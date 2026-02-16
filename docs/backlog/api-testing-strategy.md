@@ -1,7 +1,7 @@
 # API Testing Strategy
 
-Last updated: 2026-02-15
-Status: Scaffolding — needs first test before committing to pattern
+Last updated: 2026-02-16
+Status: Pilot in progress - Vitest scaffolded, context wrappers added, medications tests started
 
 ## Problem
 

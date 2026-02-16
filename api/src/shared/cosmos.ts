@@ -30,15 +30,27 @@ export interface CosmosConfig {
   eventIndexContainerId: string;
 }
 
+export interface CosmosContainers {
+  users: Container;
+  participants: Container;
+  userParticipantLinks: Container;
+  participantInvites: Container;
+  behaviorIncidents: Container;
+  medications: Container;
+  medicationLogs: Container;
+  dailyReflections: Container;
+  eventIndex: Container;
+}
+
 let cachedClient: CosmosClient | null = null;
-let cachedContainers: Record<string, Container> | null = null;
+let cachedContainers: CosmosContainers | null = null;
 
 /**
  * Creates a Cosmos client and container map from env or overrides.
  */
 export async function buildCosmos(
   config?: Partial<CosmosConfig>
-): Promise<{ client: CosmosClient; containers: Record<string, Container> }> {
+): Promise<{ client: CosmosClient; containers: CosmosContainers }> {
   const resolved: CosmosConfig = {
     endpoint: process.env.COSMOS_ENDPOINT || '',
     key: process.env.COSMOS_KEY || '',
@@ -153,7 +165,7 @@ export async function buildCosmos(
 /**
  * Inserts or updates a user document while managing timestamps.
  */
-export async function upsertUser(containers: Record<string, Container>, user: UserDocument) {
+export async function upsertUser(containers: Pick<CosmosContainers, 'users'>, user: UserDocument) {
   const timestamp = new Date().toISOString();
   const existing = user.createdAt;
   const doc: UserDocument = {

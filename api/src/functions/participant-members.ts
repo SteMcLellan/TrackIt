@@ -1,7 +1,5 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
 import { readParticipantLink } from '../shared/data/participants';
 import { UserParticipantLinkDocument } from '../models/participant';
@@ -25,16 +23,14 @@ type CollectionResponse<T> = {
 
 const PARTICIPANT_PREFIX = 'participant_';
 
-function isParticipantIdValid(participantId?: string | null) {
+export function isParticipantIdValid(participantId?: string | null) {
   return Boolean(participantId && participantId.startsWith(PARTICIPANT_PREFIX));
 }
 
-const listParticipantMembersHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-
-    if (!isParticipantIdValid(participantId)) {
+const listParticipantMembersInnerHandler = async (
+  ctx: ParticipantContext
+): Promise<HttpResponseInit> => {
+    if (!isParticipantIdValid(ctx.participantId)) {
       return buildValidationError([
         {
           id: 'participants.id.invalid',
@@ -42,23 +38,14 @@ const listParticipantMembersHandler = withErrorHandling(
         }
       ]);
     }
-
-    const { containers } = await buildCosmos();
-
-    // Check caller has manager access
-    const callerLink = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!callerLink) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-    if (callerLink.role !== 'manager') {
+    if (ctx.link.role !== 'manager') {
       return { status: 403, jsonBody: { message: 'Listing members requires manager role.' } };
     }
 
-    // Query all links for this participant (cross-partition query)
-    const linksResult = await containers.userParticipantLinks.items
+    const linksResult = await ctx.containers.userParticipantLinks.items
       .query<UserParticipantLinkDocument>({
         query: 'SELECT * FROM c WHERE c.participantId = @participantId',
-        parameters: [{ name: '@participantId', value: participantId }]
+        parameters: [{ name: '@participantId', value: ctx.participantId }]
       })
       .fetchAll();
 
@@ -67,7 +54,7 @@ const listParticipantMembersHandler = withErrorHandling(
     // Fetch user details for each member
     const members: ParticipantMemberResponse[] = [];
     for (const link of links) {
-      const { resource: userDoc } = await containers.users
+      const { resource: userDoc } = await ctx.containers.users
         .item(link.userId, link.userId)
         .read<UserDocument>();
 
@@ -76,7 +63,7 @@ const listParticipantMembersHandler = withErrorHandling(
         role: link.role,
         name: userDoc?.name || userDoc?.email || 'Unknown',
         picture: userDoc?.picture,
-        isMe: link.userId === user.sub,
+        isMe: link.userId === ctx.user.sub,
         addedAt: link.createdAt
       });
     }
@@ -94,23 +81,15 @@ const listParticipantMembersHandler = withErrorHandling(
     };
 
     return { status: 200, jsonBody: response };
-  }
-);
+  };
 
-app.http('participant-members-list', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'participants/{participantId}/members',
-  handler: listParticipantMembersHandler
-});
-
-const revokeParticipantMemberHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const revokeParticipantMemberInnerHandler = async (
+  ctx: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
     const targetUserId = req.params.userId;
 
-    if (!isParticipantIdValid(participantId)) {
+    if (!isParticipantIdValid(ctx.participantId)) {
       return buildValidationError([
         {
           id: 'participants.id.invalid',
@@ -127,36 +106,24 @@ const revokeParticipantMemberHandler = withErrorHandling(
         }
       ]);
     }
-
-    const { containers } = await buildCosmos();
-
-    // Check caller has manager access
-    const callerLink = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!callerLink) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-    if (callerLink.role !== 'manager') {
+    if (ctx.link.role !== 'manager') {
       return { status: 403, jsonBody: { message: 'Revoking members requires manager role.' } };
     }
 
-    // Disallow removing self (MVP)
-    if (targetUserId === user.sub) {
+    if (targetUserId === ctx.user.sub) {
       return { status: 400, jsonBody: { message: 'Cannot remove yourself. Transfer ownership first.' } };
     }
 
-    // Check target user is linked
-    const targetLink = await readParticipantLink(containers.userParticipantLinks, targetUserId, participantId);
+    const targetLink = await readParticipantLink(ctx.containers.userParticipantLinks, targetUserId, ctx.participantId);
     if (!targetLink) {
       return { status: 404, jsonBody: { message: 'Member not found.' } };
     }
 
-    // Disallow removing last manager (MVP)
     if (targetLink.role === 'manager') {
-      // Count managers for this participant
-      const managersResult = await containers.userParticipantLinks.items
+      const managersResult = await ctx.containers.userParticipantLinks.items
         .query<number>({
           query: "SELECT VALUE COUNT(1) FROM c WHERE c.participantId = @participantId AND c.role = 'manager'",
-          parameters: [{ name: '@participantId', value: participantId }]
+          parameters: [{ name: '@participantId', value: ctx.participantId }]
         })
         .fetchAll();
 
@@ -169,13 +136,34 @@ const revokeParticipantMemberHandler = withErrorHandling(
       }
     }
 
-    // Delete the link
-    const linkId = `${targetUserId}:${participantId}`;
-    await containers.userParticipantLinks.item(linkId, targetUserId).delete();
+    const linkId = `${targetUserId}:${ctx.participantId}`;
+    await ctx.containers.userParticipantLinks.item(linkId, targetUserId).delete();
 
     return { status: 204 };
-  }
+  };
+
+const listParticipantMembersHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'participants.id.invalid',
+    missingParticipantErrorMessage: 'Participant id must start with participant_.'
+  },
+  listParticipantMembersInnerHandler
 );
+
+const revokeParticipantMemberHandler = withParticipantContext(
+  {
+    missingParticipantErrorId: 'participants.id.invalid',
+    missingParticipantErrorMessage: 'Participant id must start with participant_.'
+  },
+  revokeParticipantMemberInnerHandler
+);
+
+app.http('participant-members-list', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'participants/{participantId}/members',
+  handler: listParticipantMembersHandler
+});
 
 app.http('participant-members-revoke', {
   methods: ['DELETE'],
@@ -184,4 +172,4 @@ app.http('participant-members-revoke', {
   handler: revokeParticipantMemberHandler
 });
 
-export { listParticipantMembersHandler, revokeParticipantMemberHandler };
+export { listParticipantMembersHandler, revokeParticipantMemberHandler, listParticipantMembersInnerHandler, revokeParticipantMemberInnerHandler };

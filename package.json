@@ -13,6 +13,7 @@
     "dev:all": "node tools/dev-all.mjs",
     "dev:frontend": "npm --workspace frontend run start --",
     "dev:frontend:log": "node tools/dev-frontend-log.mjs",
+    "test:api": "npm --workspace api run test",
     "test:frontend": "npm --workspace frontend run test",
     "lint": "npm run lint:frontend && npm run lint:api",
     "lint:api": "eslint \"api/**/*.ts\"",

@@ -1,14 +1,14 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authorize } from '../shared/authorize';
-import { withErrorHandling } from '../shared/auth';
+import { app, HttpResponseInit } from '@azure/functions';
+import { withAuthContext, AuthContext } from '../shared/handler-context';
 
 /**
  * Returns the verified app JWT payload for the current user.
  */
-const me = withErrorHandling(async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-  const payload = authorize(context, req);
-  return { status: 200, jsonBody: payload };
-});
+const meInnerHandler = async (ctx: AuthContext): Promise<HttpResponseInit> => {
+  return { status: 200, jsonBody: ctx.user };
+};
+
+const me = withAuthContext(meInnerHandler);
 
 /**
  * Authenticated endpoint for fetching the current user's claims.
@@ -20,4 +20,4 @@ app.http('me', {
   handler: me
 });
 
-export { me };
+export { me, meInnerHandler };
