@@ -1,7 +1,7 @@
 # Design System: TrackIt
 **Project ID:** 2002730124455423542
 
-> Synthesized from screens: "TrackIt Trendline Logo Identity (SignIn)" and "Parental Insight Dashboard"
+> Synthesized from screens: "TrackIt Trendline Logo Identity (SignIn)", "Parental Insight Dashboard", and "TrackIt Insights Dashboard"
 
 ---
 
@@ -25,7 +25,7 @@ These three colors form the shared visual language of the TrackIt brand. They ap
 
 | Descriptive Name | Hex | Logo Line | Dashboard Role |
 |---|---|---|---|
-| Vital Emerald | `#10b981` | Top wavy line | Wellness / mood / sleep positive indicators |
+| Vital Emerald | `#10b981` | Top wavy line | Wellness / positive indicators; Focus facet color |
 | Electric Violet | `#8b5cf6` | Middle wavy line | Behavioral moment (ABC) tagging and categorization |
 | Energetic Amber | `#f59e0b` | Bottom wavy line | Energy / caution metric indicators |
 
@@ -36,7 +36,7 @@ These three colors form the shared visual language of the TrackIt brand. They ap
 | Ghost White Canvas | `#fcfcfd` | Primary light background (dashboard and sign-in) |
 | Midnight Slate | `#1e293b` | Primary body and heading text on light surfaces |
 | Signal Blue | `#137fec` | Project accent; links, selected states, and focus rings (not primary CTA fill) |
-| Sky Azure | `#0ea5e9` | Focus and cognitive metric indicators (dashboard only) |
+| Sky Azure | `#0ea5e9` | Sleep facet color; cognitive metric indicators |
 | Soft Violet | `#f5f3ff` | Section tint for behavior/function containers and profile accent surfaces |
 | Soft Amber | `#fffbeb` | Section tint for antecedent containers and warm contextual grouping |
 | Soft Emerald | `#ecfdf5` | Section tint for consequence/success containers |
@@ -48,6 +48,17 @@ These three colors form the shared visual language of the TrackIt brand. They ap
 |---|---|---|
 | Mint Pulse | `#13ec92` | Brand accent reserved for the SignIn dot-grid background overlay; not part of the logo mark and not used for primary CTA fills |
 | Deep Forest Night | `#10221a` | Dark surface background variant; reserved for dark-mode surfaces |
+
+### Reflection Facet Colors
+
+Each daily reflection dimension has a dedicated semantic color used for chips, chart lines, and metric cards. Derived from the Insights Dashboard Stitch screen.
+
+| Facet | Color Name | Hex | Chip Background (14% opacity) |
+|-------|-----------|-----|-------------------------------|
+| Mood | Electric Violet | `#8b5cf6` | `rgba(139, 92, 246, 0.14)` |
+| Focus | Vital Emerald | `#10b981` | `rgba(16, 185, 129, 0.14)` |
+| Sleep | Sky Azure | `#0ea5e9` | `rgba(14, 165, 233, 0.14)` |
+| Energy | Energetic Amber | `#f59e0b` | `rgba(245, 158, 11, 0.14)` |
 
 ---
 
