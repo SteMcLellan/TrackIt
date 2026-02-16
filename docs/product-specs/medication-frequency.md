@@ -107,7 +107,17 @@ Medication log projections now include occurrence context:
 
 Not required for current environment. Medication and medication-log data was reset before cutover.
 
-## Remaining Product Question
+## UI Labeling Policy
 
-- Dose labeling in UI is still open:
-  - numeric (`dose-1`, `dose-2`) vs human labels (`Morning`, `Afternoon`).
+Dose labels are presentation-only and do not change `occurrenceKey` semantics.
+
+- Checklist context (scheduled untaken rows): labels may use slot mapping from `occurrenceKey` to preserve "what's left" clarity.
+- Retrospective context (taken rows and timeline history): labels are derived from logged local time using daypart windows.
+- As-needed history labels also use daypart derivation in retrospective views.
+
+Daypart windows:
+
+- `Morning`: `03:00-10:59`
+- `Midday`: `11:00-13:59`
+- `Afternoon`: `14:00-17:59`
+- `Evening`: `18:00-02:59`

@@ -50,10 +50,14 @@ Medication logging moved to a dedicated `/medications` route, and Insights now s
   - `twice-daily` => 2 expected doses
   - `three-times-daily` => 3 expected doses
 - Taken count is capped at expected doses per medication/day for progress display.
-- Dose slot labels use human-friendly mapping:
-  - `dose-1` => `Morning`
-  - `dose-2` => `Afternoon`
-  - `dose-3` => `Evening`
+- Dose labels are context-based:
+  - Prospective checklist context (`/medications` untaken rows): slot labels from `occurrenceKey`.
+  - Retrospective context (`/medications` taken rows and `/timeline` medication logs): labels derived from logged local time.
+- Daypart windows for time-derived labels:
+  - `Morning`: `03:00-10:59`
+  - `Midday`: `11:00-13:59`
+  - `Afternoon`: `14:00-17:59`
+  - `Evening`: `18:00-02:59`
 - As-needed logs do not increase scheduled expected-dose totals.
 
 ## Data and API Dependencies

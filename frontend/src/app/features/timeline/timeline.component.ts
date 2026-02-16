@@ -13,6 +13,7 @@ import {
 import { ParticipantService } from '../../shared/services/participant.service';
 import { TimelineService } from '../../shared/services/timeline.service';
 import { TimelineEvent, TimelineSourceType } from '../../shared/models/timeline-event';
+import { medicationDaypartFromDate, medicationDaypartFromLocalTime } from '../../shared/utils/medication-daypart';
 
 type TimelineSection = {
   logLocalDate: string;
@@ -489,17 +490,17 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
   }
 
   occurrenceLabel(event: TimelineEvent): string {
-    const occurrence = event.summary.occurrenceKey ?? this.extractTagValue(event, 'occurrence:');
-    if (!occurrence) {
-      return 'Dose logged';
+    if (event.logLocalTime) {
+      return medicationDaypartFromLocalTime(event.logLocalTime) ?? 'Dose logged';
     }
-    if (occurrence.startsWith('as-needed')) {
-      return 'As needed';
+    if (event.logTzOffsetMinutes !== undefined) {
+      const utcMillis = Date.parse(event.eventAtUtc);
+      if (Number.isFinite(utcMillis)) {
+        const localMillis = utcMillis + event.logTzOffsetMinutes * 60_000;
+        return medicationDaypartFromDate(new Date(localMillis));
+      }
     }
-    if (occurrence.startsWith('dose-')) {
-      return `Dose ${occurrence.slice(5)}`;
-    }
-    return occurrence.replace(/-/g, ' ');
+    return 'Dose logged';
   }
 
   medicationLabel(event: TimelineEvent): string | null {

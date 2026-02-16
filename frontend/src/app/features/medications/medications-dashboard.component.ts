@@ -6,6 +6,7 @@ import { Medication } from '../../shared/models/medication';
 import { MedicationLogService } from '../../shared/services/medication-log.service';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { computeTzOffsetMinutes } from '../../shared/utils/datetime';
+import { medicationDaypartFromDate, medicationDaypartFromLocalTime } from '../../shared/utils/medication-daypart';
 import { environment } from '../../../environments/environment';
 
 type MedicationsResponse = CollectionResponse<Medication>;
@@ -242,7 +243,7 @@ type ScheduledMedicationCard = {
                       <div class="dose-row-meta">
                         <span class="material-symbols-outlined taken-check">check_circle</span>
                         <span class="taken-time-copy">
-                          Taken — {{ eventRow.takenTimeLabel ?? 'Time n/a' }}
+                          {{ asNeededTakenLabel(eventRow) }} — {{ eventRow.takenTimeLabel ?? 'Time n/a' }}
                         </span>
                         <button
                           class="time-edit-button"
@@ -937,7 +938,7 @@ export class MedicationsDashboardComponent {
       const nextUntaken = medRows.find(r => r.status === 'not_taken');
       let nextDoseLabel: string | null = null;
       if (nextUntaken && cardStatus === 'partial') {
-        const slotLabel = this.DOSE_SLOT_LABELS[nextUntaken.occurrenceKey ?? ''] ?? 'Next';
+        const slotLabel = this.slotLabelFromOccurrenceKey(nextUntaken.occurrenceKey);
         nextDoseLabel = `${slotLabel} dose pending`;
       }
 
@@ -1243,7 +1244,11 @@ export class MedicationsDashboardComponent {
 
   doseSlotLabel(row: RoutineMedicationRow, card: ScheduledMedicationCard): string {
     if (card.expectedDoses <= 1) return 'Once Daily';
-    return this.DOSE_SLOT_LABELS[row.occurrenceKey ?? ''] ?? 'Taken';
+    if (row.status === 'taken') {
+      const daypart = this.daypartLabelForRow(row);
+      if (daypart) return daypart;
+    }
+    return this.slotLabelFromOccurrenceKey(row.occurrenceKey);
   }
 
   asNeededVisibleEventRows(medicationId: string): RoutineMedicationRow[] {
@@ -1253,6 +1258,10 @@ export class MedicationsDashboardComponent {
   asNeededOverflowCount(medicationId: string): number {
     const total = this.asNeededEventRowsByMedicationId().get(medicationId)?.length ?? 0;
     return Math.max(0, total - this.AS_NEEDED_EVENT_PREVIEW_LIMIT);
+  }
+
+  asNeededTakenLabel(row: RoutineMedicationRow): string {
+    return this.daypartLabelForRow(row) ?? 'Dose logged';
   }
 
   frequencyLabel(frequency: MedicationFrequency): string {
@@ -1329,6 +1338,24 @@ export class MedicationsDashboardComponent {
     return null;
   }
 
+  private daypartLabelForRow(row: RoutineMedicationRow): string | null {
+    if (row.logLocalTime) {
+      return medicationDaypartFromLocalTime(row.logLocalTime);
+    }
+    if (row.takenAtUtc && row.logTzOffsetMinutes !== undefined) {
+      const utcMillis = Date.parse(row.takenAtUtc);
+      if (Number.isFinite(utcMillis)) {
+        const localMillis = utcMillis + row.logTzOffsetMinutes * 60_000;
+        return medicationDaypartFromDate(new Date(localMillis));
+      }
+    }
+    return null;
+  }
+
+  private slotLabelFromOccurrenceKey(occurrenceKey?: string): string {
+    return this.DOSE_SLOT_LABELS[occurrenceKey ?? ''] ?? 'Next';
+  }
+
   private localTimeFromUtc(isoUtc: string, logTzOffsetMinutes: number): string | null {
     const utcMillis = Date.parse(isoUtc);
     if (!Number.isFinite(utcMillis)) return null;
@@ -1368,3 +1395,4 @@ export class MedicationsDashboardComponent {
     return `${hour12}:${String(minute).padStart(2, '0')} ${period}`;
   }
 }
+
