@@ -1,7 +1,7 @@
 # API Testing Strategy
 
 Last updated: 2026-02-16
-Status: Pilot in progress - Vitest scaffolded, context wrappers added, medications tests started
+Status: In progress - Waves 1-2 complete, Wave 3 partially complete
 
 ## Problem
 
@@ -209,6 +209,69 @@ Start with one vertical slice to validate the full pattern:
 3. **Tier 2**: `createMedicationHandler` — call inner handler with stub `ParticipantContext`, assert response shape.
 
 If those three work cleanly, the pattern can be replicated across all 17 endpoints.
+
+## Rollout Status
+
+Completed:
+- Test framework + scripts are in place (`vitest`, `test:api`).
+- Shared handler context pattern is in place (`withParticipantContext`, `withAuthContext`).
+- Wrapper tests are in place (`auth-context`, `participant-context`).
+- Wave 1 participant domain coverage is complete:
+  - `participants`
+  - `participant-detail`
+  - `participant-members`
+  - `participant-invites`
+  - `me`
+- Wave 2 behavior/timeline coverage is complete:
+  - `behavior-incidents`
+  - `behavior-incident-detail`
+  - `timeline`
+  - `event-index`
+- Wave 3 partial coverage is complete:
+  - `medication-detail`
+  - `medication-log-detail`
+
+## Remaining Areas To Test
+
+### Wave 3 remaining (next priority)
+
+- `api/src/functions/medication-logs.ts`
+  - Refactor to inner handlers + `withParticipantContext`.
+  - Add exhaustive tests for:
+    - list validation (`startDate`, `endDate`, date range)
+    - upsert validation (`status`, `logLocalTime`, offset, occurrence rules)
+    - medication window + last-30-days checks
+    - scheduled vs as-needed branch behavior
+    - 404 branches (`Medication not found`, as-needed log missing)
+    - timeline append behavior on success
+- `api/src/functions/daily-reflections.ts`
+  - Refactor to inner handlers + `withParticipantContext`.
+  - Add exhaustive tests for:
+    - list validation/pagination
+    - upsert body/score/date/note validations
+    - summary validation (`endDate`, future date, `days` handling)
+    - summary aggregation shape (`latestScore`, `averageScore`, date range points)
+    - timeline append behavior on upsert
+
+### Wave 4 remaining
+
+- `api/src/functions/auth-login.ts`
+  - Add tests for token source precedence and all auth error branches.
+- `api/src/functions/auth-refresh.ts`
+  - Add tests for missing/invalid Google token and happy path token issuance.
+- `api/src/functions/admin-event-index-migrations.ts`
+  - Add tests for admin authorization, include-source validation, dry-run behavior,
+    continuation handling, and verify/backfill counters.
+
+## Definition of Done For Remaining Rollout
+
+- Each remaining route has:
+  - at least one happy-path test
+  - explicit validation/error-branch tests
+  - explicit auth/authorization branch tests where applicable
+  - persistence/timeline side-effect assertions where applicable
+- `npm run lint:api`, `npm run build:api`, and `npm run test:api` all pass.
+- `docs/runbooks/api-testing.md` route tracker updated to mark new coverage.
 
 ## Open Questions
 
