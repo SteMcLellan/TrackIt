@@ -177,8 +177,7 @@ type ScheduledMedicationCard = {
                               class="inline-time-picker"
                               type="time"
                               [value]="timePickerValue()"
-                              (change)="onTimePickerChange($event)"
-                              (blur)="onTimePickerBlur()"
+                              (blur)="onTimePickerBlur($event)"
                               (pointerdown)="$event.stopPropagation()"
                             />
                           } @else {
@@ -258,8 +257,7 @@ type ScheduledMedicationCard = {
                             class="inline-time-picker"
                             type="time"
                             [value]="timePickerValue()"
-                            (change)="onTimePickerChange($event)"
-                            (blur)="onTimePickerBlur()"
+                            (blur)="onTimePickerBlur($event)"
                             (pointerdown)="$event.stopPropagation()"
                           />
                         } @else {
@@ -1176,34 +1174,19 @@ export class MedicationsDashboardComponent {
     this.timePickerValue.set(initialValue);
   }
 
-  onTimePickerChange(event: Event): void {
+  onTimePickerBlur(event: Event): void {
     const rowId = this.timePickerRowId();
-    if (!rowId) return;
+    if (!rowId) { this.clearTimePickerState(); return; }
     const row = this.routineRows().find(item => item.id === rowId);
-    if (!row || this.isSaving(row.id)) {
-      this.clearTimePickerState();
-      return;
-    }
+    if (!row || this.isSaving(row.id)) { this.clearTimePickerState(); return; }
 
     const target = event.target as HTMLInputElement | null;
-    if (!target) {
+    const logLocalTime = target?.value.trim() ?? '';
+    if (this.isValidTimeInput(logLocalTime) && logLocalTime !== this.timePickerInitialValue()) {
+      this.saveTimeEdit(row, logLocalTime);
+    } else {
       this.clearTimePickerState();
-      return;
     }
-    const logLocalTime = target.value.trim();
-    if (!this.isValidTimeInput(logLocalTime)) {
-      this.clearTimePickerState();
-      return;
-    }
-    if (logLocalTime === this.timePickerInitialValue()) {
-      this.clearTimePickerState();
-      return;
-    }
-    this.saveTimeEdit(row, logLocalTime);
-  }
-
-  onTimePickerBlur(): void {
-    this.clearTimePickerState();
   }
 
   saveTimeEdit(row: RoutineMedicationRow, logLocalTime: string): void {
