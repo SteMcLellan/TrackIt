@@ -13,7 +13,6 @@ import {
 import { ParticipantService } from '../../shared/services/participant.service';
 import { TimelineService } from '../../shared/services/timeline.service';
 import { TimelineEvent, TimelineSourceType } from '../../shared/models/timeline-event';
-import { medicationDaypartFromDate, medicationDaypartFromLocalTime } from '../../shared/utils/medication-daypart';
 import { ReflectionChip, ReflectionFacet, resolveReflectionChip } from '../../shared/utils/reflection-labels';
 
 type TimelineSection = {
@@ -86,16 +85,6 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
                     @if (event.sourceType === 'incident' && incidentChipLabel(event); as chipLabel) {
                       <div class="chip-row">
                         <span class="chip chip-violet">{{ chipLabel }}</span>
-                      </div>
-                    }
-
-                    @if (event.sourceType === 'medication_log') {
-                      <div class="entry-meta">
-                        <p class="dose">{{ occurrenceLabel(event) }}</p>
-                        @if (medicationLabel(event); as medication) {
-                          <span class="dot">•</span>
-                          <p class="medication">{{ medication }}</p>
-                        }
                       </div>
                     }
 
@@ -303,37 +292,6 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       line-height: 1.45;
     }
 
-    .entry-meta {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      margin-top: 0.3rem;
-      min-height: 1.1rem;
-      flex-wrap: wrap;
-    }
-
-    .entry-meta p {
-      margin: 0;
-    }
-
-    .dose {
-      color: var(--color-midnight-slate, #1e293b);
-      font-size: 0.76rem;
-      font-weight: 600;
-    }
-
-    .dot {
-      color: var(--color-text-muted, #64748b);
-      font-size: 0.75rem;
-      line-height: 1;
-    }
-
-    .medication {
-      color: var(--color-text-muted, #64748b);
-      font-size: 0.71rem;
-      font-weight: 500;
-    }
-
     .chip-row {
       margin-top: 0.45rem;
       display: flex;
@@ -498,29 +456,6 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
       return functionValue.replace(/_/g, ' ');
     }
     return event.summary.function ? event.summary.function.replace(/_/g, ' ') : null;
-  }
-
-  occurrenceLabel(event: TimelineEvent): string {
-    if (event.logLocalTime) {
-      return medicationDaypartFromLocalTime(event.logLocalTime) ?? 'Dose logged';
-    }
-    if (event.logTzOffsetMinutes !== undefined) {
-      const utcMillis = Date.parse(event.eventAtUtc);
-      if (Number.isFinite(utcMillis)) {
-        const localMillis = utcMillis + event.logTzOffsetMinutes * 60_000;
-        return medicationDaypartFromDate(new Date(localMillis));
-      }
-    }
-    return 'Dose logged';
-  }
-
-  medicationLabel(event: TimelineEvent): string | null {
-    const name = event.summary.medicationName;
-    if (!name) {
-      return event.summary.medicationId ?? null;
-    }
-    const dosage = event.summary.dosageText;
-    return dosage ? `${name} ${dosage}` : name;
   }
 
   reflectionChips(event: TimelineEvent): ReflectionChip[] {
