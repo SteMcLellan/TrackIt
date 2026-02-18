@@ -1,5 +1,5 @@
 import { httpResource } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { CollectionResponse } from '../../shared/models/collection';
 import { MedicationLog } from '../../shared/models/medication-log';
 import { Medication } from '../../shared/models/medication';
@@ -172,18 +172,29 @@ type ScheduledMedicationCard = {
                       <div class="dose-row-meta">
                         @if (row.status === 'taken') {
                           <span class="material-symbols-outlined taken-check">check_circle</span>
-                          <span class="taken-time-copy">
-                            {{ doseSlotLabel(row, card) }} — {{ row.takenTimeLabel ?? 'Time n/a' }}
-                          </span>
-                          <button
-                            class="time-edit-button"
-                            type="button"
-                            [disabled]="isSaving(row.id)"
-                            (pointerdown)="$event.stopPropagation()"
-                            (click)="openTimeEditor(row, $event)"
-                          >
-                            <span class="material-symbols-outlined">edit</span>
-                          </button>
+                          @if (timePickerRowId() === row.id) {
+                            <input
+                              class="inline-time-picker"
+                              type="time"
+                              [value]="timePickerValue()"
+                              (change)="onTimePickerChange($event)"
+                              (blur)="onTimePickerBlur()"
+                              (pointerdown)="$event.stopPropagation()"
+                            />
+                          } @else {
+                            <span class="taken-time-copy">
+                              {{ doseSlotLabel(row, card) }} — {{ row.takenTimeLabel ?? 'Time n/a' }}
+                            </span>
+                            <button
+                              class="time-edit-button"
+                              type="button"
+                              [disabled]="isSaving(row.id)"
+                              (pointerdown)="$event.stopPropagation()"
+                              (click)="openTimeEditor(row, $event)"
+                            >
+                              <span class="material-symbols-outlined">edit</span>
+                            </button>
+                          }
                         } @else {
                           <span class="material-symbols-outlined dose-pending-icon">radio_button_unchecked</span>
                           <span class="dose-pending-copy">{{ doseSlotLabel(row, card) }}</span>
@@ -242,18 +253,29 @@ type ScheduledMedicationCard = {
                     >
                       <div class="dose-row-meta">
                         <span class="material-symbols-outlined taken-check">check_circle</span>
-                        <span class="taken-time-copy">
-                          {{ asNeededTakenLabel(eventRow) }} — {{ eventRow.takenTimeLabel ?? 'Time n/a' }}
-                        </span>
-                        <button
-                          class="time-edit-button"
-                          type="button"
-                          [disabled]="isSaving(eventRow.id)"
-                          (pointerdown)="$event.stopPropagation()"
-                          (click)="openTimeEditor(eventRow, $event)"
-                        >
-                          <span class="material-symbols-outlined">edit</span>
-                        </button>
+                        @if (timePickerRowId() === eventRow.id) {
+                          <input
+                            class="inline-time-picker"
+                            type="time"
+                            [value]="timePickerValue()"
+                            (change)="onTimePickerChange($event)"
+                            (blur)="onTimePickerBlur()"
+                            (pointerdown)="$event.stopPropagation()"
+                          />
+                        } @else {
+                          <span class="taken-time-copy">
+                            {{ asNeededTakenLabel(eventRow) }} — {{ eventRow.takenTimeLabel ?? 'Time n/a' }}
+                          </span>
+                          <button
+                            class="time-edit-button"
+                            type="button"
+                            [disabled]="isSaving(eventRow.id)"
+                            (pointerdown)="$event.stopPropagation()"
+                            (click)="openTimeEditor(eventRow, $event)"
+                          >
+                            <span class="material-symbols-outlined">edit</span>
+                          </button>
+                        }
                       </div>
                       @if (isSaving(eventRow.id)) {
                         <span class="status-saving">Saving...</span>
@@ -300,16 +322,6 @@ type ScheduledMedicationCard = {
         }
       </section>
     </div>
-    <input
-      #timePickerInput
-      class="hidden-time-picker"
-      type="time"
-      [value]="timePickerValue()"
-      (change)="onTimePickerChange($event)"
-      (blur)="onTimePickerBlur()"
-      tabindex="-1"
-      aria-hidden="true"
-    />
   `,
   styles: [`
     :host {
@@ -709,14 +721,15 @@ type ScheduledMedicationCard = {
       opacity: 0.5;
     }
 
-    .hidden-time-picker {
-      position: fixed;
-      left: -9999px;
-      top: 0;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
-      pointer-events: none;
+    .inline-time-picker {
+      font-size: 0.6875rem;
+      font-family: inherit;
+      border: 1px solid #10b981;
+      border-radius: 4px;
+      padding: 0.15rem 0.25rem;
+      outline: none;
+      color: #1e293b;
+      background: #f0fdf4;
     }
 
     .status-meta {
@@ -799,8 +812,6 @@ type ScheduledMedicationCard = {
 export class MedicationsDashboardComponent {
   private readonly participantService = inject(ParticipantService);
   private readonly medicationLogs = inject(MedicationLogService);
-  @ViewChild('timePickerInput') private readonly timePickerInput?: ElementRef<HTMLInputElement>;
-
   readonly activeParticipantId = this.participantService.activeParticipantId;
   readonly todayLocalDate = signal(this.formatLocalDate(new Date()));
 
@@ -1163,7 +1174,6 @@ export class MedicationsDashboardComponent {
     this.timePickerRowId.set(row.id);
     this.timePickerInitialValue.set(initialValue);
     this.timePickerValue.set(initialValue);
-    this.presentTimePicker();
   }
 
   onTimePickerChange(event: Event): void {
@@ -1217,25 +1227,6 @@ export class MedicationsDashboardComponent {
         next: () => { this.setSaving(row.id, false); this.refreshTick.update(v => v + 1); },
         error: () => { this.setSaving(row.id, false); this.routineError.set('Unable to save time. Please try again.'); }
       });
-  }
-
-  private presentTimePicker(): void {
-    const input = this.timePickerInput?.nativeElement;
-    if (!input || !this.timePickerRowId()) return;
-
-    input.value = this.timePickerValue();
-    const picker = input as HTMLInputElement & { showPicker?: () => void };
-    if (typeof picker.showPicker === 'function') {
-      try {
-        picker.showPicker();
-        return;
-      } catch {
-        // Fall through to focus/click for browsers that gate showPicker()
-      }
-    }
-
-    input.focus({ preventScroll: true });
-    input.click();
   }
 
   private clearTimePickerState(): void {
