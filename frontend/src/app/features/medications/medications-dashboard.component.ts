@@ -1163,7 +1163,7 @@ export class MedicationsDashboardComponent {
     this.timePickerRowId.set(row.id);
     this.timePickerInitialValue.set(initialValue);
     this.timePickerValue.set(initialValue);
-    queueMicrotask(() => this.presentTimePicker());
+    this.presentTimePicker();
   }
 
   onTimePickerChange(event: Event): void {
@@ -1226,11 +1226,15 @@ export class MedicationsDashboardComponent {
     input.value = this.timePickerValue();
     const picker = input as HTMLInputElement & { showPicker?: () => void };
     if (typeof picker.showPicker === 'function') {
-      picker.showPicker();
-      return;
+      try {
+        picker.showPicker();
+        return;
+      } catch {
+        // Fall through to focus/click for browsers that gate showPicker()
+      }
     }
 
-    input.focus();
+    input.focus({ preventScroll: true });
     input.click();
   }
 
