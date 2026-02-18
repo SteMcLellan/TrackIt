@@ -20,6 +20,29 @@ This document codifies data modeling conventions for TrackIt, especially time fi
 
 `eventIndex` exists to support fast interleaved timeline queries (range, context window, clustering) without replacing domain records.
 
+## Partition Keys by Container
+| Container | Logical Partition Field | Partition Key Path | Why |
+| --- | --- | --- | --- |
+| `users` | `user` | `/id` | User reads/writes are single-user lookups by subject/id. |
+| `userParticipantLinks` | `user` | `/userId` | Access pattern starts from current user to list linked participants. |
+| `participants` | `participant` | `/id` | Participant records are addressed directly by participant id. |
+| `participantInvites` | `participant` | `/participantId` | Invite lifecycle queries are scoped to one participant. |
+| `behaviorIncidents` | `participant` | `/participantId` | Incident queries are participant timeline/day scoped. |
+| `medications` | `participant` | `/participantId` | Medication lists and updates are participant scoped. |
+| `medicationLogs` | `participant` | `/participantId` | Log queries and upserts are participant/day scoped. |
+| `dailyReflections` | `participant` | `/participantId` | Reflection queries are participant/day scoped. |
+| `eventIndex` | `participant` | `/participantId` | Timeline projection reads are always participant scoped. |
+
+## Partition Key Selection Rules
+- Pick a key that matches the highest-frequency equality filter in application queries.
+- Keep one tenant's working set co-located. In TrackIt, tenant scope is usually one `participantId` (or `userId` for user-centric link data).
+- Optimize for read-path locality first. Cross-partition queries should be the exception, not the default.
+- Choose a stable key value that does not need to change over document lifetime.
+- Use a key present on every document at create time and enforce that as required model data.
+- Align indexes and sort patterns to the chosen key. Composite indexes should support in-partition sorts and filters.
+- For relationship/edge containers, key by the side you enumerate from most often (for example `userParticipantLinks` by `userId`).
+- Re-evaluate key choice before introducing new read patterns that would force frequent cross-partition fan-out.
+
 ## Field Naming Conventions
 ### UTC instants
 - Use `*AtUtc` for UTC instants stored as ISO 8601 strings ending with `Z`.

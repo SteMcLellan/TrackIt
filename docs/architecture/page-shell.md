@@ -50,7 +50,7 @@ AppComponent  (root <router-outlet> only)
 
 ### `ShellComponent`
 
-**Path:** `frontend/src/app/shell/shell.component.ts`
+**Path:** `frontend/src/app/shared/ui/page/shell.component.ts`
 **Responsibility:** Layout glue only. Composes the three zones and provides the content safe zone. Contains no business logic.
 
 ```
@@ -68,7 +68,7 @@ Key implementation notes:
 
 ### `TopBarComponent`
 
-**Path:** `frontend/src/app/shell/top-bar.component.ts`
+**Path:** `frontend/src/app/shared/ui/page/top-bar.component.ts`
 **Responsibility:** Renders the canonical sticky header from the Stitch design system.
 
 **Layout (left → right):**
@@ -91,7 +91,7 @@ Key implementation notes:
 
 ### `BottomNavComponent`
 
-**Path:** `frontend/src/app/shell/bottom-nav.component.ts`
+**Path:** `frontend/src/app/shared/ui/page/bottom-nav.component.ts`
 **Responsibility:** Fixed three-tab navigation. Active tab derived from current route.
 
 **Information architecture (Stitch canonical):**
@@ -185,11 +185,13 @@ The `AppComponent` `menuOpen` signal and `TopSheetMenuComponent` can be removed 
 
 ```
 frontend/src/app/
-├── app.component.ts              # becomes bare root outlet only
-├── shell/
-│   ├── shell.component.ts        # layout glue (new)
-│   ├── top-bar.component.ts      # replaces page-header.component.ts
-│   └── bottom-nav.component.ts   # rewrite of existing bottom-nav.component.ts
+├── app.component.ts                       # bare root outlet only
+├── app.routes.ts                          # nested shell + feature routes
+├── features/                              # screen-level feature components
 └── shared/ui/page/
-    └── bottom-sheet.component.ts # style update only
+    ├── shell.component.ts                 # shell layout component
+    ├── top-bar.component.ts               # sticky header component
+    ├── bottom-nav.component.ts            # fixed bottom navigation
+    ├── bottom-sheet.component.ts          # reusable slide-up sheet
+    └── index.ts                           # page UI exports
 ```
