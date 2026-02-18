@@ -26,6 +26,7 @@ npm --workspace api run test:coverage
 
 ## Route Coverage Tracker
 
+Current baseline: `npm run test:api` passes with `21` test files and `97` tests.
 - `medications-list`: covered
 - `medications-create`: covered
 - `participants-list`: covered
@@ -50,4 +51,14 @@ npm --workspace api run test:coverage
 - `medication-detail-patch`: covered
 - `medication-log-detail-get`: covered
 - `medication-log-detail-delete`: covered
-- Remaining routes: pending (Wave 3+)
+- `medication-logs-list`: covered
+- `medication-logs-upsert`: covered
+- `medication-logs-as-needed-create`: covered
+- `daily-reflections-list`: covered
+- `daily-reflections-upsert`: covered
+- `daily-reflections-summary`: covered
+- `auth-login`: covered
+- `auth-refresh`: covered
+- `admin-timeline-backfill`: covered
+- `admin-timeline-verify`: covered
+- Remaining routes: none
