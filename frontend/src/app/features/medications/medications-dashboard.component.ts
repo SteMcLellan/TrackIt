@@ -1163,7 +1163,7 @@ export class MedicationsDashboardComponent {
     this.timePickerRowId.set(row.id);
     this.timePickerInitialValue.set(initialValue);
     this.timePickerValue.set(initialValue);
-    this.presentTimePicker();
+    this.presentTimePicker(event.currentTarget as HTMLElement);
   }
 
   onTimePickerChange(event: Event): void {
@@ -1219,9 +1219,15 @@ export class MedicationsDashboardComponent {
       });
   }
 
-  private presentTimePicker(): void {
+  private presentTimePicker(trigger?: HTMLElement): void {
     const input = this.timePickerInput?.nativeElement;
     if (!input || !this.timePickerRowId()) return;
+
+    if (trigger) {
+      const rect = trigger.getBoundingClientRect();
+      input.style.top = `${rect.bottom}px`;
+      input.style.left = `${rect.left}px`;
+    }
 
     input.value = this.timePickerValue();
     const picker = input as HTMLInputElement & { showPicker?: () => void };
@@ -1242,6 +1248,11 @@ export class MedicationsDashboardComponent {
     this.timePickerRowId.set(null);
     this.timePickerInitialValue.set('');
     this.timePickerValue.set('');
+    const input = this.timePickerInput?.nativeElement;
+    if (input) {
+      input.style.top = '';
+      input.style.left = '';
+    }
   }
 
   // --- Helpers ---
