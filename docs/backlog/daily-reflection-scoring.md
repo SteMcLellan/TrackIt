@@ -32,6 +32,8 @@ Display buckets map from the stored score:
 | 4          | High          | 60–79       | 70       |
 | 5          | Very High     | 80–100      | 90       |
 
+> **Note:** Bucket 3 labels are dimension-specific in the UI (see Section 4). "Balanced" is the generic internal name used in scoring and code references — parents never see this word.
+
 ### 1.3 Input → Storage Strategy
 
 **Recommendation: Snap to midpoint on bucket selection.**
@@ -113,7 +115,7 @@ interface DailyReflectionDocument {
 |-----------|-------|------------|---------------------------------------|
 | Mood      | 70    | Upbeat     | Mostly positive and cooperative       |
 | Focus     | 30    | Drifting   | Easily pulled off task                |
-| Energy    | 50    | Steady     | Normal energy levels                  |
+| Energy    | 50    | Level      | Normal energy levels                  |
 | Sleep     | 90    | Refreshed  | Woke up bright-eyed and well-rested   |
 
 This record would contribute to trend lines showing mood trending high while focus dipped. A correlation engine could flag the sleep → mood relationship as a positive pattern.
@@ -129,37 +131,39 @@ Each dimension uses labels that describe *that facet* in plain language rather t
 | Bucket | Label        | Micro-copy                                                     |
 |--------|--------------|----------------------------------------------------------------|
 | 1      | Struggling   | Meltdowns, shutdowns, or persistent distress through the day.  |
-| 2      | Irritable    | Shorter fuse than usual — easily frustrated or withdrawn.      |
+| 2      | Irritable    | More reactive or flat than usual — quick to frustrate or disengage.  |
 | 3      | Steady       | Typical ups and downs — nothing stood out.                     |
 | 4      | Upbeat       | Mostly positive, cooperative, and rolling with things.         |
-| 5      | Thriving     | Genuinely happy and emotionally resilient all day.             |
+| 5      | Thriving     | Genuinely happy, engaged, and rolling with challenges.         |
 
 ### Focus
 
 | Bucket | Label        | Micro-copy                                                     |
 |--------|--------------|----------------------------------------------------------------|
-| 1      | Scattered    | Couldn't land on anything — constant redirection needed.       |
-| 2      | Drifting     | Easily pulled off task, needed frequent reminders.             |
+| 1      | Scattered    | Couldn't get started or stay on anything — constant redirection to make any progress. |
+| 2      | Drifting     | Started tasks but drifted off repeatedly — needed regular reminders to get back on track. |
 | 3      | Typical      | Some distractibility but managed to get things done.           |
 | 4      | Dialed In    | Stayed on task well with minimal prompting.                    |
 | 5      | Locked In    | Unusually sustained attention across activities.               |
+
+> **Note:** "Typical" is intentionally distinct from "Steady" (used in Mood and Energy). It anchors parents to *this child's normal* rather than implying a neutral midpoint — the right framing for neurodivergent tracking.
 
 ### Energy
 
 | Bucket | Label        | Micro-copy                                                     |
 |--------|--------------|----------------------------------------------------------------|
-| 1      | Drained      | Lethargic or sluggish — barely got moving all day.             |
+| 1      | Drained      | Lethargic or listless — hard to get going or stay engaged.     |
 | 2      | Sluggish     | Slow to start or faded early — less pep than usual.           |
-| 3      | Steady       | Normal energy throughout the day.                              |
+| 3      | Level        | Normal energy throughout the day.                              |
 | 4      | Buzzing      | Noticeably more active and on-the-go than usual.              |
-| 5      | Wired        | Restless or hyperactive — couldn't wind down.                  |
+| 5      | Wired        | Noticeably restless or hyperactive — hard to settle or channel the energy. |
 
 ### Sleep
 
 | Bucket | Label        | Micro-copy                                                     |
 |--------|--------------|----------------------------------------------------------------|
 | 1      | Rough Night  | Barely slept — major trouble falling or staying asleep.        |
-| 2      | Restless     | Woke frequently, tossed and turned, or cut short.              |
+| 2      | Restless     | Woke frequently, tossed and turned, or didn't get enough hours. |
 | 3      | Fine         | Typical night — nothing unusual to note.                       |
 | 4      | Solid        | Fell asleep easily and stayed asleep through the night.        |
 | 5      | Refreshed    | Woke up bright-eyed and clearly well-rested.                   |

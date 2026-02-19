@@ -15,7 +15,7 @@ const FACET_COLOR_CLASS: Record<ReflectionFacet, string> = {
 const KNOWN_LABELS: Record<ReflectionFacet, string[]> = {
   mood:   ['struggling', 'irritable', 'steady', 'upbeat', 'thriving'],
   focus:  ['scattered', 'drifting', 'typical', 'dialed_in', 'locked_in'],
-  energy: ['drained', 'sluggish', 'steady', 'buzzing', 'wired'],
+  energy: ['drained', 'sluggish', 'level', 'buzzing', 'wired'],
   sleep:  ['rough_night', 'restless', 'fine', 'solid', 'refreshed']
 };
 
