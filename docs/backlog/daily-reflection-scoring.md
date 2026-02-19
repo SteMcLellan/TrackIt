@@ -35,7 +35,6 @@ Display buckets map from the stored score:
 > **Note:** Bucket 3 labels are dimension-specific in the UI (see Section 4). "Balanced" is the generic internal name used in scoring and code references — parents never see this word.
 
 > **Energy exception — non-monotonic scale:** For Mood, Focus, and Sleep, bucket 5 represents the best outcome. Energy is different: bucket 3 (Level) is the clinical optimum. Both extremes — Drained (bucket 1) and Wired (bucket 5) — represent concerning states. Charts and automated insights must not treat a high energy score as inherently positive. See Section 5 for chart behavior and Section 6 for the `energyDeviation` derived metric.
-
 ### 1.3 Input → Storage Strategy
 
 **Recommendation: Snap to midpoint on bucket selection.**
@@ -159,7 +158,6 @@ Each dimension uses labels that describe *that facet* in plain language rather t
 | 3      | Level        | Normal energy throughout the day.                              |
 | 4      | Buzzing      | Noticeably more active and on-the-go than usual.              |
 | 5      | Wired        | Noticeably restless or hyperactive — hard to settle or channel the energy. |
-
 > **Non-monotonic dimension:** Unlike Mood, Focus, and Sleep, high energy is not a positive signal. Both extremes (Drained and Wired) indicate dysregulation; Level is the optimum. The raw score (0–100) preserves the *direction* of dysregulation — underactive vs. overactive — which is clinically useful. Charts and insights must not render energy with a directional "higher = better" assumption.
 
 ### Sleep
