@@ -84,7 +84,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
 
                     @if (event.sourceType === 'incident' && incidentChipLabel(event); as chipLabel) {
                       <div class="chip-row">
-                        <span class="chip chip-violet">{{ chipLabel }}</span>
+                        <span class="chip chip-violet chip-incident">{{ chipLabel }}</span>
                       </div>
                     }
 
@@ -310,6 +310,9 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
     .chip-violet {
       background: rgba(139, 92, 246, 0.14);
       color: var(--color-electric-violet, #8b5cf6);
+    }
+
+    .chip-incident {
       text-transform: uppercase;
     }
 
