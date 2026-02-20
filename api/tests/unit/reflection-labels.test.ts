@@ -5,7 +5,7 @@ describe('reflectionBucketLabel', () => {
   const expected: Record<ReflectionDimension, [string, string, string, string, string]> = {
     mood:   ['Struggling', 'Irritable', 'Steady',  'Upbeat',    'Thriving'],
     focus:  ['Scattered',  'Drifting',  'Typical', 'Dialed In', 'Locked In'],
-    energy: ['Drained',    'Sluggish',  'Steady',  'Buzzing',   'Wired'],
+    energy: ['Drained',    'Sluggish',  'Level',   'Buzzing',   'Wired'],
     sleep:  ['Rough Night', 'Restless', 'Fine',    'Solid',     'Refreshed']
   };
 

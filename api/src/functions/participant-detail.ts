@@ -1,9 +1,15 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
-import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { readParticipant } from '../shared/data/participants';
 import { ParticipantDocument } from '../models/participant';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
+import { authMiddleware } from '../shared/middleware/auth';
+import { participantMiddleware } from '../shared/middleware/participant';
 
 type UpdateParticipantRequest = {
   displayName?: string;
@@ -130,33 +136,57 @@ const updateParticipantInnerHandler = async (
     return { status: 200, jsonBody: { ...normalizeParticipantForResponse(updated), role: ctx.link.role } };
   };
 
-const readParticipantHandler = withParticipantContext(
-  {
-    participantParamName: 'id',
-    missingParticipantErrorId: 'participants.id.required'
-  },
-  readParticipantInnerHandler
-);
+function requireParticipantContext(context: InvocationContext): ParticipantContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user || !state.participant) {
+    throw new Error('Participant context was not initialized.');
+  }
 
-const updateParticipantHandler = withParticipantContext(
-  {
-    participantParamName: 'id',
-    missingParticipantErrorId: 'participants.id.required'
-  },
-  updateParticipantInnerHandler
-);
+  return {
+    user: state.user,
+    containers: state.containers,
+    participantId: state.participant.id,
+    link: state.participant.link
+  };
+}
+
+const readParticipantHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (_req: HttpRequest, context: InvocationContext) => {
+    const participantContext = requireParticipantContext(context);
+    return readParticipantInnerHandler(participantContext);
+  }
+});
+
+const updateParticipantHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext) => {
+    const participantContext = requireParticipantContext(context);
+    return updateParticipantInnerHandler(participantContext, req);
+  }
+});
 
 app.http('participant-detail-get', {
   methods: ['GET'],
   authLevel: 'anonymous',
-  route: 'participants/{id}',
+  route: 'participants/{participantId}',
   handler: readParticipantHandler
 });
 
 app.http('participant-detail-patch', {
   methods: ['PATCH'],
   authLevel: 'anonymous',
-  route: 'participants/{id}',
+  route: 'participants/{participantId}',
   handler: updateParticipantHandler
 });
 

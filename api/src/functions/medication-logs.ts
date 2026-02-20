@@ -1,18 +1,21 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { randomUUID } from 'crypto';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { buildMedicationLogListQuery } from '../shared/data/medication-logs';
 import { readMedication } from '../shared/data/medications';
-import { readParticipantLink } from '../shared/data/participants';
 import { MedicationLogDocument } from '../models/medication-log';
 import { MedicationDocument } from '../models/medication';
 import { projectMedicationLogToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
 import { computeUtcFromLocal, isTimeOnly } from '../shared/validators';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
+import { authMiddleware } from '../shared/middleware/auth';
+import { participantMiddleware } from '../shared/middleware/participant';
 
 type UpsertMedicationLogRequest = {
   status: 'taken' | 'not_taken';
@@ -257,21 +260,31 @@ type ListMedicationLogsResponse = {
   nextToken: string | null;
 };
 
-const listMedicationLogsHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'medicationLogs.participantId.required', message: 'Participant id is required.' }
-      ]);
-    }
+function requireParticipantContext(context: InvocationContext): ParticipantContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user || !state.participant) {
+    throw new Error('Participant context was not initialized.');
+  }
 
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
+  return {
+    user: state.user,
+    containers: state.containers,
+    participantId: state.participant.id,
+    link: state.participant.link
+  };
+}
+
+const listMedicationLogsHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    const participantId = participantContext.participantId;
+    const containers = participantContext.containers;
 
     const pageSize = parsePageSize(req.query.get('pageSize'));
     const nextToken = req.query.get('nextToken');
@@ -297,26 +310,35 @@ const listMedicationLogsHandler = withErrorHandling(
     };
     return { status: 200, jsonBody: payload };
   }
-);
+});
 
-const upsertMedicationLogHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const upsertMedicationLogHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    const participantId = participantContext.participantId;
     const medicationId = req.params.medicationId;
     const logLocalDate = req.params.logLocalDate;
-    if (!participantId || !medicationId || !logLocalDate) {
-      return buildValidationError([
-        { id: 'medicationLogs.participantId.required', message: 'Participant id is required.' },
-        { id: 'medicationLogs.medicationId.required', message: 'Medication id is required.' },
-        { id: 'medicationLogs.logLocalDate.required', message: 'logLocalDate is required.' }
-      ]);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
+    if (!medicationId || !logLocalDate) {
+      const errors: ValidationErrorDetail[] = [];
+      if (!medicationId) {
+        errors.push({
+          id: 'medicationLogs.medicationId.required',
+          message: 'Medication id is required.'
+        });
+      }
+      if (!logLocalDate) {
+        errors.push({
+          id: 'medicationLogs.logLocalDate.required',
+          message: 'logLocalDate is required.'
+        });
+      }
+      return buildValidationError(errors);
     }
 
     const parsed = await parseJsonBody<UpsertMedicationLogRequest>(req, {
@@ -332,7 +354,7 @@ const upsertMedicationLogHandler = withErrorHandling(
       return buildValidationError(errors);
     }
 
-    const medication = await readMedication(containers.medications, participantId, medicationId);
+    const medication = await readMedication(participantContext.containers.medications, participantId, medicationId);
     if (!medication) {
       return { status: 404, jsonBody: { message: 'Medication not found.' } };
     }
@@ -386,7 +408,7 @@ const upsertMedicationLogHandler = withErrorHandling(
     }
 
     const logId = `medlog_${medicationId}_${logLocalDate}_${occurrenceKey}`;
-    const existing = await containers.medicationLogs.item(logId, participantId).read<MedicationLogDocument>();
+    const existing = await participantContext.containers.medicationLogs.item(logId, participantId).read<MedicationLogDocument>();
     if (medication.frequency === 'as-needed' && !existing.resource) {
       return { status: 404, jsonBody: { message: 'Medication log not found.' } };
     }
@@ -424,7 +446,7 @@ const upsertMedicationLogHandler = withErrorHandling(
       updatedAtUtc: now.toISOString()
     };
 
-    await containers.medicationLogs.items.upsert(updated);
+    await participantContext.containers.medicationLogs.items.upsert(updated);
 
     let medicationForResponse = medication;
     if (medication.frequency === 'interval-days' && medication.intervalSchedule && parsed.value.status === 'taken') {
@@ -437,11 +459,11 @@ const upsertMedicationLogHandler = withErrorHandling(
         },
         updatedAtUtc: now.toISOString()
       };
-      await containers.medications.items.upsert(medicationForResponse);
+      await participantContext.containers.medications.items.upsert(medicationForResponse);
     }
 
     await appendTimelineEvent(
-      containers.eventIndex,
+      participantContext.containers.eventIndex,
       projectMedicationLogToEventIndex(updated, medicationForResponse)
     );
 
@@ -453,26 +475,35 @@ const upsertMedicationLogHandler = withErrorHandling(
 
     return { status: 200, jsonBody: responseBody };
   }
-);
+});
 
-const createAsNeededMedicationLogHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const createAsNeededMedicationLogHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    const participantId = participantContext.participantId;
     const medicationId = req.params.medicationId;
     const logLocalDate = req.params.logLocalDate;
-    if (!participantId || !medicationId || !logLocalDate) {
-      return buildValidationError([
-        { id: 'medicationLogs.participantId.required', message: 'Participant id is required.' },
-        { id: 'medicationLogs.medicationId.required', message: 'Medication id is required.' },
-        { id: 'medicationLogs.logLocalDate.required', message: 'logLocalDate is required.' }
-      ]);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
+    if (!medicationId || !logLocalDate) {
+      const errors: ValidationErrorDetail[] = [];
+      if (!medicationId) {
+        errors.push({
+          id: 'medicationLogs.medicationId.required',
+          message: 'Medication id is required.'
+        });
+      }
+      if (!logLocalDate) {
+        errors.push({
+          id: 'medicationLogs.logLocalDate.required',
+          message: 'logLocalDate is required.'
+        });
+      }
+      return buildValidationError(errors);
     }
 
     const parsed = await parseJsonBody<CreateAsNeededMedicationLogRequest>(req, {
@@ -488,7 +519,7 @@ const createAsNeededMedicationLogHandler = withErrorHandling(
       return buildValidationError(errors);
     }
 
-    const medication = await readMedication(containers.medications, participantId, medicationId);
+    const medication = await readMedication(participantContext.containers.medications, participantId, medicationId);
     if (!medication) {
       return { status: 404, jsonBody: { message: 'Medication not found.' } };
     }
@@ -541,15 +572,15 @@ const createAsNeededMedicationLogHandler = withErrorHandling(
       updatedAtUtc: nowIso
     };
 
-    await containers.medicationLogs.items.create(created);
+    await participantContext.containers.medicationLogs.items.create(created);
     await appendTimelineEvent(
-      containers.eventIndex,
+      participantContext.containers.eventIndex,
       projectMedicationLogToEventIndex(created, medication)
     );
 
     return { status: 201, jsonBody: created };
   }
-);
+});
 
 app.http('medication-logs-list', {
   methods: ['GET'],

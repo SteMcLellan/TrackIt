@@ -65,6 +65,37 @@ describe('daily-reflections handlers', () => {
     expect(response.status).toBe(400);
   });
 
+  it('listDailyReflectionsHandler enforces participant middleware param check', async () => {
+    const containers = createCosmosContainersStub();
+    buildCosmosMock.mockResolvedValue({ containers });
+    const response = await listDailyReflectionsHandler(
+      mockHttpRequest({
+        params: {},
+        query: { startDate: '2026-01-01', endDate: '2026-01-01' }
+      }),
+      mockInvocationContext()
+    );
+    expect(response.status).toBe(400);
+    expect(((response.jsonBody as { errors?: Array<{ id: string }> }).errors ?? [])[0]?.id).toBe(
+      'participants.participantId.required'
+    );
+  });
+
+  it('listDailyReflectionsHandler returns 403 when participant is not linked', async () => {
+    const containers = createCosmosContainersStub();
+    buildCosmosMock.mockResolvedValue({ containers });
+    readParticipantLinkMock.mockResolvedValue(null);
+    const response = await listDailyReflectionsHandler(
+      mockHttpRequest({
+        params: { participantId: 'participant_1' },
+        query: { startDate: '2026-01-01', endDate: '2026-01-01' }
+      }),
+      mockInvocationContext()
+    );
+    expect(response.status).toBe(403);
+    expect((response.jsonBody as { message?: string }).message).toBe('Participant not linked to user.');
+  });
+
   it('upsertDailyReflectionHandler validates score payload', async () => {
     const containers = createCosmosContainersStub();
     buildCosmosMock.mockResolvedValue({ containers });

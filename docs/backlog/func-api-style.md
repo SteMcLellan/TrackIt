@@ -1,7 +1,7 @@
 # Function API Style Standardization
 
-Status: Draft backlog item (implementation-ready)
-Last updated: 2026-02-19
+Status: In progress (phase 1 started)
+Last updated: 2026-02-20
 
 ## Problem
 
@@ -18,6 +18,20 @@ Adopt a middleware-first API handler model as the canonical style.
 - `participantMiddleware` is a plain middleware value (not a factory); it always reads `req.params.participantId` and returns standard error responses for missing param or unlinked user.
 - Standardize participant route param name to `participantId` across all participant-scoped routes. The `participant-detail` endpoints currently use `{id}` — rename to `{participantId}` as a prerequisite for using plain `participantMiddleware`. This is a server-side-only change; the client-facing URL segment format is unchanged.
 - Update canonical guidance in `docs/architecture/api-conventions.md` to match this direction.
+
+## Phase 1 progress (2026-02-20)
+
+- Added middleware core primitives:
+  - `api/src/shared/http-middleware.ts`
+  - `api/src/shared/request-state.ts`
+  - `api/src/shared/middleware/error.ts`
+  - `api/src/shared/middleware/request-context.ts`
+  - `api/src/shared/middleware/auth.ts`
+  - `api/src/shared/middleware/participant.ts`
+  - `api/src/shared/middleware/admin-guard.ts`
+- Migrated `participant-detail` endpoints to explicit middleware composition via `composeHttpHandler(...)`.
+- Renamed `participant-detail` route params from `{id}` to `{participantId}`.
+- Added middleware-focused tests for composition, request state, participant middleware behavior, and participant-detail param enforcement.
 
 ## Baseline middleware stacks by endpoint type
 
@@ -196,8 +210,8 @@ Matrix is prefilled with current-state composition and explicit target middlewar
 | [ ] | `me` | `GET /me` | `api/src/functions/me.ts` | `withAuthContext` | `error -> requestContext -> auth -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `participants-list` | `GET /participants` | `api/src/functions/participants.ts` | `withAuthContext` | `error -> requestContext -> auth -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `participants-create` | `POST /participants` | `api/src/functions/participants.ts` | `withAuthContext` | `error -> requestContext -> auth -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
-| [ ] | `participant-detail-get` | `GET /participants/{participantId}` | `api/src/functions/participant-detail.ts` | `withParticipantContext` (`participantParamName='id'`) | `error -> requestContext -> auth -> participant -> [validation]` | Rename route param `{id}` → `{participantId}` (server-side only; prerequisite for plain `participantMiddleware`) | [ ] |
-| [ ] | `participant-detail-patch` | `PATCH /participants/{participantId}` | `api/src/functions/participant-detail.ts` | `withParticipantContext` (`participantParamName='id'`) | `error -> requestContext -> auth -> participant -> [validation]` | Rename route param `{id}` → `{participantId}` (server-side only; prerequisite for plain `participantMiddleware`) | [ ] |
+| [x] | `participant-detail-get` | `GET /participants/{participantId}` | `api/src/functions/participant-detail.ts` | `composeHttpHandler(error -> requestContext -> auth -> participant)` | `error -> requestContext -> auth -> participant -> [validation]` | None (phase 1 pilot migrated) | [x] |
+| [x] | `participant-detail-patch` | `PATCH /participants/{participantId}` | `api/src/functions/participant-detail.ts` | `composeHttpHandler(error -> requestContext -> auth -> participant)` | `error -> requestContext -> auth -> participant -> [validation]` | None (phase 1 pilot migrated) | [x] |
 | [ ] | `participant-members-list` | `GET /participants/{participantId}/members` | `api/src/functions/participant-members.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `participant-members-revoke` | `DELETE /participants/{participantId}/members/{userId}` | `api/src/functions/participant-members.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `participant-invites-active-get` | `GET /participants/{participantId}/invites/active` | `api/src/functions/participant-invites.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
@@ -212,14 +226,14 @@ Matrix is prefilled with current-state composition and explicit target middlewar
 | [ ] | `medications-create` | `POST /participants/{participantId}/medications` | `api/src/functions/medications.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `medication-detail-get` | `GET /participants/{participantId}/medications/{medicationId}` | `api/src/functions/medication-detail.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `medication-detail-patch` | `PATCH /participants/{participantId}/medications/{medicationId}` | `api/src/functions/medication-detail.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
-| [ ] | `medication-logs-list` | `GET /participants/{participantId}/medication-logs` | `api/src/functions/medication-logs.ts` | `withErrorHandling` + inline auth/link checks | `error -> requestContext -> auth -> participant -> [validation]` | High-priority normalization gap | [ ] |
-| [ ] | `medication-logs-upsert` | `PUT /participants/{participantId}/medication-logs/{medicationId}/{logLocalDate}` | `api/src/functions/medication-logs.ts` | `withErrorHandling` + inline auth/link checks | `error -> requestContext -> auth -> participant -> [validation]` | High-priority normalization gap | [ ] |
-| [ ] | `medication-logs-as-needed-create` | `POST /participants/{participantId}/medication-logs/{medicationId}/{logLocalDate}/as-needed` | `api/src/functions/medication-logs.ts` | `withErrorHandling` + inline auth/link checks | `error -> requestContext -> auth -> participant -> [validation]` | High-priority normalization gap | [ ] |
+| [x] | `medication-logs-list` | `GET /participants/{participantId}/medication-logs` | `api/src/functions/medication-logs.ts` | `composeHttpHandler(error -> requestContext -> auth -> participant)` | `error -> requestContext -> auth -> participant -> [validation]` | None (migrated) | [x] |
+| [x] | `medication-logs-upsert` | `PUT /participants/{participantId}/medication-logs/{medicationId}/{logLocalDate}` | `api/src/functions/medication-logs.ts` | `composeHttpHandler(error -> requestContext -> auth -> participant)` | `error -> requestContext -> auth -> participant -> [validation]` | None (migrated) | [x] |
+| [x] | `medication-logs-as-needed-create` | `POST /participants/{participantId}/medication-logs/{medicationId}/{logLocalDate}/as-needed` | `api/src/functions/medication-logs.ts` | `composeHttpHandler(error -> requestContext -> auth -> participant)` | `error -> requestContext -> auth -> participant -> [validation]` | None (migrated) | [x] |
 | [ ] | `medication-log-detail-get` | `GET /participants/{participantId}/medication-logs/{logId}` | `api/src/functions/medication-log-detail.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `medication-log-detail-delete` | `DELETE /participants/{participantId}/medication-logs/{logId}` | `api/src/functions/medication-log-detail.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
-| [ ] | `daily-reflections-list` | `GET /participants/{participantId}/daily-reflections` | `api/src/functions/daily-reflections.ts` | `withErrorHandling` + inline auth/link checks | `error -> requestContext -> auth -> participant -> [validation]` | High-priority normalization gap | [ ] |
-| [ ] | `daily-reflections-upsert` | `PUT /participants/{participantId}/daily-reflections/{logLocalDate}` | `api/src/functions/daily-reflections.ts` | `withErrorHandling` + inline auth/link checks | `error -> requestContext -> auth -> participant -> [validation]` | High-priority normalization gap | [ ] |
-| [ ] | `daily-reflections-summary` | `GET /participants/{participantId}/daily-reflections/summary` | `api/src/functions/daily-reflections.ts` | `withErrorHandling` + inline auth/link checks | `error -> requestContext -> auth -> participant -> [validation]` | High-priority normalization gap | [ ] |
+| [x] | `daily-reflections-list` | `GET /participants/{participantId}/daily-reflections` | `api/src/functions/daily-reflections.ts` | `composeHttpHandler(error -> requestContext -> auth -> participant)` | `error -> requestContext -> auth -> participant -> [validation]` | None (migrated) | [x] |
+| [x] | `daily-reflections-upsert` | `PUT /participants/{participantId}/daily-reflections/{logLocalDate}` | `api/src/functions/daily-reflections.ts` | `composeHttpHandler(error -> requestContext -> auth -> participant)` | `error -> requestContext -> auth -> participant -> [validation]` | None (migrated) | [x] |
+| [x] | `daily-reflections-summary` | `GET /participants/{participantId}/daily-reflections/summary` | `api/src/functions/daily-reflections.ts` | `composeHttpHandler(error -> requestContext -> auth -> participant)` | `error -> requestContext -> auth -> participant -> [validation]` | None (migrated) | [x] |
 | [ ] | `timeline-list` | `GET /participants/{participantId}/timeline` | `api/src/functions/timeline.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `timeline-context` | `GET /participants/{participantId}/timeline/context/{sourceType}/{sourceId}` | `api/src/functions/timeline.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `event-index-list` | `GET /participants/{participantId}/event-index` | `api/src/functions/event-index.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |

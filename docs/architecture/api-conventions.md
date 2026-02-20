@@ -21,7 +21,7 @@ This document defines backend endpoint conventions for TrackIt Azure Functions.
   - `participantMiddleware`
   - `adminGuardMiddleware`
   - endpoint-specific validation middleware(s)
-- Existing wrappers (`withAuthContext`, `withParticipantContext`, `withErrorHandling`) remain compatibility adapters and may be used while migration is in progress.
+- Existing wrappers (`withAuthContext`, `withParticipantContext`, `withErrorHandling`) remain compatibility adapters for untouched handlers during migration. Do not introduce new wrapper-based handler composition.
 
 ## Baseline Middleware Stacks (Guidance)
 - Public endpoints:
@@ -77,9 +77,7 @@ type Result<T> =
 - Function registration names use `<resource>-<action>`.
   - Examples: `participants-list`, `participant-detail-patch`, `medication-logs-upsert`.
 - Route nouns should be resource-based and consistent.
-- Participant-scoped routes should prefer `{participantId}` as parameter name.
-- Current compatibility exception:
-  - `participants/{id}` exists in participant detail routes; keep compatibility, but prefer `{participantId}` for new routes.
+- Participant-scoped routes should use `{participantId}` as parameter name.
 - Do not place custom routes under `/admin/*` because it is host-reserved.
 - Use `internal/admin/...` for internal administrative endpoints.
 
@@ -151,11 +149,7 @@ const createThingHandler = composeHttpHandler({
     errorMiddleware,
     requestContextMiddleware,
     authMiddleware,
-    participantMiddleware({
-      participantParamName: 'participantId',
-      missingParticipantErrorId: 'things.participantId.required',
-      missingParticipantErrorMessage: 'Participant id is required.'
-    }),
+    participantMiddleware,
     validateCreateThingMiddleware
   ],
   handler: createThingBusinessHandler
@@ -167,7 +161,7 @@ const createThingHandler = composeHttpHandler({
 - Middleware order follows canonical sequence.
 - No duplicate inline auth/link validation when equivalent middleware already supplies it.
 - Route naming and function name follow conventions.
-- Participant param naming is consistent (`participantId` for new endpoints).
+- Participant param naming is consistent (`participantId` for participant-scoped endpoints).
 - Validation errors use stable IDs and `buildValidationError`.
 - Status codes align with this doc.
 - Partition-aware data access (no accidental cross-partition primary path).

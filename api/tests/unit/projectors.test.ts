@@ -120,7 +120,7 @@ describe('projectDailyReflectionToEventIndex', () => {
     const result = projectDailyReflectionToEventIndex(baseReflection());
     expect(result.tags).toContain('mood_band:upbeat');
     expect(result.tags).toContain('focus_band:drifting');
-    expect(result.tags).toContain('energy_band:steady');
+    expect(result.tags).toContain('energy_band:level');
     expect(result.tags).toContain('sleep_band:refreshed');
   });
 

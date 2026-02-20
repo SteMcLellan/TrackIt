@@ -1,15 +1,18 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
+import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { buildDailyReflectionListQuery, readDailyReflection } from '../shared/data/daily-reflections';
-import { readParticipantLink } from '../shared/data/participants';
 import { DailyReflectionDocument } from '../models/daily-reflection';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
 import { projectDailyReflectionToEventIndex } from '../shared/timeline/projectors';
 import { isDateOnly, isFutureDate, isValidTzOffset } from '../shared/validators';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
+import { authMiddleware } from '../shared/middleware/auth';
+import { participantMiddleware } from '../shared/middleware/participant';
 
 type UpsertDailyReflectionRequest = {
   logTzOffsetMinutes: number;
@@ -213,27 +216,37 @@ function buildMetricSummary(
   };
 }
 
-const listDailyReflectionsHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'dailyReflections.participantId.required', message: 'Participant id is required.' }
-      ]);
-    }
+function requireParticipantContext(context: InvocationContext): ParticipantContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user || !state.participant) {
+    throw new Error('Participant context was not initialized.');
+  }
+
+  return {
+    user: state.user,
+    containers: state.containers,
+    participantId: state.participant.id,
+    link: state.participant.link
+  };
+}
+
+const listDailyReflectionsHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    const participantId = participantContext.participantId;
+    const containers = participantContext.containers;
 
     const startDate = req.query.get('startDate');
     const endDate = req.query.get('endDate');
     const errors = validateListRequest(startDate, endDate);
     if (errors.length > 0) {
       return buildValidationError(errors);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
     }
 
     const pageSize = parsePageSize(req.query.get('pageSize'));
@@ -252,28 +265,26 @@ const listDailyReflectionsHandler = withErrorHandling(
 
     return { status: 200, jsonBody: payload };
   }
-);
+});
 
-const upsertDailyReflectionHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
+const upsertDailyReflectionHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    const participantId = participantContext.participantId;
     const logLocalDate = req.params.logLocalDate;
-    if (!participantId || !logLocalDate) {
-      const errors: ValidationErrorDetail[] = [];
-      if (!participantId) {
-        errors.push({
-          id: 'dailyReflections.participantId.required',
-          message: 'Participant id is required.'
-        });
-      }
-      if (!logLocalDate) {
-        errors.push({
+    if (!logLocalDate) {
+      return buildValidationError([
+        {
           id: 'dailyReflections.logLocalDate.required',
           message: 'logLocalDate is required.'
-        });
-      }
-      return buildValidationError(errors);
+        }
+      ]);
     }
 
     const parsed = await parseJsonBody<UpsertDailyReflectionRequest>(req, {
@@ -289,14 +300,8 @@ const upsertDailyReflectionHandler = withErrorHandling(
       return buildValidationError(validationErrors);
     }
 
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
-    }
-
     const reflectionId = `daily_reflection_${logLocalDate}`;
-    const existing = await readDailyReflection(containers.dailyReflections, participantId, reflectionId);
+    const existing = await readDailyReflection(participantContext.containers.dailyReflections, participantId, reflectionId);
     const now = new Date().toISOString();
     const normalizedNote = typeof parsed.value.journalNote === 'string'
       ? parsed.value.journalNote.trim()
@@ -314,26 +319,31 @@ const upsertDailyReflectionHandler = withErrorHandling(
       journalNote: normalizedNote.length > 0 ? normalizedNote : undefined,
       createdAtUtc: existing?.createdAtUtc ?? now,
       updatedAtUtc: now,
-      createdByUserId: existing?.createdByUserId ?? user.sub,
-      updatedByUserId: user.sub
+      createdByUserId: existing?.createdByUserId ?? participantContext.user.sub,
+      updatedByUserId: participantContext.user.sub
     };
 
-    await containers.dailyReflections.items.upsert(reflection);
-    await appendTimelineEvent(containers.eventIndex, projectDailyReflectionToEventIndex(reflection));
+    await participantContext.containers.dailyReflections.items.upsert(reflection);
+    await appendTimelineEvent(
+      participantContext.containers.eventIndex,
+      projectDailyReflectionToEventIndex(reflection)
+    );
 
     return { status: 200, jsonBody: reflection };
   }
-);
+});
 
-const dailyReflectionsSummaryHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const user = authorize(context, req);
-    const participantId = req.params.participantId;
-    if (!participantId) {
-      return buildValidationError([
-        { id: 'dailyReflections.participantId.required', message: 'Participant id is required.' }
-      ]);
-    }
+const dailyReflectionsSummaryHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    const participantId = participantContext.participantId;
+    const containers = participantContext.containers;
 
     const endDate = req.query.get('endDate');
     const days = parseSummaryDays(req.query.get('days'));
@@ -353,12 +363,6 @@ const dailyReflectionsSummaryHandler = withErrorHandling(
 
     if (errors.length > 0) {
       return buildValidationError(errors);
-    }
-
-    const { containers } = await buildCosmos();
-    const link = await readParticipantLink(containers.userParticipantLinks, user.sub, participantId);
-    if (!link) {
-      return { status: 403, jsonBody: { message: 'Participant not linked to user.' } };
     }
 
     const startDate = computeStartDate(endDate!, days);
@@ -387,7 +391,7 @@ const dailyReflectionsSummaryHandler = withErrorHandling(
 
     return { status: 200, jsonBody: payload };
   }
-);
+});
 
 app.http('daily-reflections-list', {
   methods: ['GET'],
