@@ -231,7 +231,7 @@ const SLEEP_BUCKETS: BucketOption[] = [
       width: 100%;
       max-width: 28rem;
       margin: 0 auto;
-      padding: 1rem 1rem 2rem;
+      padding: 1rem 1rem 14rem;
       box-sizing: border-box;
       overflow-x: hidden;
       background: #fcfcfd;
@@ -420,9 +420,18 @@ const SLEEP_BUCKETS: BucketOption[] = [
     }
 
     .action-bar {
-      margin-top: 1rem;
+      position: fixed;
+      bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+      left: 0;
+      right: 0;
+      max-width: 28rem;
+      margin-inline: auto;
+      padding: 0.75rem 1rem 0;
+      box-sizing: border-box;
+      background: linear-gradient(to top, rgba(252, 252, 253, 1), rgba(252, 252, 253, 0.92) 70%, rgba(252, 252, 253, 0));
       display: grid;
       gap: 0.65rem;
+      z-index: 10;
     }
 
     .save-button {
