@@ -162,6 +162,8 @@ Each dimension uses labels that describe *that facet* in plain language rather t
 
 > **Non-monotonic dimension:** Unlike Mood, Focus, and Sleep, high energy is not a positive signal. Both extremes (Drained and Wired) indicate dysregulation; Level is the optimum. The raw score (0–100) preserves the *direction* of dysregulation — underactive vs. overactive — which is clinically useful. Charts and insights must not render energy with a directional "higher = better" assumption.
 
+> **Non-monotonic dimension:** Unlike Mood, Focus, and Sleep, high energy is not a positive signal. Both extremes (Drained and Wired) indicate dysregulation; Level is the optimum. The raw score (0–100) preserves the *direction* of dysregulation — underactive vs. overactive — which is clinically useful. Charts and insights must not render energy with a directional "higher = better" assumption.
+
 ### Sleep
 
 | Bucket | Label        | Micro-copy                                                     |
