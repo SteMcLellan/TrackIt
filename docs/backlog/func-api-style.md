@@ -1,7 +1,7 @@
 # Function API Style Standardization
 
 Status: Draft backlog item (implementation-ready)
-Last updated: 2026-02-18
+Last updated: 2026-02-19
 
 ## Problem
 
@@ -14,7 +14,9 @@ Last updated: 2026-02-18
 Adopt a middleware-first API handler model as the canonical style.
 
 - Use TrackIt-owned middleware utilities under `api/src/shared/*` (no new external dependency required).
-- Keep existing wrappers (`withParticipantContext`, `withAuthContext`, `withErrorHandling`) as compatibility adapters during transition.
+- Keep existing wrappers (`withParticipantContext`, `withAuthContext`, `withErrorHandling`) as compatibility adapters during transition; remove them once the audit matrix is fully complete — no new handlers should use them.
+- `participantMiddleware` is a plain middleware value (not a factory); it always reads `req.params.participantId` and returns standard error responses for missing param or unlinked user.
+- Standardize participant route param name to `participantId` across all participant-scoped routes. The `participant-detail` endpoints currently use `{id}` — rename to `{participantId}` as a prerequisite for using plain `participantMiddleware`. This is a server-side-only change; the client-facing URL segment format is unchanged.
 - Update canonical guidance in `docs/architecture/api-conventions.md` to match this direction.
 
 ## Baseline middleware stacks by endpoint type
@@ -96,11 +98,14 @@ Contract rules:
 - Middleware execution order is deterministic and matches the declared pipeline.
 - Middleware can short-circuit by returning an `HttpResponseInit` without calling `next`.
 - Middleware must not throw for expected validation/auth failures; return explicit response instead.
-- Unexpected throws are allowed only for exceptional failures and are converted to `500` by error middleware.
+- Unexpected throws are allowed only for exceptional failures and are caught by error middleware.
+- Error middleware must preserve any numeric `.status` property on thrown errors; only default to `500` when none is present.
 - JSON parsing must happen once per request; parsed values should be stored via `setRequestState(...)`.
+- `getRequestState` returns an empty `RequestState` (`{}`) if called before any state has been set for the invocation.
+- If `requestContextMiddleware` is in the chain, request state must include `containers` before calling `next`. It is responsible for calling `buildCosmos()` and storing the result.
 - If `authMiddleware` is in the chain, request state must include `user` and `containers` before calling `next`.
-- If `participantMiddleware` is in the chain, request state must include `participant` before calling `next`.
-- If `adminGuardMiddleware` is in the chain, admin authorization must be enforced before calling `next`.
+- If `participantMiddleware` is in the chain, request state must include `participant` before calling `next`. It always reads `req.params.participantId` and returns standard 400/403 responses for missing param or unlinked user.
+- If `adminGuardMiddleware` is in the chain, request state must include `user` (established by `authMiddleware`) and admin authorization must be enforced before calling `next`.
 
 ## RequestState storage semantics
 
@@ -127,7 +132,12 @@ const errorMiddleware: HttpMiddleware = async (request, context, next) => {
     return await next(request, context);
   } catch (err) {
     context.error('Unhandled error', err);
-    return { status: 500, jsonBody: { message: 'Internal error' } };
+    const status =
+      typeof err === 'object' && err !== null && 'status' in err &&
+      typeof (err as { status?: unknown }).status === 'number'
+        ? (err as { status: number }).status
+        : 500;
+    return { status, jsonBody: { message: err instanceof Error ? err.message : 'Internal error' } };
   }
 };
 
@@ -145,16 +155,22 @@ const createMedicationHandler = composeHttpHandler({
     errorMiddleware,
     requestContextMiddleware,
     authMiddleware,
-    participantMiddleware({
-      participantParamName: 'participantId',
-      missingParticipantErrorId: 'medications.participantId.required',
-      missingParticipantErrorMessage: 'Participant id is required.'
-    }),
+    participantMiddleware,
     validateCreateMedicationBodyMiddleware
   ],
   handler: createMedicationBusinessHandler
 });
 ```
+
+## Wrapper-to-middleware mapping
+
+Reference for translating existing wrappers to the explicit middleware stack:
+
+| Existing wrapper | Equivalent middleware stack |
+|---|---|
+| `withErrorHandling` | `[errorMiddleware]` |
+| `withAuthContext` | `[errorMiddleware, requestContextMiddleware, authMiddleware]` |
+| `withParticipantContext` | `[errorMiddleware, requestContextMiddleware, authMiddleware, participantMiddleware]` |
 
 ## File organization target
 
@@ -180,13 +196,13 @@ Matrix is prefilled with current-state composition and explicit target middlewar
 | [ ] | `me` | `GET /me` | `api/src/functions/me.ts` | `withAuthContext` | `error -> requestContext -> auth -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `participants-list` | `GET /participants` | `api/src/functions/participants.ts` | `withAuthContext` | `error -> requestContext -> auth -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `participants-create` | `POST /participants` | `api/src/functions/participants.ts` | `withAuthContext` | `error -> requestContext -> auth -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
-| [ ] | `participant-detail-get` | `GET /participants/{id}` | `api/src/functions/participant-detail.ts` | `withParticipantContext` (`participantParamName='id'`) | `error -> requestContext -> auth -> participant -> [validation]` | Keep compatibility route param behavior explicit | [ ] |
-| [ ] | `participant-detail-patch` | `PATCH /participants/{id}` | `api/src/functions/participant-detail.ts` | `withParticipantContext` (`participantParamName='id'`) | `error -> requestContext -> auth -> participant -> [validation]` | Keep compatibility route param behavior explicit | [ ] |
+| [ ] | `participant-detail-get` | `GET /participants/{participantId}` | `api/src/functions/participant-detail.ts` | `withParticipantContext` (`participantParamName='id'`) | `error -> requestContext -> auth -> participant -> [validation]` | Rename route param `{id}` → `{participantId}` (server-side only; prerequisite for plain `participantMiddleware`) | [ ] |
+| [ ] | `participant-detail-patch` | `PATCH /participants/{participantId}` | `api/src/functions/participant-detail.ts` | `withParticipantContext` (`participantParamName='id'`) | `error -> requestContext -> auth -> participant -> [validation]` | Rename route param `{id}` → `{participantId}` (server-side only; prerequisite for plain `participantMiddleware`) | [ ] |
 | [ ] | `participant-members-list` | `GET /participants/{participantId}/members` | `api/src/functions/participant-members.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `participant-members-revoke` | `DELETE /participants/{participantId}/members/{userId}` | `api/src/functions/participant-members.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `participant-invites-active-get` | `GET /participants/{participantId}/invites/active` | `api/src/functions/participant-invites.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `participant-invites-create` | `POST /participants/{participantId}/invites` | `api/src/functions/participant-invites.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
-| [ ] | `participant-invites-accept` | `POST /participants/{participantId}/invites/{inviteId}/accept` | `api/src/functions/participant-invites.ts` | `withAuthContext` | `error -> requestContext -> auth -> [validation]` | Confirm auth-only stack is intentional | [ ] |
+| [ ] | `participant-invites-accept` | `POST /participants/{participantId}/invites/{inviteId}/accept` | `api/src/functions/participant-invites.ts` | `withAuthContext` | `error -> requestContext -> auth -> [validation]` | Auth-only is intentional: accepting user is not yet linked to the participant — that is what accepting does; `participantMiddleware` would 403 them | [ ] |
 | [ ] | `behavior-incidents-list` | `GET /participants/{participantId}/incidents` | `api/src/functions/behavior-incidents.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `behavior-incidents-create` | `POST /participants/{participantId}/incidents` | `api/src/functions/behavior-incidents.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
 | [ ] | `behavior-incident-detail-get` | `GET /participants/{participantId}/incidents/{incidentId}` | `api/src/functions/behavior-incident-detail.ts` | `withParticipantContext` | `error -> requestContext -> auth -> participant -> [validation]` | Convert wrapper-first docs to explicit stack mapping | [ ] |
@@ -215,16 +231,15 @@ Matrix is prefilled with current-state composition and explicit target middlewar
 - Backlog doc explicitly defines middleware-first canonical direction.
 - Matrix includes all currently registered HTTP endpoints.
 - Each endpoint row has current composition, target middleware stack, and gap.
-- Compatibility behavior for `participants/{id}` is retained and explicit.
+- Route param on `participant-detail` endpoints is renamed from `{id}` to `{participantId}` (server-side only).
 - Canonical architecture docs are updated to stay consistent with this backlog item.
 
 ## Out of scope
 
-- Endpoint contract changes (routes, payload shapes, status semantics).
+- Client-facing endpoint contract changes (URL format, payload shapes, status semantics). Note: the `participant-detail` route param rename (`{id}` → `{participantId}`) is server-side only and is in scope.
 - Dependency changes to external middleware libraries.
 - Rollout phasing or sprint planning details.
 
 ## Residual risks and notes
 
-- Wrapper adapters may coexist with middleware composition during transition; drift risk remains unless PR checks enforce explicit stack declaration.
-- `participant-invites-accept` route currently uses auth-only context; verify this remains intentional during implementation.
+- Wrapper adapters may coexist with middleware composition during transition; drift risk remains unless PR checks enforce explicit stack declaration. Wrappers are removed once the audit matrix is fully complete.
