@@ -2,12 +2,13 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { CollectionResponse } from '../models/collection';
-import { Medication } from '../models/medication';
+import { IntervalSchedule, Medication, MedicationFrequency } from '../models/medication';
 
 export type CreateMedicationRequest = {
   name: string;
   dosageText: string;
-  frequencyText: string;
+  frequency: MedicationFrequency;
+  intervalSchedule?: IntervalSchedule;
   startDateUtc: string;
   endDateUtc?: string | null;
   notes?: string | null;
@@ -16,7 +17,8 @@ export type CreateMedicationRequest = {
 export type UpdateMedicationRequest = Partial<{
   name: string;
   dosageText: string;
-  frequencyText: string;
+  frequency: MedicationFrequency;
+  intervalSchedule: IntervalSchedule;
   startDateUtc: string;
   endDateUtc: string | null;
   notes: string | null;

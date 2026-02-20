@@ -26,6 +26,13 @@ type CreateAsNeededMedicationLogRequest = {
   logLocalTime?: string;
 };
 
+type IntervalDueState = 'early' | 'due' | 'overdue';
+
+type UpsertMedicationLogResponse = MedicationLogDocument & Partial<{
+  dueState: IntervalDueState;
+  nextDueLocalDate: string | null;
+}>;
+
 const maxPageSize = 100;
 const statusOptions = ['taken', 'not_taken'] as const;
 
@@ -65,6 +72,71 @@ function daysBetweenUtc(a: Date, b: Date): number {
   const utcA = Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), a.getUTCDate());
   const utcB = Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate());
   return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
+}
+
+function addDaysToDateOnly(localDate: string, days: number): string | null {
+  if (!isDateOnly(localDate)) {
+    return null;
+  }
+  const [year, month, day] = localDate.split('-').map((part) => Number(part));
+  const baseUtc = Date.UTC(year, month - 1, day);
+  const shifted = new Date(baseUtc + days * 24 * 60 * 60 * 1000);
+  const yyyy = shifted.getUTCFullYear();
+  const mm = String(shifted.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(shifted.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function localDateForOffset(nowUtc: Date, offsetMinutes: number): string {
+  const localMs = nowUtc.getTime() + offsetMinutes * 60_000;
+  const local = new Date(localMs);
+  const year = local.getUTCFullYear();
+  const month = String(local.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(local.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function daysBetweenDateOnly(a: string, b: string): number | null {
+  if (!isDateOnly(a) || !isDateOnly(b)) {
+    return null;
+  }
+  const [aYear, aMonth, aDay] = a.split('-').map((part) => Number(part));
+  const [bYear, bMonth, bDay] = b.split('-').map((part) => Number(part));
+  const utcA = Date.UTC(aYear, aMonth - 1, aDay);
+  const utcB = Date.UTC(bYear, bMonth - 1, bDay);
+  return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
+}
+
+function buildIntervalDueDetails(
+  medication: MedicationDocument,
+  referenceLocalDate: string
+): { dueState: IntervalDueState; nextDueLocalDate: string | null } | null {
+  if (medication.frequency !== 'interval-days' || !medication.intervalSchedule) {
+    return null;
+  }
+
+  const anchorDateLocal = medication.intervalSchedule.anchorDateLocal;
+  if (!anchorDateLocal) {
+    return { dueState: 'due', nextDueLocalDate: null };
+  }
+
+  const nextDueLocalDate = addDaysToDateOnly(anchorDateLocal, medication.intervalSchedule.intervalDays);
+  if (!nextDueLocalDate) {
+    return { dueState: 'due', nextDueLocalDate: null };
+  }
+
+  const deltaDays = daysBetweenDateOnly(referenceLocalDate, nextDueLocalDate);
+  if (deltaDays === null) {
+    return { dueState: 'due', nextDueLocalDate };
+  }
+
+  if (deltaDays < 0) {
+    return { dueState: 'early', nextDueLocalDate };
+  }
+  if (deltaDays === 0) {
+    return { dueState: 'due', nextDueLocalDate };
+  }
+  return { dueState: 'overdue', nextDueLocalDate };
 }
 
 function validateListRequest(startDate: string | null, endDate: string | null): ValidationErrorDetail[] {
@@ -153,6 +225,9 @@ function scheduledOccurrenceKeys(frequency: MedicationDocument['frequency']): st
   }
   if (frequency === 'three-times-daily') {
     return ['dose-1', 'dose-2', 'dose-3'];
+  }
+  if (frequency === 'interval-days') {
+    return ['interval'];
   }
   return [];
 }
@@ -289,7 +364,16 @@ const upsertMedicationLogHandler = withErrorHandling(
       ]);
     }
 
-    if (medication.frequency !== 'as-needed') {
+    if (medication.frequency === 'interval-days' && occurrenceKey !== 'interval') {
+      return buildValidationError([
+        {
+          id: 'medicationLogs.occurrence.invalid',
+          message: 'occurrenceKey is not valid for frequency interval-days.'
+        }
+      ]);
+    }
+
+    if (medication.frequency !== 'as-needed' && medication.frequency !== 'interval-days') {
       const allowedOccurrenceKeys = scheduledOccurrenceKeys(medication.frequency);
       if (!allowedOccurrenceKeys.includes(occurrenceKey)) {
         return buildValidationError([
@@ -341,12 +425,33 @@ const upsertMedicationLogHandler = withErrorHandling(
     };
 
     await containers.medicationLogs.items.upsert(updated);
+
+    let medicationForResponse = medication;
+    if (medication.frequency === 'interval-days' && medication.intervalSchedule && parsed.value.status === 'taken') {
+      medicationForResponse = {
+        ...medication,
+        intervalSchedule: {
+          ...medication.intervalSchedule,
+          anchorDateLocal: logLocalDate,
+          anchorPolicy: 'reset-on-taken'
+        },
+        updatedAtUtc: now.toISOString()
+      };
+      await containers.medications.items.upsert(medicationForResponse);
+    }
+
     await appendTimelineEvent(
       containers.eventIndex,
-      projectMedicationLogToEventIndex(updated, medication)
+      projectMedicationLogToEventIndex(updated, medicationForResponse)
     );
 
-    return { status: 200, jsonBody: updated };
+    const referenceLocalDate = localDateForOffset(now, parsed.value.logTzOffsetMinutes);
+    const dueDetails = buildIntervalDueDetails(medicationForResponse, referenceLocalDate);
+    const responseBody: UpsertMedicationLogResponse = dueDetails
+      ? { ...updated, ...dueDetails }
+      : updated;
+
+    return { status: 200, jsonBody: responseBody };
   }
 );
 

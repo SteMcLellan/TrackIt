@@ -5,7 +5,14 @@ export type MedicationFrequency =
   | 'once-daily'
   | 'twice-daily'
   | 'three-times-daily'
+  | 'interval-days'
   | 'as-needed';
+
+export interface IntervalSchedule {
+  intervalDays: number; // integer between 2 and 30
+  anchorDateLocal: string | null; // YYYY-MM-DD
+  anchorPolicy: 'reset-on-taken';
+}
 
 export interface MedicationDocument {
   id: string;
@@ -13,6 +20,7 @@ export interface MedicationDocument {
   name: string;
   dosageText: string;
   frequency: MedicationFrequency;
+  intervalSchedule?: IntervalSchedule | null;
   startDateUtc: string; // YYYY-MM-DD
   endDateUtc: string | null; // YYYY-MM-DD
   notes: string | null;

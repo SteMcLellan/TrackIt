@@ -57,6 +57,46 @@ describe('createMedicationInnerHandler', () => {
     expect(vi.mocked(appendTimelineEvent)).toHaveBeenCalledTimes(1);
   });
 
+  it('creates interval medication when intervalSchedule is valid', async () => {
+    const ctx = buildContext();
+    const req = mockHttpRequest({
+      method: 'POST',
+      body: {
+        name: 'Patch',
+        dosageText: '15mg',
+        frequency: 'interval-days',
+        intervalSchedule: { intervalDays: 7, anchorPolicy: 'reset-on-taken' },
+        startDateUtc: '2026-02-01'
+      }
+    });
+
+    const response = await createMedicationInnerHandler(ctx, req);
+
+    expect(response.status).toBe(201);
+    const createSpy = ctx.containers.medications.items.create as unknown as Mock;
+    const createdMedication = createSpy.mock.calls[0][0] as { intervalSchedule?: { intervalDays: number } };
+    expect(createdMedication.intervalSchedule?.intervalDays).toBe(7);
+  });
+
+  it('returns interval schedule required when frequency is interval-days', async () => {
+    const ctx = buildContext();
+    const req = mockHttpRequest({
+      method: 'POST',
+      body: {
+        name: 'Patch',
+        dosageText: '15mg',
+        frequency: 'interval-days',
+        startDateUtc: '2026-02-01'
+      }
+    });
+
+    const response = await createMedicationInnerHandler(ctx, req);
+    const ids = ((response.jsonBody as { errors?: Array<{ id: string }> }).errors ?? []).map((error) => error.id);
+
+    expect(response.status).toBe(400);
+    expect(ids).toContain('medications.intervalSchedule.required');
+  });
+
   it('returns validation error when body is invalid json', async () => {
     const ctx = buildContext();
     const req = mockHttpRequest({

@@ -8,7 +8,13 @@ import { ActiveParticipantInviteResponse } from '../../shared/models/participant
 import { ParticipantService } from '../../shared/services/participant.service';
 import { BottomSheetComponent } from '../../shared/ui/page/bottom-sheet.component';
 
-type MedicationFrequency = 'once-daily' | 'twice-daily' | 'three-times-daily' | 'as-needed';
+type MedicationFrequency = 'once-daily' | 'twice-daily' | 'three-times-daily' | 'interval-days' | 'as-needed';
+
+type IntervalSchedule = {
+  intervalDays: number;
+  anchorDateLocal: string | null;
+  anchorPolicy: 'reset-on-taken';
+};
 
 type MedicationRecord = {
   id: string;
@@ -16,6 +22,7 @@ type MedicationRecord = {
   name: string;
   dosageText: string;
   frequency: MedicationFrequency;
+  intervalSchedule?: IntervalSchedule | null;
   startDateUtc: string;
   endDateUtc: string | null;
   notes: string | null;
@@ -153,7 +160,7 @@ type MedicationRecord = {
               <article class="med-item">
                 <div>
                   <p class="med-name">{{ medication.name }}</p>
-                  <p class="med-meta">{{ medication.dosageText }} • {{ frequencyLabel(medication.frequency) }}</p>
+                  <p class="med-meta">{{ medication.dosageText }} • {{ frequencyLabel(medication) }}</p>
                 </div>
                 <div class="med-actions">
                   <button class="text-btn" type="button" (click)="openMedicationSheet(medication)">Edit</button>
@@ -193,9 +200,17 @@ type MedicationRecord = {
             <option value="once-daily">Once daily</option>
             <option value="twice-daily">Twice daily</option>
             <option value="three-times-daily">Three times daily</option>
+            <option value="interval-days">Every X days</option>
             <option value="as-needed">As needed</option>
           </select>
         </div>
+        @if (isIntervalFrequency(medicationForm.controls.frequency.value)) {
+          <div class="field-group">
+            <label for="med-interval-days">Repeat every</label>
+            <input id="med-interval-days" type="number" min="2" max="30" step="1" formControlName="intervalDays" />
+            <p class="field-hint">Marking early or late resets the next due date.</p>
+          </div>
+        }
         <div class="field-group">
           <label for="med-notes">Notes / Instructions (Optional)</label>
           <textarea id="med-notes" formControlName="notes" rows="3"></textarea>
@@ -242,6 +257,7 @@ type MedicationRecord = {
     .form { display: grid; gap: 0.75rem; }
     .field-group { display: grid; gap: 0.3rem; }
     .field-group label { color: #94a3b8; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+    .field-hint { margin: 0; color: #64748b; font-size: 0.74rem; }
     input, select, textarea {
       width: 100%;
       border: 1px solid #e2e8f0;
@@ -399,6 +415,7 @@ export class ProfileDashboardComponent {
     name: this.fb.nonNullable.control('', [Validators.required]),
     dosageText: this.fb.nonNullable.control('', [Validators.required]),
     frequency: this.fb.nonNullable.control<MedicationFrequency>('once-daily', [Validators.required]),
+    intervalDays: this.fb.nonNullable.control(7, [Validators.min(2), Validators.max(30)]),
     notes: this.fb.nonNullable.control('')
   });
 
@@ -529,11 +546,12 @@ export class ProfileDashboardComponent {
         name: medication.name,
         dosageText: medication.dosageText,
         frequency: medication.frequency,
+        intervalDays: medication.intervalSchedule?.intervalDays ?? 7,
         notes: medication.notes ?? ''
       });
     } else {
       this.editingMedicationId.set(null);
-      this.medicationForm.reset({ name: '', dosageText: '', frequency: 'once-daily', notes: '' });
+      this.medicationForm.reset({ name: '', dosageText: '', frequency: 'once-daily', intervalDays: 7, notes: '' });
     }
     this.medicationSheetOpen.set(true);
   }
@@ -554,12 +572,26 @@ export class ProfileDashboardComponent {
     }
     this.medicationSaving.set(true);
 
-    const payload = {
+    const frequency = this.medicationForm.controls.frequency.value;
+    const intervalDays = Number(this.medicationForm.controls.intervalDays.value);
+    const payload: {
+      name: string;
+      dosageText: string;
+      frequency: MedicationFrequency;
+      intervalSchedule?: { intervalDays: number; anchorPolicy: 'reset-on-taken' };
+      notes: string | null;
+    } = {
       name: this.medicationForm.controls.name.value.trim(),
       dosageText: this.medicationForm.controls.dosageText.value.trim(),
-      frequency: this.medicationForm.controls.frequency.value,
+      frequency,
       notes: this.toNullableString(this.medicationForm.controls.notes.value)
     };
+    if (frequency === 'interval-days') {
+      payload.intervalSchedule = {
+        intervalDays,
+        anchorPolicy: 'reset-on-taken'
+      };
+    }
 
     const medicationId = this.editingMedicationId();
     if (medicationId) {
@@ -666,11 +698,18 @@ export class ProfileDashboardComponent {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(parsed);
   }
 
-  frequencyLabel(value: MedicationFrequency): string {
-    if (value === 'once-daily') return 'Once daily';
-    if (value === 'twice-daily') return 'Twice daily';
-    if (value === 'three-times-daily') return 'Three times daily';
+  frequencyLabel(medication: MedicationRecord): string {
+    if (medication.frequency === 'once-daily') return 'Once daily';
+    if (medication.frequency === 'twice-daily') return 'Twice daily';
+    if (medication.frequency === 'three-times-daily') return 'Three times daily';
+    if (medication.frequency === 'interval-days') {
+      return `Every ${medication.intervalSchedule?.intervalDays ?? 7} days`;
+    }
     return 'As needed';
+  }
+
+  isIntervalFrequency(value: MedicationFrequency): boolean {
+    return value === 'interval-days';
   }
 
   participantSaveDisabled(): boolean {
@@ -678,7 +717,23 @@ export class ProfileDashboardComponent {
   }
 
   medicationSaveDisabled(): boolean {
-    return this.medicationSaving() || this.medicationForm.invalid;
+    if (this.medicationSaving()) {
+      return true;
+    }
+    if (
+      this.medicationForm.controls.name.invalid ||
+      this.medicationForm.controls.dosageText.invalid ||
+      this.medicationForm.controls.frequency.invalid
+    ) {
+      return true;
+    }
+    if (
+      this.isIntervalFrequency(this.medicationForm.controls.frequency.value) &&
+      this.medicationForm.controls.intervalDays.invalid
+    ) {
+      return true;
+    }
+    return false;
   }
 
   private finishMedicationSave(message: string): void {

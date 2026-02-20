@@ -152,6 +152,86 @@ describe('medication-logs handlers', () => {
     expect(appendTimelineEventMock).toHaveBeenCalledTimes(1);
   });
 
+  it('upsertMedicationLogHandler resets interval anchor on taken and returns due fields', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const containers = createCosmosContainersStub();
+    (containers.medicationLogs.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      read: vi.fn().mockResolvedValue({ resource: null })
+    });
+    readMedicationMock.mockResolvedValue({
+      id: 'med_interval',
+      participantId: 'participant_1',
+      frequency: 'interval-days',
+      intervalSchedule: {
+        intervalDays: 7,
+        anchorDateLocal: '2026-01-01',
+        anchorPolicy: 'reset-on-taken'
+      },
+      startDateUtc: '2026-01-01',
+      endDateUtc: null,
+      name: 'Patch',
+      dosageText: '15mg',
+      archivedAtUtc: null,
+      createdAtUtc: '2026-01-01T00:00:00.000Z',
+      updatedAtUtc: '2026-01-01T00:00:00.000Z'
+    });
+    buildCosmosMock.mockResolvedValue({ containers });
+
+    const response = await upsertMedicationLogHandler(
+      mockHttpRequest({
+        method: 'PUT',
+        params: { participantId: 'participant_1', medicationId: 'med_interval', logLocalDate: today },
+        body: { status: 'taken', logTzOffsetMinutes: 0, occurrenceKey: 'interval' }
+      }),
+      mockInvocationContext()
+    );
+
+    expect(response.status).toBe(200);
+    const medicationUpsert = containers.medications.items.upsert as unknown as ReturnType<typeof vi.fn>;
+    expect(medicationUpsert).toHaveBeenCalledTimes(1);
+    expect(medicationUpsert.mock.calls[0][0].intervalSchedule.anchorDateLocal).toBe(today);
+    const body = response.jsonBody as { dueState?: string; nextDueLocalDate?: string | null };
+    expect(body.dueState).toBe('early');
+    expect(body.nextDueLocalDate).toBeTypeOf('string');
+  });
+
+  it('upsertMedicationLogHandler rejects non-interval occurrence key for interval-days', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const containers = createCosmosContainersStub();
+    readMedicationMock.mockResolvedValue({
+      id: 'med_interval',
+      participantId: 'participant_1',
+      frequency: 'interval-days',
+      intervalSchedule: {
+        intervalDays: 7,
+        anchorDateLocal: '2026-01-01',
+        anchorPolicy: 'reset-on-taken'
+      },
+      startDateUtc: '2026-01-01',
+      endDateUtc: null,
+      name: 'Patch',
+      dosageText: '15mg',
+      archivedAtUtc: null,
+      createdAtUtc: '2026-01-01T00:00:00.000Z',
+      updatedAtUtc: '2026-01-01T00:00:00.000Z'
+    });
+    buildCosmosMock.mockResolvedValue({ containers });
+
+    const response = await upsertMedicationLogHandler(
+      mockHttpRequest({
+        method: 'PUT',
+        params: { participantId: 'participant_1', medicationId: 'med_interval', logLocalDate: today },
+        body: { status: 'taken', logTzOffsetMinutes: 0, occurrenceKey: 'dose-1' }
+      }),
+      mockInvocationContext()
+    );
+
+    expect(response.status).toBe(400);
+    expect(((response.jsonBody as { errors?: Array<{ id: string }> }).errors ?? [])[0]?.id).toBe(
+      'medicationLogs.occurrence.invalid'
+    );
+  });
+
   it('createAsNeededMedicationLogHandler rejects non as-needed frequency', async () => {
     const containers = createCosmosContainersStub();
     readMedicationMock.mockResolvedValue({

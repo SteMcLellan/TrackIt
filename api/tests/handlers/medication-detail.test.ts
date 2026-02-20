@@ -79,6 +79,78 @@ describe('medication-detail handlers', () => {
     expect(response.status).toBe(404);
   });
 
+  it('updateMedicationInnerHandler requires intervalSchedule when switching to interval-days', async () => {
+    const ctx = buildContext();
+    (ctx.containers.medications.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      read: vi.fn().mockResolvedValue({
+        resource: {
+          id: 'med_1',
+          participantId: 'participant_1',
+          name: 'Old',
+          dosageText: '100mg',
+          frequency: 'once-daily',
+          startDateUtc: '2026-01-01',
+          endDateUtc: null,
+          notes: null,
+          archivedAtUtc: null,
+          createdAtUtc: '2026-01-01T00:00:00.000Z',
+          updatedAtUtc: '2026-01-01T00:00:00.000Z'
+        }
+      })
+    });
+
+    const response = await updateMedicationInnerHandler(
+      ctx,
+      mockHttpRequest({
+        method: 'PATCH',
+        params: { medicationId: 'med_1' },
+        body: { frequency: 'interval-days' }
+      })
+    );
+
+    expectValidationErrorIds(response, ['medications.intervalSchedule.required']);
+  });
+
+  it('updateMedicationInnerHandler clears intervalSchedule when switching away from interval-days', async () => {
+    const ctx = buildContext();
+    (ctx.containers.medications.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      read: vi.fn().mockResolvedValue({
+        resource: {
+          id: 'med_1',
+          participantId: 'participant_1',
+          name: 'Patch',
+          dosageText: '15mg',
+          frequency: 'interval-days',
+          intervalSchedule: {
+            intervalDays: 7,
+            anchorDateLocal: '2026-02-10',
+            anchorPolicy: 'reset-on-taken'
+          },
+          startDateUtc: '2026-01-01',
+          endDateUtc: null,
+          notes: null,
+          archivedAtUtc: null,
+          createdAtUtc: '2026-01-01T00:00:00.000Z',
+          updatedAtUtc: '2026-01-01T00:00:00.000Z'
+        }
+      })
+    });
+
+    const upsertSpy = ctx.containers.medications.items.upsert as unknown as ReturnType<typeof vi.fn>;
+    const response = await updateMedicationInnerHandler(
+      ctx,
+      mockHttpRequest({
+        method: 'PATCH',
+        params: { medicationId: 'med_1' },
+        body: { frequency: 'once-daily' }
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(upsertSpy).toHaveBeenCalledTimes(1);
+    expect(upsertSpy.mock.calls[0][0].intervalSchedule).toBeNull();
+  });
+
   it('updateMedicationInnerHandler upserts and appends timeline event', async () => {
     const ctx = buildContext();
     (ctx.containers.medications.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({

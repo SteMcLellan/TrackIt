@@ -3,14 +3,21 @@ import { withParticipantContext, ParticipantContext } from '../shared/handler-co
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { readMedication } from '../shared/data/medications';
-import { MedicationDocument, MedicationFrequency } from '../models/medication';
+import { IntervalSchedule, MedicationDocument, MedicationFrequency } from '../models/medication';
 import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+
+type IntervalScheduleRequest = {
+  intervalDays: number;
+  anchorDateLocal?: string | null;
+  anchorPolicy?: string;
+};
 
 type UpdateMedicationRequest = Partial<{
   name: string;
   dosageText: string;
   frequency: string;
+  intervalSchedule: IntervalScheduleRequest | null;
   startDateUtc: string;
   endDateUtc: string | null;
   notes: string | null;
@@ -21,6 +28,7 @@ const frequencyOptions = [
   'once-daily',
   'twice-daily',
   'three-times-daily',
+  'interval-days',
   'as-needed'
 ] as const satisfies MedicationFrequency[];
 
@@ -66,9 +74,55 @@ function hasLegacyFrequencyTextField(value: unknown): boolean {
   return typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, 'frequencyText');
 }
 
+function normalizeIntervalSchedule(value: unknown): IntervalSchedule | null {
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+
+  const candidate = value as {
+    intervalDays?: unknown;
+    anchorDateLocal?: unknown;
+    anchorPolicy?: unknown;
+  };
+
+  if (
+    typeof candidate.intervalDays !== 'number' ||
+    !Number.isInteger(candidate.intervalDays) ||
+    candidate.intervalDays < 2 ||
+    candidate.intervalDays > 30
+  ) {
+    return null;
+  }
+
+  let anchorDateLocal: string | null = null;
+  if (typeof candidate.anchorDateLocal === 'string') {
+    if (!isDateOnly(candidate.anchorDateLocal)) {
+      return null;
+    }
+    anchorDateLocal = candidate.anchorDateLocal;
+  } else if (candidate.anchorDateLocal !== null && typeof candidate.anchorDateLocal !== 'undefined') {
+    return null;
+  }
+
+  const anchorPolicy = candidate.anchorPolicy ?? 'reset-on-taken';
+  if (anchorPolicy !== 'reset-on-taken') {
+    return null;
+  }
+
+  return {
+    intervalDays: candidate.intervalDays,
+    anchorDateLocal,
+    anchorPolicy: 'reset-on-taken'
+  };
+}
+
 export function validateUpdateRequest(body: UpdateMedicationRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
   const frequency = typeof body.frequency === 'string' ? body.frequency.trim() : undefined;
+  const hasIntervalSchedule = Object.prototype.hasOwnProperty.call(body, 'intervalSchedule');
+  const normalizedIntervalSchedule = hasIntervalSchedule
+    ? normalizeIntervalSchedule(body.intervalSchedule)
+    : undefined;
 
   if (typeof body.name !== 'undefined' && !isNonEmpty(body.name)) {
     errors.push({ id: 'medications.name.required', message: 'Name is required.' });
@@ -93,6 +147,12 @@ export function validateUpdateRequest(body: UpdateMedicationRequest): Validation
   }
   if (!isNullableUtcIso(body.archivedAtUtc)) {
     errors.push({ id: 'medications.archivedAt.invalid', message: 'Archive time must be a UTC ISO string.' });
+  }
+  if (hasIntervalSchedule && !normalizedIntervalSchedule) {
+    errors.push({
+      id: 'medications.intervalSchedule.invalid',
+      message: 'intervalSchedule is invalid.'
+    });
   }
 
   return errors;
@@ -136,6 +196,36 @@ const updateMedicationInnerHandler = async (
       return { status: 404, jsonBody: { message: 'Medication not found.' } };
     }
 
+    const nextFrequency =
+      typeof parsed.value.frequency === 'string'
+        ? parsed.value.frequency.trim() as MedicationFrequency
+        : existing.frequency;
+    const hasIntervalScheduleInPayload = Object.prototype.hasOwnProperty.call(parsed.value, 'intervalSchedule');
+    const payloadIntervalSchedule = hasIntervalScheduleInPayload
+      ? normalizeIntervalSchedule(parsed.value.intervalSchedule)
+      : undefined;
+    const effectiveIntervalSchedule =
+      nextFrequency === 'interval-days'
+        ? (hasIntervalScheduleInPayload ? payloadIntervalSchedule : existing.intervalSchedule ?? null)
+        : null;
+
+    if (nextFrequency === 'interval-days' && !effectiveIntervalSchedule) {
+      return buildValidationError([
+        {
+          id: 'medications.intervalSchedule.required',
+          message: 'intervalSchedule is required when frequency is interval-days.'
+        }
+      ]);
+    }
+    if (nextFrequency !== 'interval-days' && hasIntervalScheduleInPayload) {
+      return buildValidationError([
+        {
+          id: 'medications.intervalSchedule.invalid',
+          message: 'intervalSchedule is only allowed when frequency is interval-days.'
+        }
+      ]);
+    }
+
     const nextStartDate = typeof parsed.value.startDateUtc === 'string' ? parsed.value.startDateUtc : existing.startDateUtc;
     const nextEndDate =
       typeof parsed.value.endDateUtc !== 'undefined' ? parsed.value.endDateUtc : existing.endDateUtc;
@@ -150,10 +240,8 @@ const updateMedicationInnerHandler = async (
       name: typeof parsed.value.name === 'string' ? parsed.value.name.trim() : existing.name,
       dosageText:
         typeof parsed.value.dosageText === 'string' ? parsed.value.dosageText.trim() : existing.dosageText,
-      frequency:
-        typeof parsed.value.frequency === 'string'
-          ? parsed.value.frequency.trim() as MedicationFrequency
-          : existing.frequency,
+      frequency: nextFrequency,
+      intervalSchedule: nextFrequency === 'interval-days' ? effectiveIntervalSchedule : null,
       startDateUtc: nextStartDate,
       endDateUtc: typeof nextEndDate === 'undefined' ? existing.endDateUtc : nextEndDate,
       notes: typeof parsed.value.notes === 'string' ? parsed.value.notes.trim() : parsed.value.notes ?? existing.notes,

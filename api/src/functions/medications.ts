@@ -4,14 +4,21 @@ import { withParticipantContext, ParticipantContext } from '../shared/handler-co
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { buildMedicationListQuery } from '../shared/data/medications';
-import { MedicationDocument, MedicationFrequency } from '../models/medication';
+import { IntervalSchedule, MedicationDocument, MedicationFrequency } from '../models/medication';
 import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+
+type IntervalScheduleRequest = {
+  intervalDays: number;
+  anchorDateLocal?: string | null;
+  anchorPolicy?: string;
+};
 
 type CreateMedicationRequest = {
   name: string;
   dosageText: string;
   frequency: string;
+  intervalSchedule?: IntervalScheduleRequest | null;
   startDateUtc: string; // YYYY-MM-DD
   endDateUtc?: string | null;
   notes?: string | null;
@@ -22,6 +29,7 @@ const frequencyOptions = [
   'once-daily',
   'twice-daily',
   'three-times-daily',
+  'interval-days',
   'as-needed'
 ] as const satisfies MedicationFrequency[];
 
@@ -65,9 +73,54 @@ function hasLegacyFrequencyTextField(value: unknown): boolean {
   return typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, 'frequencyText');
 }
 
+function normalizeIntervalSchedule(value: unknown): IntervalSchedule | null {
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+
+  const candidate = value as {
+    intervalDays?: unknown;
+    anchorDateLocal?: unknown;
+    anchorPolicy?: unknown;
+  };
+
+  if (
+    typeof candidate.intervalDays !== 'number' ||
+    !Number.isInteger(candidate.intervalDays) ||
+    candidate.intervalDays < 2 ||
+    candidate.intervalDays > 30
+  ) {
+    return null;
+  }
+
+  let anchorDateLocal: string | null = null;
+  if (typeof candidate.anchorDateLocal === 'string') {
+    if (!isDateOnly(candidate.anchorDateLocal)) {
+      return null;
+    }
+    anchorDateLocal = candidate.anchorDateLocal;
+  } else if (candidate.anchorDateLocal !== null && typeof candidate.anchorDateLocal !== 'undefined') {
+    return null;
+  }
+
+  const anchorPolicy = candidate.anchorPolicy ?? 'reset-on-taken';
+  if (anchorPolicy !== 'reset-on-taken') {
+    return null;
+  }
+
+  return {
+    intervalDays: candidate.intervalDays,
+    anchorDateLocal,
+    anchorPolicy: 'reset-on-taken'
+  };
+}
+
 export function validateCreateRequest(body: CreateMedicationRequest): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
   const frequency = typeof body.frequency === 'string' ? body.frequency.trim() : '';
+  const normalizedIntervalSchedule = typeof body.intervalSchedule === 'undefined'
+    ? undefined
+    : normalizeIntervalSchedule(body.intervalSchedule);
 
   if (!isNonEmpty(body.name)) {
     errors.push({ id: 'medications.name.required', message: 'Name is required.' });
@@ -85,6 +138,24 @@ export function validateCreateRequest(body: CreateMedicationRequest): Validation
   }
   if (!isNullableDateOnly(body.endDateUtc)) {
     errors.push({ id: 'medications.endDate.invalid', message: 'End date must be YYYY-MM-DD.' });
+  }
+  if (frequency === 'interval-days') {
+    if (typeof body.intervalSchedule === 'undefined' || body.intervalSchedule === null) {
+      errors.push({
+        id: 'medications.intervalSchedule.required',
+        message: 'intervalSchedule is required when frequency is interval-days.'
+      });
+    } else if (!normalizedIntervalSchedule) {
+      errors.push({
+        id: 'medications.intervalSchedule.invalid',
+        message: 'intervalSchedule is invalid.'
+      });
+    }
+  } else if (typeof body.intervalSchedule !== 'undefined') {
+    errors.push({
+      id: 'medications.intervalSchedule.invalid',
+      message: 'intervalSchedule is only allowed when frequency is interval-days.'
+    });
   }
   if (
     isDateOnly(body.startDateUtc) &&
@@ -153,12 +224,16 @@ const createMedicationInnerHandler = async (
 
     const now = new Date().toISOString();
     const frequency = parsed.value.frequency.trim() as MedicationFrequency;
+    const intervalSchedule = frequency === 'interval-days'
+      ? normalizeIntervalSchedule(parsed.value.intervalSchedule)
+      : null;
     const medication: MedicationDocument = {
       id: `med_${randomUUID()}`,
       participantId: ctx.participantId,
       name: parsed.value.name.trim(),
       dosageText: parsed.value.dosageText.trim(),
       frequency,
+      intervalSchedule,
       startDateUtc: parsed.value.startDateUtc,
       endDateUtc: parsed.value.endDateUtc ?? null,
       notes: typeof parsed.value.notes === 'string' ? parsed.value.notes.trim() : null,

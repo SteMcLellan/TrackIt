@@ -97,6 +97,22 @@ describe('projectMedicationLogToEventIndex', () => {
     );
     expect(result.summary.subtitle).toBe('Dose logged');
   });
+
+  it('uses interval wording for interval medication logs', () => {
+    const result = projectMedicationLogToEventIndex(
+      baseMedLog({ occurrenceKey: 'interval' }),
+      baseMedication({
+        frequency: 'interval-days',
+        intervalSchedule: {
+          intervalDays: 7,
+          anchorDateLocal: '2026-02-14',
+          anchorPolicy: 'reset-on-taken'
+        }
+      })
+    );
+    expect(result.summary.title).toBe('Took medication');
+    expect(result.summary.subtitle).toContain('Every 7 days');
+  });
 });
 
 describe('projectDailyReflectionToEventIndex', () => {

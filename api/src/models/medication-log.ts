@@ -9,7 +9,7 @@ export interface MedicationLogDocument {
   logLocalTime?: string; // HH:mm
   logTzOffsetMinutes: number;
   takenAtUtc?: string;
-  occurrenceKey: string; // scheduled: dose-1..dose-N, PRN: as-needed-*
+  occurrenceKey: string; // scheduled: dose-1..dose-N, interval: interval, PRN: as-needed-*
   status: 'taken' | 'not_taken';
   createdAtUtc: string;
   updatedAtUtc: string;

@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { BehaviorIncident } from '../../shared/models/behavior-incident';
 import { CollectionResponse } from '../../shared/models/collection';
 import { MedicationLog } from '../../shared/models/medication-log';
-import { Medication } from '../../shared/models/medication';
+import { Medication, MedicationFrequency } from '../../shared/models/medication';
 import { Participant } from '../../shared/models/participant';
 import { DailyReflectionSummaryResponse, MetricSummary } from '../../shared/models/daily-reflection';
 import { AuthService } from '../../shared/services/auth.service';
@@ -16,16 +16,7 @@ type MedicationsResponse = CollectionResponse<Medication>;
 type MedicationLogsResponse = CollectionResponse<MedicationLog>;
 type IncidentsResponse = CollectionResponse<BehaviorIncident>;
 
-type MedicationFrequency =
-  | 'once-daily'
-  | 'twice-daily'
-  | 'three-times-daily'
-  | 'as-needed';
-
-type MedicationWithFrequency = Medication & {
-  frequency?: MedicationFrequency;
-  frequencyText?: string;
-};
+type IntervalDueState = 'early' | 'due' | 'overdue';
 
 type WeeklyMetricKey = 'mood' | 'focus' | 'sleep' | 'energy';
 
@@ -125,8 +116,12 @@ type WeeklyMetricCard = {
             </div>
             <div class="med-summary-copy">
               <p class="med-summary-title">Today's Medications</p>
-              @if (medicationSummary().totalExpectedDoses === 0) {
+              @if (medicationSummary().totalExpectedDoses === 0 && medicationSummary().intervalDueCount === 0) {
                 <p class="med-summary-fraction">No scheduled doses today</p>
+              } @else if (medicationSummary().totalExpectedDoses === 0) {
+                <p class="med-summary-fraction">
+                  {{ medicationSummary().intervalDueCount }} interval medication{{ medicationSummary().intervalDueCount === 1 ? '' : 's' }} due
+                </p>
               } @else {
                 <p class="med-summary-fraction">
                   {{ medicationSummary().takenDoses }} of {{ medicationSummary().totalExpectedDoses }} doses taken
@@ -136,15 +131,19 @@ type WeeklyMetricCard = {
                 <p class="med-summary-pending">
                   {{ medicationSummary().pendingNames[0] }} pending
                 </p>
+              } @else if (medicationSummary().intervalDueCount > 0) {
+                <p class="med-summary-pending">
+                  {{ medicationSummary().intervalDueCount }} interval medication{{ medicationSummary().intervalDueCount === 1 ? '' : 's' }} due or overdue
+                </p>
               }
             </div>
           </div>
           <div class="med-summary-trailing">
-            @if (adherenceStatus() === 'complete') {
+            @if (adherenceStatus() === 'complete' && medicationSummary().intervalDueCount === 0) {
               <span class="med-chip complete">All on track</span>
-            } @else if (adherenceStatus() === 'pending') {
+            } @else if (adherenceStatus() === 'pending' || medicationSummary().intervalDueCount > 0) {
               <span class="med-chip pending">
-                {{ medicationSummary().totalExpectedDoses - medicationSummary().takenDoses }} remaining
+                {{ medicationSummary().totalExpectedDoses - medicationSummary().takenDoses + medicationSummary().intervalDueCount }} remaining
               </span>
             } @else {
               <span class="med-chip none">None scheduled</span>
@@ -818,11 +817,21 @@ export class InsightsDashboardComponent {
   readonly medicationSummary = computed(() => {
     let totalExpectedDoses = 0;
     let takenDoses = 0;
+    let intervalDueCount = 0;
     const pendingNames: string[] = [];
 
     for (const med of this.routineMedications()) {
       const frequency = this.resolveMedicationFrequency(med);
       if (!frequency || frequency === 'as-needed') continue;
+
+      if (frequency === 'interval-days') {
+        const dueState = this.intervalDueState(med);
+        if (dueState !== 'early') {
+          intervalDueCount += 1;
+          pendingNames.push(med.name);
+        }
+        continue;
+      }
 
       const expectedSlots = this.frequencySlotCount(frequency);
       totalExpectedDoses += expectedSlots;
@@ -838,7 +847,7 @@ export class InsightsDashboardComponent {
       }
     }
 
-    return { totalExpectedDoses, takenDoses, pendingNames };
+    return { totalExpectedDoses, takenDoses, intervalDueCount, pendingNames };
   });
 
   readonly progressPercent = computed(() => {
@@ -893,30 +902,62 @@ export class InsightsDashboardComponent {
     if (frequency === 'once-daily') return 1;
     if (frequency === 'twice-daily') return 2;
     if (frequency === 'three-times-daily') return 3;
+    if (frequency === 'interval-days') return 1;
     return 0;
   }
 
   private resolveMedicationFrequency(medication: Medication): MedicationFrequency | null {
-    const withFrequency = medication as MedicationWithFrequency;
-    const frequency = withFrequency.frequency;
-    if (
-      frequency === 'once-daily' ||
-      frequency === 'twice-daily' ||
-      frequency === 'three-times-daily' ||
-      frequency === 'as-needed'
-    ) {
-      return frequency;
-    }
+    return medication.frequency ?? null;
+  }
 
-    const frequencyText = withFrequency.frequencyText?.trim().toLowerCase();
-    if (!frequencyText) {
+  private intervalDueState(medication: Medication): IntervalDueState {
+    const nextDueLocalDate = this.intervalNextDueLocalDate(medication);
+    if (!nextDueLocalDate) {
+      return 'due';
+    }
+    const deltaDays = this.daysBetweenLocalDates(this.todayLocalDate(), nextDueLocalDate);
+    if (deltaDays === null) {
+      return 'due';
+    }
+    if (deltaDays < 0) {
+      return 'early';
+    }
+    if (deltaDays === 0) {
+      return 'due';
+    }
+    return 'overdue';
+  }
+
+  private intervalNextDueLocalDate(medication: Medication): string | null {
+    const schedule = medication.intervalSchedule;
+    if (!schedule?.anchorDateLocal || typeof schedule.intervalDays !== 'number') {
       return null;
     }
-    if (frequencyText.includes('as-needed') || frequencyText.includes('as needed')) return 'as-needed';
-    if (frequencyText.includes('three')) return 'three-times-daily';
-    if (frequencyText.includes('twice') || frequencyText.includes('2')) return 'twice-daily';
-    if (frequencyText.includes('once') || frequencyText.includes('daily')) return 'once-daily';
-    return null;
+    return this.addDaysToLocalDate(schedule.anchorDateLocal, schedule.intervalDays);
+  }
+
+  private addDaysToLocalDate(localDate: string, days: number): string | null {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+      return null;
+    }
+    const [year, month, day] = localDate.split('-').map(Number);
+    const utcValue = Date.UTC(year, month - 1, day) + days * 24 * 60 * 60 * 1000;
+    const shifted = new Date(utcValue);
+    const yyyy = shifted.getUTCFullYear();
+    const mm = String(shifted.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(shifted.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  private daysBetweenLocalDates(a: string, b: string): number | null {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(a) || !/^\d{4}-\d{2}-\d{2}$/.test(b)) {
+      return null;
+    }
+    const [aYear, aMonth, aDay] = a.split('-').map(Number);
+    const [bYear, bMonth, bDay] = b.split('-').map(Number);
+    const utcA = Date.UTC(aYear, aMonth - 1, aDay);
+    const utcB = Date.UTC(bYear, bMonth - 1, bDay);
+    return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
   }
 
   private buildMetricCard(

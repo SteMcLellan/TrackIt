@@ -4,6 +4,13 @@ import { environment } from '../../../environments/environment';
 import { CollectionResponse } from '../models/collection';
 import { MedicationLog } from '../models/medication-log';
 
+export type IntervalDueState = 'early' | 'due' | 'overdue';
+
+export type UpsertMedicationLogResponse = MedicationLog & Partial<{
+  dueState: IntervalDueState;
+  nextDueLocalDate: string | null;
+}>;
+
 export type UpsertMedicationLogRequest = {
   status: 'taken' | 'not_taken';
   logTzOffsetMinutes: number;
@@ -42,7 +49,7 @@ export class MedicationLogService {
     logLocalDate: string,
     request: UpsertMedicationLogRequest
   ) {
-    return this.http.put<MedicationLog>(
+    return this.http.put<UpsertMedicationLogResponse>(
       `${environment.apiBaseUrl}/participants/${participantId}/medication-logs/${medicationId}/${logLocalDate}`,
       request
     );

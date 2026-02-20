@@ -118,7 +118,7 @@ export function projectMedicationLogToEventIndex(
       `operation:${operation}`
     ],
     summary: {
-      title: log.status === 'taken' ? 'Medication taken' : 'Medication not taken',
+      title: buildMedicationLogTitle(log.status, medication),
       subtitle: buildMedicationLogSubtitle(log.logLocalTime, medication),
       status: log.status,
       medicationId: log.medicationId,
@@ -177,6 +177,17 @@ function buildMedicationLogSubtitle(
   logLocalTime: string | undefined,
   medication?: MedicationDocument
 ): string {
+  if (medication?.frequency === 'interval-days' && medication.intervalSchedule) {
+    const intervalLabel = `Every ${medication.intervalSchedule.intervalDays} days`;
+    if (medication.name && medication.dosageText) {
+      return `${intervalLabel} â€¢ ${medication.name} ${medication.dosageText}`;
+    }
+    if (medication.name) {
+      return `${intervalLabel} â€¢ ${medication.name}`;
+    }
+    return intervalLabel;
+  }
+
   const daypart = logLocalTime ? medicationDaypartFromLocalTime(logLocalTime) : null;
   const daypartLabel = daypart ?? 'Dose logged';
 
@@ -187,6 +198,19 @@ function buildMedicationLogSubtitle(
     return `${daypartLabel} • ${medication.name}`;
   }
   return daypartLabel;
+}
+
+function buildMedicationLogTitle(
+  status: MedicationLogDocument['status'],
+  medication?: MedicationDocument
+): string {
+  if (status !== 'taken') {
+    return 'Medication not taken';
+  }
+  if (medication?.frequency === 'interval-days') {
+    return 'Took medication';
+  }
+  return 'Medication taken';
 }
 
 function toLabelTag(dimension: 'mood' | 'focus' | 'energy' | 'sleep', score: number): string {

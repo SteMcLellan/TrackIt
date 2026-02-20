@@ -2,7 +2,7 @@ import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { CollectionResponse } from '../../shared/models/collection';
 import { MedicationLog } from '../../shared/models/medication-log';
-import { Medication } from '../../shared/models/medication';
+import { IntervalSchedule, Medication, MedicationFrequency } from '../../shared/models/medication';
 import { MedicationLogService } from '../../shared/services/medication-log.service';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { computeTzOffsetMinutes } from '../../shared/utils/datetime';
@@ -11,17 +11,6 @@ import { environment } from '../../../environments/environment';
 
 type MedicationsResponse = CollectionResponse<Medication>;
 type MedicationLogsResponse = CollectionResponse<MedicationLog>;
-
-type MedicationFrequency =
-  | 'once-daily'
-  | 'twice-daily'
-  | 'three-times-daily'
-  | 'as-needed';
-
-type MedicationWithFrequency = Medication & {
-  frequency?: MedicationFrequency;
-  frequencyText?: string;
-};
 
 type RoutineRowSource = 'scheduled' | 'as-needed-base' | 'as-needed-log';
 
@@ -38,6 +27,8 @@ type RoutineMedicationRow = {
   occurrenceKey?: string;
   takenTimeLabel?: string;
 };
+
+type IntervalDueState = 'early' | 'due' | 'overdue';
 
 type ScheduledMedicationCard = {
   medication: Medication;
@@ -129,10 +120,17 @@ type ScheduledMedicationCard = {
                   </div>
                   <div class="med-copy">
                     <p class="med-title">{{ card.medication.name }}</p>
-                    <p class="med-subtitle">{{ card.medication.dosageText }} · {{ frequencyLabel(card.frequency) }}</p>
+                    <p class="med-subtitle">{{ card.medication.dosageText }} · {{ medicationFrequencyLabel(card.medication) }}</p>
                   </div>
                   <div class="status-meta">
-                    @if (card.cardStatus === 'complete') {
+                    @if (isIntervalMedication(card.medication)) {
+                      <span class="status-chip"
+                        [class.taken]="intervalDueState(card.medication) === 'early'"
+                        [class.pending]="intervalDueState(card.medication) === 'due'"
+                        [class.not-taken]="intervalDueState(card.medication) === 'overdue'">
+                        {{ intervalDueChipLabel(card.medication) }}
+                      </span>
+                    } @else if (card.cardStatus === 'complete') {
                       <span class="status-chip taken">Taken</span>
                     } @else if (card.cardStatus === 'partial') {
                       <div class="status-stack">
@@ -144,6 +142,11 @@ type ScheduledMedicationCard = {
                     }
                   </div>
                 </div>
+                @if (isIntervalMedication(card.medication)) {
+                  <p class="interval-meta">
+                    Last logged: {{ intervalLastTakenLabel(card.medication) }} - Next due: {{ intervalNextDueLabel(card.medication) }}
+                  </p>
+                }
                 @for (row of card.rows; track row.id) {
                   <div
                     class="swipe-item dose-swipe-item"
@@ -153,7 +156,7 @@ type ScheduledMedicationCard = {
                   >
                     <div class="swipe-rail rail-right">
                       <span class="material-symbols-outlined">check_circle</span>
-                      <span>Taken</span>
+                      <span>Mark taken</span>
                     </div>
                     <div class="swipe-rail rail-left">
                       <span>Not Taken</span>
@@ -639,6 +642,15 @@ type ScheduledMedicationCard = {
       font-weight: 500;
     }
 
+    .interval-meta {
+      margin: 0;
+      padding: 0 1rem 0.6rem;
+      color: #64748b;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      border-top: 1px solid #f8fafc;
+    }
+
     .taken-time-row {
       display: inline-flex;
       align-items: center;
@@ -906,6 +918,25 @@ export class MedicationsDashboardComponent {
         continue;
       }
 
+      if (this.isIntervalMedication(medication)) {
+        const intervalLog = medicationLogs.find((log) => log.occurrenceKey === 'interval');
+        const status: 'taken' | 'not_taken' = intervalLog?.status === 'taken' ? 'taken' : 'not_taken';
+        rows.push({
+          id: `routine_${medication.id}_interval`,
+          medication,
+          source: 'scheduled',
+          status,
+          logId: intervalLog?.id,
+          logLocalDate: intervalLog?.logLocalDate,
+          logLocalTime: intervalLog?.logLocalTime,
+          logTzOffsetMinutes: intervalLog?.logTzOffsetMinutes,
+          takenAtUtc: intervalLog?.takenAtUtc,
+          occurrenceKey: 'interval',
+          takenTimeLabel: status === 'taken' && intervalLog ? this.formatTakenTime(intervalLog) : undefined
+        });
+        continue;
+      }
+
       const frequency = this.resolveMedicationFrequency(medication);
       const slotCount = frequency ? this.frequencySlotCount(frequency) : 1;
 
@@ -978,7 +1009,7 @@ export class MedicationsDashboardComponent {
     let takenDoses = 0;
     for (const med of this.routineMedications()) {
       const frequency = this.resolveMedicationFrequency(med);
-      if (!frequency || frequency === 'as-needed') continue;
+      if (!frequency || frequency === 'as-needed' || frequency === 'interval-days') continue;
       const expected = this.frequencySlotCount(frequency);
       totalExpectedDoses += expected;
       const medLogs = this.todayLogs().filter(log => log.medicationId === med.id && log.status === 'taken');
@@ -1125,7 +1156,7 @@ export class MedicationsDashboardComponent {
       return;
     }
 
-    const occurrenceKey = row.occurrenceKey ?? 'dose-1';
+    const occurrenceKey = this.resolveOccurrenceKeyForRow(row);
     this.medicationLogs
       .upsertLog(participantId, row.medication.id, logLocalDate, { status: 'taken', logLocalTime, logTzOffsetMinutes, occurrenceKey })
       .subscribe({
@@ -1150,7 +1181,7 @@ export class MedicationsDashboardComponent {
       return;
     }
 
-    const occurrenceKey = row.occurrenceKey ?? 'dose-1';
+    const occurrenceKey = this.resolveOccurrenceKeyForRow(row);
     this.setSaving(row.id, true);
     this.medicationLogs
       .upsertLog(participantId, row.medication.id, this.todayLocalDate(), {
@@ -1195,7 +1226,7 @@ export class MedicationsDashboardComponent {
     if (!participantId) { this.clearTimePickerState(); return; }
     if (!this.isValidTimeInput(logLocalTime)) { return; }
 
-    const occurrenceKey = row.occurrenceKey;
+    const occurrenceKey = this.resolveOccurrenceKeyForRow(row);
     if (!occurrenceKey) { this.routineError.set('Unable to update time for this log.'); return; }
 
     const logLocalDate = row.logLocalDate ?? this.todayLocalDate();
@@ -1221,7 +1252,10 @@ export class MedicationsDashboardComponent {
   // --- Helpers ---
 
   doseSlotLabel(row: RoutineMedicationRow, card: ScheduledMedicationCard): string {
-    if (card.expectedDoses <= 1) return 'Once Daily';
+    if (card.frequency === 'interval-days') {
+      return row.status === 'taken' ? 'Logged' : 'Mark taken';
+    }
+    if (card.expectedDoses <= 1) return 'Once daily';
     if (row.status === 'taken') {
       const daypart = this.daypartLabelForRow(row);
       if (daypart) return daypart;
@@ -1242,10 +1276,18 @@ export class MedicationsDashboardComponent {
     return this.daypartLabelForRow(row) ?? 'Dose logged';
   }
 
-  frequencyLabel(frequency: MedicationFrequency): string {
+  medicationFrequencyLabel(medication: Medication): string {
+    const frequency = this.resolveMedicationFrequency(medication);
+    if (!frequency) {
+      return 'Frequency not set';
+    }
     if (frequency === 'once-daily') return 'Once daily';
     if (frequency === 'twice-daily') return 'Twice daily';
     if (frequency === 'three-times-daily') return 'Three times daily';
+    if (frequency === 'interval-days') {
+      const intervalDays = medication.intervalSchedule?.intervalDays ?? 7;
+      return `Every ${intervalDays} days`;
+    }
     if (frequency === 'as-needed') return 'As needed';
     return 'Frequency not set';
   }
@@ -1258,26 +1300,129 @@ export class MedicationsDashboardComponent {
     return this.resolveMedicationFrequency(medication) === 'as-needed';
   }
 
+  isIntervalMedication(medication: Medication): boolean {
+    return this.resolveMedicationFrequency(medication) === 'interval-days';
+  }
+
   private frequencySlotCount(frequency: MedicationFrequency): number {
     if (frequency === 'once-daily') return 1;
     if (frequency === 'twice-daily') return 2;
     if (frequency === 'three-times-daily') return 3;
+    if (frequency === 'interval-days') return 1;
     return 0;
   }
 
   private resolveMedicationFrequency(medication: Medication): MedicationFrequency | null {
-    const withFrequency = medication as MedicationWithFrequency;
-    const frequency = withFrequency.frequency;
-    if (frequency === 'once-daily' || frequency === 'twice-daily' || frequency === 'three-times-daily' || frequency === 'as-needed') {
-      return frequency;
+    return medication.frequency ?? null;
+  }
+
+  intervalDueState(medication: Medication): IntervalDueState {
+    const nextDueLocalDate = this.intervalNextDueLocalDate(medication);
+    if (!nextDueLocalDate) {
+      return 'due';
     }
-    const frequencyText = withFrequency.frequencyText?.trim().toLowerCase();
-    if (!frequencyText) return null;
-    if (frequencyText.includes('as-needed') || frequencyText.includes('as needed')) return 'as-needed';
-    if (frequencyText.includes('three')) return 'three-times-daily';
-    if (frequencyText.includes('twice') || frequencyText.includes('2')) return 'twice-daily';
-    if (frequencyText.includes('once') || frequencyText.includes('daily')) return 'once-daily';
-    return null;
+    const deltaDays = this.daysBetweenLocalDates(this.todayLocalDate(), nextDueLocalDate);
+    if (deltaDays === null) {
+      return 'due';
+    }
+    if (deltaDays < 0) {
+      return 'early';
+    }
+    if (deltaDays === 0) {
+      return 'due';
+    }
+    return 'overdue';
+  }
+
+  intervalDueChipLabel(medication: Medication): string {
+    const nextDueLocalDate = this.intervalNextDueLocalDate(medication);
+    if (!nextDueLocalDate) {
+      return 'Due now';
+    }
+    const deltaDays = this.daysBetweenLocalDates(this.todayLocalDate(), nextDueLocalDate);
+    if (deltaDays === null || deltaDays === 0) {
+      return 'Due today';
+    }
+    if (deltaDays < 0) {
+      const days = Math.abs(deltaDays);
+      return `Due in ${days} day${days === 1 ? '' : 's'}`;
+    }
+    return `Overdue by ${deltaDays} day${deltaDays === 1 ? '' : 's'}`;
+  }
+
+  intervalLastTakenLabel(medication: Medication): string {
+    const anchorDateLocal = this.intervalScheduleFor(medication)?.anchorDateLocal;
+    if (!anchorDateLocal) {
+      return 'Not logged';
+    }
+    return this.formatDateLabel(anchorDateLocal);
+  }
+
+  intervalNextDueLabel(medication: Medication): string {
+    const nextDueLocalDate = this.intervalNextDueLocalDate(medication);
+    if (!nextDueLocalDate) {
+      return 'After first log';
+    }
+    return this.formatDateLabel(nextDueLocalDate);
+  }
+
+  private resolveOccurrenceKeyForRow(row: RoutineMedicationRow): string {
+    const frequency = this.resolveMedicationFrequency(row.medication);
+    if (frequency === 'interval-days') {
+      return 'interval';
+    }
+    return row.occurrenceKey ?? 'dose-1';
+  }
+
+  private intervalScheduleFor(medication: Medication): IntervalSchedule | null {
+    if (!this.isIntervalMedication(medication)) {
+      return null;
+    }
+    const schedule = medication.intervalSchedule;
+    if (!schedule || typeof schedule.intervalDays !== 'number' || schedule.intervalDays < 2 || schedule.intervalDays > 30) {
+      return null;
+    }
+    return schedule;
+  }
+
+  private intervalNextDueLocalDate(medication: Medication): string | null {
+    const schedule = this.intervalScheduleFor(medication);
+    if (!schedule?.anchorDateLocal) {
+      return null;
+    }
+    return this.addDaysToLocalDate(schedule.anchorDateLocal, schedule.intervalDays);
+  }
+
+  private addDaysToLocalDate(localDate: string, days: number): string | null {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+      return null;
+    }
+    const [year, month, day] = localDate.split('-').map(Number);
+    const utcValue = Date.UTC(year, month - 1, day) + days * 24 * 60 * 60 * 1000;
+    const shifted = new Date(utcValue);
+    const yyyy = shifted.getUTCFullYear();
+    const mm = String(shifted.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(shifted.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  private daysBetweenLocalDates(a: string, b: string): number | null {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(a) || !/^\d{4}-\d{2}-\d{2}$/.test(b)) {
+      return null;
+    }
+    const [aYear, aMonth, aDay] = a.split('-').map(Number);
+    const [bYear, bMonth, bDay] = b.split('-').map(Number);
+    const utcA = Date.UTC(aYear, aMonth - 1, aDay);
+    const utcB = Date.UTC(bYear, bMonth - 1, bDay);
+    return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
+  }
+
+  private formatDateLabel(localDate: string): string {
+    const parsed = new Date(`${localDate}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return localDate;
+    }
+    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(parsed);
   }
 
   private logSortTimeMs(log: MedicationLog): number {
@@ -1373,4 +1518,7 @@ export class MedicationsDashboardComponent {
     return `${hour12}:${String(minute).padStart(2, '0')} ${period}`;
   }
 }
+
+
+
 
