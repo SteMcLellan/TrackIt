@@ -49,7 +49,9 @@ docs/
 |-- decisions/
 |   `-- README.md
 `-- backlog/
-    `-- README.md
+    |-- README.md
+    |-- daily-reflection-scoring.md
+    `-- daily-reflection-historical-entry.md
 ```
 
 ## Canonical Rule Docs

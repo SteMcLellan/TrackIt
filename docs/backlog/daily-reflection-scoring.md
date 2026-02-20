@@ -34,6 +34,8 @@ Display buckets map from the stored score:
 
 > **Note:** Bucket 3 labels are dimension-specific in the UI (see Section 4). "Balanced" is the generic internal name used in scoring and code references — parents never see this word.
 
+> **Energy exception — non-monotonic scale:** For Mood, Focus, and Sleep, bucket 5 represents the best outcome. Energy is different: bucket 3 (Level) is the clinical optimum. Both extremes — Drained (bucket 1) and Wired (bucket 5) — represent concerning states. Charts and automated insights must not treat a high energy score as inherently positive. See Section 5 for chart behavior and Section 6 for the `energyDeviation` derived metric.
+
 ### 1.3 Input → Storage Strategy
 
 **Recommendation: Snap to midpoint on bucket selection.**
@@ -158,6 +160,8 @@ Each dimension uses labels that describe *that facet* in plain language rather t
 | 4      | Buzzing      | Noticeably more active and on-the-go than usual.              |
 | 5      | Wired        | Noticeably restless or hyperactive — hard to settle or channel the energy. |
 
+> **Non-monotonic dimension:** Unlike Mood, Focus, and Sleep, high energy is not a positive signal. Both extremes (Drained and Wired) indicate dysregulation; Level is the optimum. The raw score (0–100) preserves the *direction* of dysregulation — underactive vs. overactive — which is clinically useful. Charts and insights must not render energy with a directional "higher = better" assumption.
+
 ### Sleep
 
 | Bucket | Label        | Micro-copy                                                     |
@@ -193,6 +197,15 @@ Each dimension uses labels that describe *that facet* in plain language rather t
 - Individual day views always show the actual bucket, not the average.
 - Charts should distinguish data points from trend lines so parents see both signal and pattern.
 
+### Energy Chart Behavior
+
+Because energy is non-monotonic, its trend chart must differ from the other three dimensions:
+
+- **No directional arrow or color gradient** (no green-for-high / red-for-low treatment).
+- **Horizontal reference line at Level (score 50)** so deviations in both directions are visually apparent.
+- Each data point shows the bucket label on hover/tap rather than a raw score.
+- Automated insight copy must not use phrasing like "energy was high today" without the label context — always pair with the label (e.g., "Energy was Wired — noticeably hyperactive").
+
 ---
 
 ## 6. Future Enhancements
@@ -215,6 +228,22 @@ Pattern detection candidates:
 | Medication start → Mood change   | "Mood shifted after starting [medication] on [date]."            |
 | Weekend vs. weekday differences  | "Energy tends to be higher on weekends."                         |
 | Pre-incident mood pattern        | "Behavior incidents often follow days rated Low mood."           |
+
+### Energy Deviation Metric
+
+For analytics that need to measure "how far from typical" rather than "how much energy," derive an `energyDeviation` metric at query time:
+
+```
+energyDeviation = abs(energyScore − 50)
+```
+
+This collapses both extremes (Drained at 10 → deviation 40; Wired at 90 → deviation 40) into a single dysregulation signal. Use `energyDeviation` for:
+
+- Correlating energy dysregulation with behavior incidents or focus dips
+- Detecting sustained dysregulation (e.g., 5+ consecutive days with deviation ≥ 30)
+- Any chart or insight that treats "far from Level" as the meaningful signal
+
+The raw `energyScore` is still the canonical stored value and should be preserved — it carries directional information (underactive vs. overactive) that `energyDeviation` discards.
 
 ### Correlation with Other Domains
 
@@ -260,6 +289,9 @@ If parents want finer control, offer an optional slider that maps to the 0–100
 - [ ] Trend view shows 7-day rolling average as a line with individual day dots.
 - [ ] Missing days appear as gaps, not zeros.
 - [ ] Extreme swings are visually marked on the chart.
+- [ ] Energy chart displays a horizontal reference line at Level (score 50).
+- [ ] Energy chart has no directional color gradient or up/down arrow treatment.
+- [ ] Automated insight copy for energy always includes the bucket label alongside any score reference.
 
 ### US-DR-005: Edge Case Handling
 
