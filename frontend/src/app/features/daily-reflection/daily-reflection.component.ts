@@ -180,7 +180,7 @@ type ScoreField = 'mood' | 'focus' | 'energy' | 'sleep';
       width: 100%;
       max-width: 28rem;
       margin: 0 auto;
-      padding: 1rem 1rem 11rem;
+      padding: 1rem 1rem 14rem;
       box-sizing: border-box;
       overflow-x: hidden;
       background: #fcfcfd;
@@ -383,13 +383,18 @@ type ScoreField = 'mood' | 'focus' | 'energy' | 'sleep';
     }
 
     .action-bar {
-      position: sticky;
+      position: fixed;
       bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
-      margin-top: 1rem;
-      padding-top: 0.75rem;
+      left: 0;
+      right: 0;
+      max-width: 28rem;
+      margin-inline: auto;
+      padding: 0.75rem 1rem 0;
+      box-sizing: border-box;
       background: linear-gradient(to top, rgba(252, 252, 253, 1), rgba(252, 252, 253, 0.92) 70%, rgba(252, 252, 253, 0));
       display: grid;
       gap: 0.65rem;
+      z-index: 10;
     }
 
     .save-button {
