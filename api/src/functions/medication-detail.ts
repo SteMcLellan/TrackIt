@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
@@ -6,8 +6,8 @@ import { readMedication } from '../shared/data/medications';
 import { IntervalSchedule, MedicationDocument, MedicationFrequency } from '../models/medication';
 import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+import { bindBusinessHandler, resolveParticipantContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -164,7 +164,7 @@ export function validateUpdateRequest(body: UpdateMedicationRequest): Validation
   return errors;
 }
 
-const updateMedicationInnerHandler = async (
+const updateMedicationBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -266,7 +266,7 @@ const updateMedicationInnerHandler = async (
     return { status: 200, jsonBody: updated };
   };
 
-const readMedicationInnerHandler = async (
+const readMedicationBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -284,20 +284,6 @@ const readMedicationInnerHandler = async (
     return { status: 200, jsonBody: medication };
   };
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
-  };
-}
-
 const updateMedicationHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
@@ -305,10 +291,7 @@ const updateMedicationHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return updateMedicationInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, updateMedicationBusinessHandler)
 });
 
 const readMedicationHandler = composeHttpHandler({
@@ -318,10 +301,7 @@ const readMedicationHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return readMedicationInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, readMedicationBusinessHandler)
 });
 
 app.http('medication-detail-get', {
@@ -338,4 +318,5 @@ app.http('medication-detail-patch', {
   handler: updateMedicationHandler
 });
 
-export { readMedicationHandler, updateMedicationHandler, readMedicationInnerHandler, updateMedicationInnerHandler };
+export { readMedicationHandler, updateMedicationHandler, readMedicationBusinessHandler, updateMedicationBusinessHandler };
+

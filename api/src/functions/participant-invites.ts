@@ -1,12 +1,12 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { randomUUID } from 'crypto';
 import type { AuthContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
 import { readParticipant, readParticipantLink } from '../shared/data/participants';
 import { ParticipantInviteDocument } from '../models/participant-invite';
 import { UserParticipantLinkDocument } from '../models/participant';
+import { bindBusinessHandler, resolveAuthContext, resolveParticipantContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -39,8 +39,9 @@ export function isParticipantIdValid(participantId?: string | null) {
   return Boolean(participantId && participantId.startsWith(PARTICIPANT_PREFIX));
 }
 
-const readActiveParticipantInviteInnerHandler = async (
-  ctx: ParticipantContext
+const readActiveParticipantInviteBusinessHandler = async (
+  ctx: ParticipantContext,
+  _req: HttpRequest
 ): Promise<HttpResponseInit> => {
     if (!isParticipantIdValid(ctx.participantId)) {
       return buildValidationError([
@@ -84,8 +85,9 @@ const readActiveParticipantInviteInnerHandler = async (
     return { status: 200, jsonBody: response };
   };
 
-const createParticipantInviteInnerHandler = async (
-  ctx: ParticipantContext
+const createParticipantInviteBusinessHandler = async (
+  ctx: ParticipantContext,
+  _req: HttpRequest
 ): Promise<HttpResponseInit> => {
     if (!isParticipantIdValid(ctx.participantId)) {
       return buildValidationError([
@@ -151,7 +153,7 @@ export function isInviteIdValid(inviteId?: string | null) {
   return Boolean(inviteId && inviteId.startsWith(INVITE_PREFIX));
 }
 
-const acceptParticipantInviteInnerHandler = async (
+const acceptParticipantInviteBusinessHandler = async (
   ctx: AuthContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -251,32 +253,6 @@ const acceptParticipantInviteInnerHandler = async (
     return { status: 200, jsonBody: response };
   };
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
-  };
-}
-
-function requireAuthContext(context: InvocationContext): AuthContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user) {
-    throw new Error('Auth context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers
-  };
-}
-
 const readActiveParticipantInviteHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
@@ -284,10 +260,7 @@ const readActiveParticipantInviteHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (_req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return readActiveParticipantInviteInnerHandler(participantContext);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, readActiveParticipantInviteBusinessHandler)
 });
 
 const createParticipantInviteHandler = composeHttpHandler({
@@ -297,10 +270,7 @@ const createParticipantInviteHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (_req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return createParticipantInviteInnerHandler(participantContext);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, createParticipantInviteBusinessHandler)
 });
 
 const acceptParticipantInviteHandler = composeHttpHandler({
@@ -309,10 +279,7 @@ const acceptParticipantInviteHandler = composeHttpHandler({
     requestContextMiddleware,
     authMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const authContext = requireAuthContext(context);
-    return acceptParticipantInviteInnerHandler(authContext, req);
-  }
+  handler: bindBusinessHandler(resolveAuthContext, acceptParticipantInviteBusinessHandler)
 });
 
 app.http('participant-invites-active-get', {
@@ -340,7 +307,8 @@ export {
   readActiveParticipantInviteHandler,
   createParticipantInviteHandler,
   acceptParticipantInviteHandler,
-  readActiveParticipantInviteInnerHandler,
-  createParticipantInviteInnerHandler,
-  acceptParticipantInviteInnerHandler
+  readActiveParticipantInviteBusinessHandler,
+  createParticipantInviteBusinessHandler,
+  acceptParticipantInviteBusinessHandler
 };
+

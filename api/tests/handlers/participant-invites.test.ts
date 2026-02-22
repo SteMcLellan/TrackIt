@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  readActiveParticipantInviteInnerHandler,
-  createParticipantInviteInnerHandler,
-  acceptParticipantInviteInnerHandler
+  readActiveParticipantInviteBusinessHandler,
+  createParticipantInviteBusinessHandler,
+  acceptParticipantInviteBusinessHandler
 } from '../../src/functions/participant-invites';
 import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 import { mockHttpRequest } from '../helpers/http';
@@ -31,44 +31,44 @@ function buildAuthContext() {
 }
 
 describe('participant-invites handlers', () => {
-  it('readActiveParticipantInviteInnerHandler validates participant id', async () => {
-    const response = await readActiveParticipantInviteInnerHandler({
+  it('readActiveParticipantInviteBusinessHandler validates participant id', async () => {
+    const response = await readActiveParticipantInviteBusinessHandler({
       ...buildParticipantContext(),
       participantId: 'bad'
     });
     expectValidationErrorIds(response, ['participants.id.invalid']);
   });
 
-  it('readActiveParticipantInviteInnerHandler requires manager role', async () => {
-    const response = await readActiveParticipantInviteInnerHandler(buildParticipantContext('viewer'));
+  it('readActiveParticipantInviteBusinessHandler requires manager role', async () => {
+    const response = await readActiveParticipantInviteBusinessHandler(buildParticipantContext('viewer'));
     expectForbidden(response, 'Invite read requires manager role.');
   });
 
-  it('readActiveParticipantInviteInnerHandler returns nullable active invite payload', async () => {
+  it('readActiveParticipantInviteBusinessHandler returns nullable active invite payload', async () => {
     const ctx = buildParticipantContext();
     (ctx.containers.participantInvites.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       fetchAll: vi.fn().mockResolvedValue({ resources: [] })
     });
-    const response = await readActiveParticipantInviteInnerHandler(ctx);
+    const response = await readActiveParticipantInviteBusinessHandler(ctx);
     expect(response.status).toBe(200);
     expect((response.jsonBody as { inviteId: string | null }).inviteId).toBeNull();
   });
 
-  it('createParticipantInviteInnerHandler requires manager role', async () => {
-    const response = await createParticipantInviteInnerHandler(buildParticipantContext('viewer'));
+  it('createParticipantInviteBusinessHandler requires manager role', async () => {
+    const response = await createParticipantInviteBusinessHandler(buildParticipantContext('viewer'));
     expectForbidden(response, 'Invite creation requires manager role.');
   });
 
-  it('createParticipantInviteInnerHandler returns 404 when participant missing', async () => {
+  it('createParticipantInviteBusinessHandler returns 404 when participant missing', async () => {
     const ctx = buildParticipantContext();
     (ctx.containers.participants.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: null })
     });
-    const response = await createParticipantInviteInnerHandler(ctx);
+    const response = await createParticipantInviteBusinessHandler(ctx);
     expect(response.status).toBe(404);
   });
 
-  it('createParticipantInviteInnerHandler revokes active invites and creates one', async () => {
+  it('createParticipantInviteBusinessHandler revokes active invites and creates one', async () => {
     const ctx = buildParticipantContext();
     (ctx.containers.participants.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: { id: 'participant_1', createdAt: 'x', createdByUserId: 'user-1' } })
@@ -80,40 +80,40 @@ describe('participant-invites handlers', () => {
     });
     const upsertSpy = ctx.containers.participantInvites.items.upsert as unknown as ReturnType<typeof vi.fn>;
     const createSpy = ctx.containers.participantInvites.items.create as unknown as ReturnType<typeof vi.fn>;
-    const response = await createParticipantInviteInnerHandler(ctx);
+    const response = await createParticipantInviteBusinessHandler(ctx);
     expect(response.status).toBe(201);
     expect(upsertSpy).toHaveBeenCalledTimes(1);
     expect(createSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('acceptParticipantInviteInnerHandler validates participant id and invite id', async () => {
+  it('acceptParticipantInviteBusinessHandler validates participant id and invite id', async () => {
     const ctx = buildAuthContext();
-    const badParticipant = await acceptParticipantInviteInnerHandler(
+    const badParticipant = await acceptParticipantInviteBusinessHandler(
       ctx,
       mockHttpRequest({ params: { participantId: 'bad', inviteId: 'invite_x' } })
     );
     expectValidationErrorIds(badParticipant, ['participants.id.invalid']);
 
-    const badInvite = await acceptParticipantInviteInnerHandler(
+    const badInvite = await acceptParticipantInviteBusinessHandler(
       ctx,
       mockHttpRequest({ params: { participantId: 'participant_1', inviteId: 'bad' } })
     );
     expectValidationErrorIds(badInvite, ['invites.id.invalid']);
   });
 
-  it('acceptParticipantInviteInnerHandler returns 404 when invite missing', async () => {
+  it('acceptParticipantInviteBusinessHandler returns 404 when invite missing', async () => {
     const ctx = buildAuthContext();
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: null })
     });
-    const response = await acceptParticipantInviteInnerHandler(
+    const response = await acceptParticipantInviteBusinessHandler(
       ctx,
       mockHttpRequest({ params: { participantId: 'participant_1', inviteId: 'invite_x' } })
     );
     expect(response.status).toBe(404);
   });
 
-  it('acceptParticipantInviteInnerHandler handles expired/revoked/consumed', async () => {
+  it('acceptParticipantInviteBusinessHandler handles expired/revoked/consumed', async () => {
     const ctx = buildAuthContext();
     const expiredInvite = {
       id: 'invite_x',
@@ -123,7 +123,7 @@ describe('participant-invites handlers', () => {
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: expiredInvite })
     });
-    const expired = await acceptParticipantInviteInnerHandler(
+    const expired = await acceptParticipantInviteBusinessHandler(
       ctx,
       mockHttpRequest({ params: { participantId: 'participant_1', inviteId: 'invite_x' } })
     );
@@ -132,7 +132,7 @@ describe('participant-invites handlers', () => {
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: { ...expiredInvite, expiresAt: '2999-01-01T00:00:00.000Z', revokedAt: 'x' } })
     });
-    const revoked = await acceptParticipantInviteInnerHandler(
+    const revoked = await acceptParticipantInviteBusinessHandler(
       ctx,
       mockHttpRequest({ params: { participantId: 'participant_1', inviteId: 'invite_x' } })
     );
@@ -141,14 +141,14 @@ describe('participant-invites handlers', () => {
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: { ...expiredInvite, expiresAt: '2999-01-01T00:00:00.000Z', consumedAt: 'x' } })
     });
-    const consumed = await acceptParticipantInviteInnerHandler(
+    const consumed = await acceptParticipantInviteBusinessHandler(
       ctx,
       mockHttpRequest({ params: { participantId: 'participant_1', inviteId: 'invite_x' } })
     );
     expect(consumed.status).toBe(403);
   });
 
-  it('acceptParticipantInviteInnerHandler returns alreadyLinked response', async () => {
+  it('acceptParticipantInviteBusinessHandler returns alreadyLinked response', async () => {
     const ctx = buildAuthContext();
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({
@@ -161,7 +161,7 @@ describe('participant-invites handlers', () => {
     (ctx.containers.userParticipantLinks.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       fetchNext: vi.fn().mockResolvedValue({ resources: [{ userId: 'user-1' }] })
     });
-    const response = await acceptParticipantInviteInnerHandler(
+    const response = await acceptParticipantInviteBusinessHandler(
       ctx,
       mockHttpRequest({ params: { participantId: 'participant_1', inviteId: 'invite_x' } })
     );
@@ -169,7 +169,7 @@ describe('participant-invites handlers', () => {
     expect((response.jsonBody as { alreadyLinked: boolean }).alreadyLinked).toBe(true);
   });
 
-  it('acceptParticipantInviteInnerHandler creates link and handles etag conflict', async () => {
+  it('acceptParticipantInviteBusinessHandler creates link and handles etag conflict', async () => {
     const ctx = buildAuthContext();
     const replaceSpy = vi.fn().mockRejectedValue({ code: 412 });
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>)
@@ -188,10 +188,11 @@ describe('participant-invites handlers', () => {
       fetchNext: vi.fn().mockResolvedValue({ resources: [] })
     });
 
-    const response = await acceptParticipantInviteInnerHandler(
+    const response = await acceptParticipantInviteBusinessHandler(
       ctx,
       mockHttpRequest({ params: { participantId: 'participant_1', inviteId: 'invite_x' } })
     );
     expect(response.status).toBe(403);
   });
 });
+

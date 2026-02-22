@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { listRawEventIndexByDateInnerHandler } from '../../src/functions/event-index';
+import { listRawEventIndexByDateBusinessHandler } from '../../src/functions/event-index';
 import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 import { mockHttpRequest } from '../helpers/http';
 import { expectValidationErrorIds } from '../helpers/assertions';
@@ -22,7 +22,7 @@ function buildContext(): ParticipantContext {
 
 describe('event-index handler', () => {
   it('validates date query', async () => {
-    const response = await listRawEventIndexByDateInnerHandler(
+    const response = await listRawEventIndexByDateBusinessHandler(
       buildContext(),
       mockHttpRequest({ query: { date: 'bad' } })
     );
@@ -36,7 +36,7 @@ describe('event-index handler', () => {
         resources: [{ eventAtUtc: '2026-01-01T00:00:00.000Z' }, { eventAtUtc: '2026-01-02T00:00:00.000Z' }]
       })
     });
-    const response = await listRawEventIndexByDateInnerHandler(
+    const response = await listRawEventIndexByDateBusinessHandler(
       ctx,
       mockHttpRequest({ query: { date: '2026-01-02' } })
     );
@@ -45,3 +45,4 @@ describe('event-index handler', () => {
     expect(items[0].eventAtUtc).toBe('2026-01-02T00:00:00.000Z');
   });
 });
+

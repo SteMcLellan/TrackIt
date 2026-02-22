@@ -1,18 +1,18 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
 import { readMedicationLog } from '../shared/data/medication-logs';
 import { readMedication } from '../shared/data/medications';
 import { projectMedicationLogToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+import { bindBusinessHandler, resolveParticipantContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
 import { participantMiddleware } from '../shared/middleware/participant';
 
-const readMedicationLogInnerHandler = async (
+const readMedicationLogBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -30,7 +30,7 @@ const readMedicationLogInnerHandler = async (
     return { status: 200, jsonBody: log };
   };
 
-const deleteMedicationLogInnerHandler = async (
+const deleteMedicationLogBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -56,20 +56,6 @@ const deleteMedicationLogInnerHandler = async (
     return { status: 204 };
   };
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
-  };
-}
-
 const readMedicationLogHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
@@ -77,10 +63,7 @@ const readMedicationLogHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return readMedicationLogInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, readMedicationLogBusinessHandler)
 });
 
 const deleteMedicationLogHandler = composeHttpHandler({
@@ -90,10 +73,7 @@ const deleteMedicationLogHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return deleteMedicationLogInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, deleteMedicationLogBusinessHandler)
 });
 
 app.http('medication-log-detail-get', {
@@ -110,4 +90,5 @@ app.http('medication-log-detail-delete', {
   handler: deleteMedicationLogHandler
 });
 
-export { readMedicationLogHandler, deleteMedicationLogHandler, readMedicationLogInnerHandler, deleteMedicationLogInnerHandler };
+export { readMedicationLogHandler, deleteMedicationLogHandler, readMedicationLogBusinessHandler, deleteMedicationLogBusinessHandler };
+

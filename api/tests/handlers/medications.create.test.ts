@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, Mock } from 'vitest';
-import { createMedicationInnerHandler } from '../../src/functions/medications';
+import { createMedicationBusinessHandler } from '../../src/functions/medications';
 import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 import { mockHttpRequest } from '../helpers/http';
 import { ParticipantContext } from '../../src/shared/handler-context';
@@ -9,7 +9,7 @@ vi.mock('../../src/shared/timeline/write-through', () => ({
   appendTimelineEvent: vi.fn().mockResolvedValue(undefined)
 }));
 
-describe('createMedicationInnerHandler', () => {
+describe('createMedicationBusinessHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -46,7 +46,7 @@ describe('createMedicationInnerHandler', () => {
       }
     });
 
-    const response = await createMedicationInnerHandler(ctx, req);
+    const response = await createMedicationBusinessHandler(ctx, req);
 
     expect(response.status).toBe(201);
     const createSpy = ctx.containers.medications.items.create as unknown as Mock;
@@ -70,7 +70,7 @@ describe('createMedicationInnerHandler', () => {
       }
     });
 
-    const response = await createMedicationInnerHandler(ctx, req);
+    const response = await createMedicationBusinessHandler(ctx, req);
 
     expect(response.status).toBe(201);
     const createSpy = ctx.containers.medications.items.create as unknown as Mock;
@@ -90,7 +90,7 @@ describe('createMedicationInnerHandler', () => {
       }
     });
 
-    const response = await createMedicationInnerHandler(ctx, req);
+    const response = await createMedicationBusinessHandler(ctx, req);
     const ids = ((response.jsonBody as { errors?: Array<{ id: string }> }).errors ?? []).map((error) => error.id);
 
     expect(response.status).toBe(400);
@@ -104,7 +104,7 @@ describe('createMedicationInnerHandler', () => {
       rawBodyString: '{invalid-json'
     });
 
-    const response = await createMedicationInnerHandler(ctx, req);
+    const response = await createMedicationBusinessHandler(ctx, req);
 
     expect(response.status).toBe(400);
     expect((response.jsonBody as { errors?: Array<{ id: string }> }).errors?.[0]?.id).toBe('medications.body.invalid');
@@ -123,7 +123,7 @@ describe('createMedicationInnerHandler', () => {
       }
     });
 
-    const response = await createMedicationInnerHandler(ctx, req);
+    const response = await createMedicationBusinessHandler(ctx, req);
     expect(response.status).toBe(400);
     expect((response.jsonBody as { errors?: Array<{ id: string }> }).errors?.[0]?.id).toBe(
       'medications.frequencyText.unsupported'
@@ -142,7 +142,7 @@ describe('createMedicationInnerHandler', () => {
       }
     });
 
-    const response = await createMedicationInnerHandler(ctx, req);
+    const response = await createMedicationBusinessHandler(ctx, req);
     const ids = ((response.jsonBody as { errors?: Array<{ id: string }> }).errors ?? []).map((error) => error.id);
 
     expect(response.status).toBe(400);
@@ -152,3 +152,4 @@ describe('createMedicationInnerHandler', () => {
     expect(ids).toContain('medications.startDate.invalid');
   });
 });
+

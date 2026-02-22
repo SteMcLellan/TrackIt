@@ -1,7 +1,7 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import type { AuthContext } from '../shared/handler-context';
+import { bindBusinessHandler, resolveAuthContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -9,21 +9,9 @@ import { authMiddleware } from '../shared/middleware/auth';
 /**
  * Returns the verified app JWT payload for the current user.
  */
-const meInnerHandler = async (ctx: AuthContext): Promise<HttpResponseInit> => {
+const meBusinessHandler = async (ctx: AuthContext, _req: HttpRequest): Promise<HttpResponseInit> => {
   return { status: 200, jsonBody: ctx.user };
 };
-
-function requireAuthContext(context: InvocationContext): AuthContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user) {
-    throw new Error('Auth context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers
-  };
-}
 
 const me = composeHttpHandler({
   middlewares: [
@@ -31,10 +19,7 @@ const me = composeHttpHandler({
     requestContextMiddleware,
     authMiddleware
   ],
-  handler: async (_req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const authContext = requireAuthContext(context);
-    return meInnerHandler(authContext);
-  }
+  handler: bindBusinessHandler(resolveAuthContext, meBusinessHandler)
 });
 
 /**
@@ -47,4 +32,4 @@ app.http('me', {
   handler: me
 });
 
-export { me, meInnerHandler };
+export { me, meBusinessHandler };

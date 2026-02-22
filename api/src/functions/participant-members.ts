@@ -1,11 +1,11 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
 import { readParticipantLink } from '../shared/data/participants';
 import { UserParticipantLinkDocument } from '../models/participant';
 import { UserDocument } from '../models/user';
+import { bindBusinessHandler, resolveParticipantContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -33,8 +33,9 @@ export function isParticipantIdValid(participantId?: string | null) {
   return Boolean(participantId && participantId.startsWith(PARTICIPANT_PREFIX));
 }
 
-const listParticipantMembersInnerHandler = async (
-  ctx: ParticipantContext
+const listParticipantMembersBusinessHandler = async (
+  ctx: ParticipantContext,
+  _req: HttpRequest
 ): Promise<HttpResponseInit> => {
     if (!isParticipantIdValid(ctx.participantId)) {
       return buildValidationError([
@@ -89,7 +90,7 @@ const listParticipantMembersInnerHandler = async (
     return { status: 200, jsonBody: response };
   };
 
-const revokeParticipantMemberInnerHandler = async (
+const revokeParticipantMemberBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -148,20 +149,6 @@ const revokeParticipantMemberInnerHandler = async (
     return { status: 204 };
   };
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
-  };
-}
-
 const listParticipantMembersHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
@@ -169,10 +156,7 @@ const listParticipantMembersHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (_req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return listParticipantMembersInnerHandler(participantContext);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, listParticipantMembersBusinessHandler)
 });
 
 const revokeParticipantMemberHandler = composeHttpHandler({
@@ -182,10 +166,7 @@ const revokeParticipantMemberHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return revokeParticipantMemberInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, revokeParticipantMemberBusinessHandler)
 });
 
 app.http('participant-members-list', {
@@ -202,4 +183,5 @@ app.http('participant-members-revoke', {
   handler: revokeParticipantMemberHandler
 });
 
-export { listParticipantMembersHandler, revokeParticipantMemberHandler, listParticipantMembersInnerHandler, revokeParticipantMemberInnerHandler };
+export { listParticipantMembersHandler, revokeParticipantMemberHandler, listParticipantMembersBusinessHandler, revokeParticipantMemberBusinessHandler };
+

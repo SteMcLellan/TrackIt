@@ -1,30 +1,26 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { buildConfig, readJwtHeader, signAppJwt, verifyGoogleIdToken } from '../shared/auth';
 import { upsertUser } from '../shared/cosmos';
 import { UserDocument } from '../models/user';
 import { readUserBySub } from '../shared/data/users';
+import {
+  bindBusinessHandler,
+  RequestResourcesContext,
+  resolveRequestResourcesContext
+} from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 
 /**
  * Exchanges a Google ID token for an app JWT and upserts the user profile.
  */
-function requireContainers(context: InvocationContext) {
-  const state = getRequestState(context);
-  if (!state.containers) {
-    throw new Error('Request context was not initialized.');
-  }
-  return state.containers;
-}
+const authLoginBusinessHandler = async (
+  requestContext: RequestResourcesContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
+  const containers = requestContext.containers;
 
-const authLogin = composeHttpHandler({
-  middlewares: [
-    errorMiddleware,
-    requestContextMiddleware
-  ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
   let bodyToken = '';
   try {
     const body = (await req.json()) as unknown;
@@ -77,7 +73,6 @@ const authLogin = composeHttpHandler({
     return { status: 401, jsonBody: { message: 'Invalid Google ID token' } };
   }
 
-  const containers = requireContainers(context);
   const existing = await readUserBySub(containers.users, googleClaims.sub as string);
   const roles = existing?.roles && existing.roles.length > 0 ? existing.roles : ['parent'];
   const user: UserDocument = {
@@ -113,7 +108,14 @@ const authLogin = composeHttpHandler({
       token
     }
   };
-  }
+};
+
+const authLogin = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware
+  ],
+  handler: bindBusinessHandler(resolveRequestResourcesContext, authLoginBusinessHandler)
 });
 
 /**
@@ -126,4 +128,4 @@ app.http('auth-login', {
   handler: authLogin
 });
 
-export { authLogin };
+export { authLogin, authLoginBusinessHandler };

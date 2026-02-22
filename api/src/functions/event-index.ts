@@ -1,10 +1,10 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
 import { buildTimelineByLocalDateQuery } from '../shared/data/event-index';
 import { EventIndexDocument, EventSourceType } from '../models/event-index';
+import { bindBusinessHandler, resolveParticipantContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -37,7 +37,7 @@ export function parseSourceTypes(value: string | null): EventSourceType[] | unde
   return parsed.length > 0 ? parsed : undefined;
 }
 
-const listRawEventIndexByDateInnerHandler = async (
+const listRawEventIndexByDateBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -73,20 +73,6 @@ const listRawEventIndexByDateInnerHandler = async (
     };
   };
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
-  };
-}
-
 const listRawEventIndexByDateHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
@@ -94,10 +80,7 @@ const listRawEventIndexByDateHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return listRawEventIndexByDateInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, listRawEventIndexByDateBusinessHandler)
 });
 
 app.http('event-index-list', {
@@ -107,4 +90,5 @@ app.http('event-index-list', {
   handler: listRawEventIndexByDateHandler
 });
 
-export { listRawEventIndexByDateHandler, listRawEventIndexByDateInnerHandler };
+export { listRawEventIndexByDateHandler, listRawEventIndexByDateBusinessHandler };
+

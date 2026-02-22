@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { randomUUID } from 'crypto';
 import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
@@ -7,8 +7,8 @@ import { buildMedicationListQuery } from '../shared/data/medications';
 import { IntervalSchedule, MedicationDocument, MedicationFrequency } from '../models/medication';
 import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+import { bindBusinessHandler, resolveParticipantContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -180,7 +180,7 @@ type ListMedicationsResponse = {
   nextToken: string | null;
 };
 
-const listMedicationsInnerHandler = async (
+const listMedicationsBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -202,7 +202,7 @@ const listMedicationsInnerHandler = async (
     return { status: 200, jsonBody: payload };
   };
 
-const createMedicationInnerHandler = async (
+const createMedicationBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -257,20 +257,6 @@ const createMedicationInnerHandler = async (
     return { status: 201, jsonBody: medication };
   };
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
-  };
-}
-
 const listMedicationsHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
@@ -278,10 +264,7 @@ const listMedicationsHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return listMedicationsInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, listMedicationsBusinessHandler)
 });
 
 const createMedicationHandler = composeHttpHandler({
@@ -291,10 +274,7 @@ const createMedicationHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return createMedicationInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, createMedicationBusinessHandler)
 });
 
 app.http('medications-list', {
@@ -311,4 +291,5 @@ app.http('medications-create', {
   handler: createMedicationHandler
 });
 
-export { listMedicationsHandler, createMedicationHandler, listMedicationsInnerHandler, createMedicationInnerHandler };
+export { listMedicationsHandler, createMedicationHandler, listMedicationsBusinessHandler, createMedicationBusinessHandler };
+

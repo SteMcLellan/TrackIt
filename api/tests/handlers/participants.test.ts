@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createParticipantInnerHandler, listParticipantsInnerHandler } from '../../src/functions/participants';
+import { createParticipantBusinessHandler, listParticipantsBusinessHandler } from '../../src/functions/participants';
 import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 import { mockHttpRequest } from '../helpers/http';
 import { expectValidationErrorIds } from '../helpers/assertions';
 
 describe('participants handlers', () => {
-  it('listParticipantsInnerHandler returns normalized participants with role', async () => {
+  it('listParticipantsBusinessHandler returns normalized participants with role', async () => {
     const ctx = {
       user: { sub: 'user-1', iat: 1, exp: 2 },
       containers: createCosmosContainersStub()
@@ -30,7 +30,7 @@ describe('participants handlers', () => {
       read: participantRead
     });
 
-    const response = await listParticipantsInnerHandler(ctx, mockHttpRequest({ query: { pageSize: '10' } }));
+    const response = await listParticipantsBusinessHandler(ctx, mockHttpRequest({ query: { pageSize: '10' } }));
     expect(response.status).toBe(200);
     const body = response.jsonBody as { items: Array<{ role: string; id: string }> };
     expect(body.items).toHaveLength(1);
@@ -38,24 +38,24 @@ describe('participants handlers', () => {
     expect(body.items[0].role).toBe('manager');
   });
 
-  it('createParticipantInnerHandler returns body invalid error', async () => {
+  it('createParticipantBusinessHandler returns body invalid error', async () => {
     const ctx = {
       user: { sub: 'user-1', iat: 1, exp: 2 },
       containers: createCosmosContainersStub()
     };
-    const response = await createParticipantInnerHandler(
+    const response = await createParticipantBusinessHandler(
       ctx,
       mockHttpRequest({ method: 'POST', rawBodyString: '{invalid-json' })
     );
     expectValidationErrorIds(response, ['participants.body.invalid']);
   });
 
-  it('createParticipantInnerHandler returns future birthDate error', async () => {
+  it('createParticipantBusinessHandler returns future birthDate error', async () => {
     const ctx = {
       user: { sub: 'user-1', iat: 1, exp: 2 },
       containers: createCosmosContainersStub()
     };
-    const response = await createParticipantInnerHandler(
+    const response = await createParticipantBusinessHandler(
       ctx,
       mockHttpRequest({
         method: 'POST',
@@ -65,7 +65,7 @@ describe('participants handlers', () => {
     expectValidationErrorIds(response, ['participants.birthDate.future']);
   });
 
-  it('createParticipantInnerHandler creates participant and manager link', async () => {
+  it('createParticipantBusinessHandler creates participant and manager link', async () => {
     const ctx = {
       user: { sub: 'user-1', iat: 1, exp: 2 },
       containers: createCosmosContainersStub()
@@ -73,7 +73,7 @@ describe('participants handlers', () => {
     const participantCreate = ctx.containers.participants.items.create as unknown as ReturnType<typeof vi.fn>;
     const linkCreate = ctx.containers.userParticipantLinks.items.create as unknown as ReturnType<typeof vi.fn>;
 
-    const response = await createParticipantInnerHandler(
+    const response = await createParticipantBusinessHandler(
       ctx,
       mockHttpRequest({
         method: 'POST',
@@ -88,3 +88,4 @@ describe('participants handlers', () => {
     expect(body.displayName).toBe('Kid');
   });
 });
+

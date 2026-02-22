@@ -83,7 +83,7 @@ type Result<T> =
 
 ## Authorization and Role Checks
 - Participant-linked access is required before reading/writing participant-scoped documents.
-- Keep coarse auth in middleware layers; keep fine-grained role checks in inner handlers.
+- Keep coarse auth in middleware layers; keep fine-grained role checks in business handlers.
   - Example: manager-only participant update checks in `participant-detail`.
 - Return `403` for role mismatch with explicit reason text.
 - Avoid duplicating inline participant-link checks inside business handlers when `participantMiddleware` already provides this.
@@ -112,7 +112,7 @@ type Result<T> =
 - `GET /participants/{participantId}/event-index` is the raw append-only stream for audit/debug use cases.
 
 ## Testing Conventions
-- Unit-test inner handlers directly for business behavior and validation.
+- Unit-test business handlers directly for business behavior and validation.
 - Test middleware layers for auth, participant link, and error handling behavior.
 - Keep helper factories under `api/tests/helpers/*`.
 - Prefer deterministic tests that avoid network and runtime dependencies.
@@ -144,20 +144,22 @@ const createThingBusinessHandler = async (
   return { status: 201, jsonBody: created };
 };
 
+const createThingHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware,
+    validateCreateThingMiddleware
+  ],
+  handler: bindBusinessHandler(resolveParticipantContext, createThingBusinessHandler)
+});
+
 app.http('thinghandler-post', {
   methods: ['POST'],
   authLevel: 'anonymous',
   route: 'thing',
-  handler: composeHttpHandler({
-            middlewares: [
-              errorMiddleware,
-              requestContextMiddleware,
-              authMiddleware,
-              participantMiddleware,
-              validateCreateThingMiddleware
-            ],
-            handler: createThingBusinessHandler
-          })
+  handler: createThingHandler
 });
 ```
 

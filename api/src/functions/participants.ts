@@ -1,12 +1,12 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { randomUUID } from 'crypto';
 import type { AuthContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { listParticipantLinks, readParticipant } from '../shared/data/participants';
 import { ParticipantDocument, UserParticipantLinkDocument } from '../models/participant';
+import { bindBusinessHandler, resolveAuthContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -99,7 +99,7 @@ export function validateCreateRequest(body: CreateParticipantRequest): Validatio
   return errors;
 }
 
-const listParticipantsInnerHandler = async (
+const listParticipantsBusinessHandler = async (
   ctx: AuthContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -122,7 +122,7 @@ const listParticipantsInnerHandler = async (
     return { status: 200, jsonBody: response };
   };
 
-const createParticipantInnerHandler = async (
+const createParticipantBusinessHandler = async (
   ctx: AuthContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -165,28 +165,13 @@ const createParticipantInnerHandler = async (
     return { status: 201, jsonBody: normalizeParticipant(participant) };
   };
 
-function requireAuthContext(context: InvocationContext): AuthContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user) {
-    throw new Error('Auth context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers
-  };
-}
-
 const listParticipantsHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
     requestContextMiddleware,
     authMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const authContext = requireAuthContext(context);
-    return listParticipantsInnerHandler(authContext, req);
-  }
+  handler: bindBusinessHandler(resolveAuthContext, listParticipantsBusinessHandler)
 });
 
 const createParticipantHandler = composeHttpHandler({
@@ -195,10 +180,7 @@ const createParticipantHandler = composeHttpHandler({
     requestContextMiddleware,
     authMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const authContext = requireAuthContext(context);
-    return createParticipantInnerHandler(authContext, req);
-  }
+  handler: bindBusinessHandler(resolveAuthContext, createParticipantBusinessHandler)
 });
 
 app.http('participants-list', {
@@ -215,4 +197,5 @@ app.http('participants-create', {
   handler: createParticipantHandler
 });
 
-export { listParticipantsHandler, createParticipantHandler, listParticipantsInnerHandler, createParticipantInnerHandler };
+export { listParticipantsHandler, createParticipantHandler, listParticipantsBusinessHandler, createParticipantBusinessHandler };
+

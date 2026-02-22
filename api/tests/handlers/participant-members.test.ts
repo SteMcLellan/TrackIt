@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { listParticipantMembersInnerHandler, revokeParticipantMemberInnerHandler } from '../../src/functions/participant-members';
+import { listParticipantMembersBusinessHandler, revokeParticipantMemberBusinessHandler } from '../../src/functions/participant-members';
 import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 import { mockHttpRequest } from '../helpers/http';
 import { expectForbidden, expectValidationErrorIds } from '../helpers/assertions';
@@ -20,18 +20,18 @@ function buildContext(role: 'manager' | 'viewer' = 'manager') {
 }
 
 describe('participant-members handlers', () => {
-  it('listParticipantMembersInnerHandler validates participant id prefix', async () => {
+  it('listParticipantMembersBusinessHandler validates participant id prefix', async () => {
     const ctx = { ...buildContext(), participantId: 'bad_id' };
-    const response = await listParticipantMembersInnerHandler(ctx);
+    const response = await listParticipantMembersBusinessHandler(ctx);
     expectValidationErrorIds(response, ['participants.id.invalid']);
   });
 
-  it('listParticipantMembersInnerHandler requires manager role', async () => {
-    const response = await listParticipantMembersInnerHandler(buildContext('viewer'));
+  it('listParticipantMembersBusinessHandler requires manager role', async () => {
+    const response = await listParticipantMembersBusinessHandler(buildContext('viewer'));
     expectForbidden(response, 'Listing members requires manager role.');
   });
 
-  it('listParticipantMembersInnerHandler returns sorted members', async () => {
+  it('listParticipantMembersBusinessHandler returns sorted members', async () => {
     const ctx = buildContext();
     (ctx.containers.userParticipantLinks.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       fetchAll: vi.fn().mockResolvedValue({
@@ -44,46 +44,46 @@ describe('participant-members handlers', () => {
     (ctx.containers.users.item as unknown as ReturnType<typeof vi.fn>)
       .mockReturnValueOnce({ read: vi.fn().mockResolvedValue({ resource: { name: 'Zed' } }) })
       .mockReturnValueOnce({ read: vi.fn().mockResolvedValue({ resource: { name: 'Amy' } }) });
-    const response = await listParticipantMembersInnerHandler(ctx);
+    const response = await listParticipantMembersBusinessHandler(ctx);
     expect(response.status).toBe(200);
     const items = (response.jsonBody as { items: Array<{ userId: string }> }).items;
     expect(items[0].userId).toBe('user-1');
   });
 
-  it('revokeParticipantMemberInnerHandler requires userId', async () => {
-    const response = await revokeParticipantMemberInnerHandler(buildContext(), mockHttpRequest({ params: {} }));
+  it('revokeParticipantMemberBusinessHandler requires userId', async () => {
+    const response = await revokeParticipantMemberBusinessHandler(buildContext(), mockHttpRequest({ params: {} }));
     expectValidationErrorIds(response, ['members.userId.required']);
   });
 
-  it('revokeParticipantMemberInnerHandler requires manager role', async () => {
-    const response = await revokeParticipantMemberInnerHandler(
+  it('revokeParticipantMemberBusinessHandler requires manager role', async () => {
+    const response = await revokeParticipantMemberBusinessHandler(
       buildContext('viewer'),
       mockHttpRequest({ params: { userId: 'user-2' } })
     );
     expectForbidden(response, 'Revoking members requires manager role.');
   });
 
-  it('revokeParticipantMemberInnerHandler blocks self-removal', async () => {
-    const response = await revokeParticipantMemberInnerHandler(
+  it('revokeParticipantMemberBusinessHandler blocks self-removal', async () => {
+    const response = await revokeParticipantMemberBusinessHandler(
       buildContext(),
       mockHttpRequest({ params: { userId: 'user-1' } })
     );
     expect(response.status).toBe(400);
   });
 
-  it('revokeParticipantMemberInnerHandler returns 404 when target missing', async () => {
+  it('revokeParticipantMemberBusinessHandler returns 404 when target missing', async () => {
     const ctx = buildContext();
     (ctx.containers.userParticipantLinks.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       fetchNext: vi.fn().mockResolvedValue({ resources: [] })
     });
-    const response = await revokeParticipantMemberInnerHandler(
+    const response = await revokeParticipantMemberBusinessHandler(
       ctx,
       mockHttpRequest({ params: { userId: 'user-2' } })
     );
     expect(response.status).toBe(404);
   });
 
-  it('revokeParticipantMemberInnerHandler prevents removing last manager', async () => {
+  it('revokeParticipantMemberBusinessHandler prevents removing last manager', async () => {
     const ctx = buildContext();
     (ctx.containers.userParticipantLinks.items.query as unknown as ReturnType<typeof vi.fn>)
       .mockReturnValueOnce({
@@ -94,14 +94,14 @@ describe('participant-members handlers', () => {
       .mockReturnValueOnce({
         fetchAll: vi.fn().mockResolvedValue({ resources: [1] })
       });
-    const response = await revokeParticipantMemberInnerHandler(
+    const response = await revokeParticipantMemberBusinessHandler(
       ctx,
       mockHttpRequest({ params: { userId: 'user-2' } })
     );
     expect(response.status).toBe(409);
   });
 
-  it('revokeParticipantMemberInnerHandler deletes member link', async () => {
+  it('revokeParticipantMemberBusinessHandler deletes member link', async () => {
     const ctx = buildContext();
     const deleteSpy = vi.fn().mockResolvedValue(undefined);
     (ctx.containers.userParticipantLinks.items.query as unknown as ReturnType<typeof vi.fn>)
@@ -114,7 +114,7 @@ describe('participant-members handlers', () => {
       delete: deleteSpy
     });
 
-    const response = await revokeParticipantMemberInnerHandler(
+    const response = await revokeParticipantMemberBusinessHandler(
       ctx,
       mockHttpRequest({ params: { userId: 'user-2' } })
     );
@@ -122,3 +122,4 @@ describe('participant-members handlers', () => {
     expect(deleteSpy).toHaveBeenCalledTimes(1);
   });
 });
+

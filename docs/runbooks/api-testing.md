@@ -21,8 +21,8 @@ npm --workspace api run test:coverage
 ## Current Pattern
 
 - Prefer pure function tests first for validation/query/projector logic.
-- For handler tests, call exported inner handlers (for example `createMedicationInnerHandler`) with a hand-built context.
-- Keep wrapper tests separate to validate auth, participant checks, and error contracts once.
+- For handler tests, call exported business handlers (for example `createMedicationBusinessHandler`) with a hand-built context.
+- Keep middleware tests separate to validate auth, participant checks, and error contracts once.
 
 ## Route Coverage Tracker
 

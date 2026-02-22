@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
@@ -6,8 +6,8 @@ import { readBehaviorIncident } from '../shared/data/behavior-incidents';
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
 import { projectIncidentToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+import { bindBusinessHandler, resolveParticipantContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -105,7 +105,7 @@ export function validateUpdateRequest(body: UpdateBehaviorIncidentRequest): Vali
   return errors;
 }
 
-const readBehaviorIncidentInnerHandler = async (
+const readBehaviorIncidentBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -126,7 +126,7 @@ const readBehaviorIncidentInnerHandler = async (
     return { status: 200, jsonBody: incident };
   };
 
-const updateBehaviorIncidentInnerHandler = async (
+const updateBehaviorIncidentBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -195,7 +195,7 @@ const updateBehaviorIncidentInnerHandler = async (
     return { status: 200, jsonBody: updated };
   };
 
-const deleteBehaviorIncidentInnerHandler = async (
+const deleteBehaviorIncidentBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -216,20 +216,6 @@ const deleteBehaviorIncidentInnerHandler = async (
     return { status: 204 };
   };
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
-  };
-}
-
 const readBehaviorIncidentHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
@@ -237,10 +223,7 @@ const readBehaviorIncidentHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return readBehaviorIncidentInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, readBehaviorIncidentBusinessHandler)
 });
 
 const updateBehaviorIncidentHandler = composeHttpHandler({
@@ -250,10 +233,7 @@ const updateBehaviorIncidentHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return updateBehaviorIncidentInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, updateBehaviorIncidentBusinessHandler)
 });
 
 const deleteBehaviorIncidentHandler = composeHttpHandler({
@@ -263,10 +243,7 @@ const deleteBehaviorIncidentHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return deleteBehaviorIncidentInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, deleteBehaviorIncidentBusinessHandler)
 });
 
 app.http('behavior-incident-detail-get', {
@@ -294,7 +271,8 @@ export {
   readBehaviorIncidentHandler,
   updateBehaviorIncidentHandler,
   deleteBehaviorIncidentHandler,
-  readBehaviorIncidentInnerHandler,
-  updateBehaviorIncidentInnerHandler,
-  deleteBehaviorIncidentInnerHandler
+  readBehaviorIncidentBusinessHandler,
+  updateBehaviorIncidentBusinessHandler,
+  deleteBehaviorIncidentBusinessHandler
 };
+

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { readMedicationInnerHandler, updateMedicationInnerHandler } from '../../src/functions/medication-detail';
+import { readMedicationBusinessHandler, updateMedicationBusinessHandler } from '../../src/functions/medication-detail';
 import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 import { mockHttpRequest } from '../helpers/http';
 import { expectValidationErrorIds } from '../helpers/assertions';
@@ -30,33 +30,33 @@ describe('medication-detail handlers', () => {
     vi.clearAllMocks();
   });
 
-  it('readMedicationInnerHandler requires medicationId', async () => {
-    const response = await readMedicationInnerHandler(buildContext(), mockHttpRequest({ params: {} }));
+  it('readMedicationBusinessHandler requires medicationId', async () => {
+    const response = await readMedicationBusinessHandler(buildContext(), mockHttpRequest({ params: {} }));
     expectValidationErrorIds(response, ['medications.medicationId.required']);
   });
 
-  it('readMedicationInnerHandler returns 404 when medication missing', async () => {
+  it('readMedicationBusinessHandler returns 404 when medication missing', async () => {
     const ctx = buildContext();
     (ctx.containers.medications.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: null })
     });
-    const response = await readMedicationInnerHandler(
+    const response = await readMedicationBusinessHandler(
       ctx,
       mockHttpRequest({ params: { medicationId: 'med_1' } })
     );
     expect(response.status).toBe(404);
   });
 
-  it('updateMedicationInnerHandler returns body invalid', async () => {
-    const response = await updateMedicationInnerHandler(
+  it('updateMedicationBusinessHandler returns body invalid', async () => {
+    const response = await updateMedicationBusinessHandler(
       buildContext(),
       mockHttpRequest({ method: 'PATCH', params: { medicationId: 'med_1' }, rawBodyString: '{bad-json' })
     );
     expectValidationErrorIds(response, ['medications.body.invalid']);
   });
 
-  it('updateMedicationInnerHandler rejects legacy frequencyText', async () => {
-    const response = await updateMedicationInnerHandler(
+  it('updateMedicationBusinessHandler rejects legacy frequencyText', async () => {
+    const response = await updateMedicationBusinessHandler(
       buildContext(),
       mockHttpRequest({
         method: 'PATCH',
@@ -67,19 +67,19 @@ describe('medication-detail handlers', () => {
     expectValidationErrorIds(response, ['medications.frequencyText.unsupported']);
   });
 
-  it('updateMedicationInnerHandler returns 404 when medication missing', async () => {
+  it('updateMedicationBusinessHandler returns 404 when medication missing', async () => {
     const ctx = buildContext();
     (ctx.containers.medications.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: null })
     });
-    const response = await updateMedicationInnerHandler(
+    const response = await updateMedicationBusinessHandler(
       ctx,
       mockHttpRequest({ method: 'PATCH', params: { medicationId: 'med_1' }, body: { name: 'New' } })
     );
     expect(response.status).toBe(404);
   });
 
-  it('updateMedicationInnerHandler requires intervalSchedule when switching to interval-days', async () => {
+  it('updateMedicationBusinessHandler requires intervalSchedule when switching to interval-days', async () => {
     const ctx = buildContext();
     (ctx.containers.medications.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({
@@ -99,7 +99,7 @@ describe('medication-detail handlers', () => {
       })
     });
 
-    const response = await updateMedicationInnerHandler(
+    const response = await updateMedicationBusinessHandler(
       ctx,
       mockHttpRequest({
         method: 'PATCH',
@@ -111,7 +111,7 @@ describe('medication-detail handlers', () => {
     expectValidationErrorIds(response, ['medications.intervalSchedule.required']);
   });
 
-  it('updateMedicationInnerHandler clears intervalSchedule when switching away from interval-days', async () => {
+  it('updateMedicationBusinessHandler clears intervalSchedule when switching away from interval-days', async () => {
     const ctx = buildContext();
     (ctx.containers.medications.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({
@@ -137,7 +137,7 @@ describe('medication-detail handlers', () => {
     });
 
     const upsertSpy = ctx.containers.medications.items.upsert as unknown as ReturnType<typeof vi.fn>;
-    const response = await updateMedicationInnerHandler(
+    const response = await updateMedicationBusinessHandler(
       ctx,
       mockHttpRequest({
         method: 'PATCH',
@@ -151,7 +151,7 @@ describe('medication-detail handlers', () => {
     expect(upsertSpy.mock.calls[0][0].intervalSchedule).toBeNull();
   });
 
-  it('updateMedicationInnerHandler upserts and appends timeline event', async () => {
+  it('updateMedicationBusinessHandler upserts and appends timeline event', async () => {
     const ctx = buildContext();
     (ctx.containers.medications.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({
@@ -171,7 +171,7 @@ describe('medication-detail handlers', () => {
       })
     });
     const upsertSpy = ctx.containers.medications.items.upsert as unknown as ReturnType<typeof vi.fn>;
-    const response = await updateMedicationInnerHandler(
+    const response = await updateMedicationBusinessHandler(
       ctx,
       mockHttpRequest({ method: 'PATCH', params: { medicationId: 'med_1' }, body: { name: ' New ' } })
     );
@@ -180,3 +180,4 @@ describe('medication-detail handlers', () => {
     expect(vi.mocked(appendTimelineEvent)).toHaveBeenCalledTimes(1);
   });
 });
+

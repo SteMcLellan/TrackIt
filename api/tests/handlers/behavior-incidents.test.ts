@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createBehaviorIncidentInnerHandler, listBehaviorIncidentsInnerHandler } from '../../src/functions/behavior-incidents';
+import { createBehaviorIncidentBusinessHandler, listBehaviorIncidentsBusinessHandler } from '../../src/functions/behavior-incidents';
 import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 import { mockHttpRequest } from '../helpers/http';
 import { expectValidationErrorIds } from '../helpers/assertions';
@@ -26,8 +26,8 @@ function buildContext(): ParticipantContext {
 }
 
 describe('behavior-incidents handlers', () => {
-  it('listBehaviorIncidentsInnerHandler validates filter inputs', async () => {
-    const response = await listBehaviorIncidentsInnerHandler(
+  it('listBehaviorIncidentsBusinessHandler validates filter inputs', async () => {
+    const response = await listBehaviorIncidentsBusinessHandler(
       buildContext(),
       mockHttpRequest({ query: { function: 'bad', startDate: 'bad', endDate: 'bad' } })
     );
@@ -38,12 +38,12 @@ describe('behavior-incidents handlers', () => {
     ]);
   });
 
-  it('listBehaviorIncidentsInnerHandler returns paged response', async () => {
+  it('listBehaviorIncidentsBusinessHandler returns paged response', async () => {
     const ctx = buildContext();
     (ctx.containers.behaviorIncidents.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       fetchNext: vi.fn().mockResolvedValue({ resources: [{ id: 'incident_1' }], continuationToken: 'next' })
     });
-    const response = await listBehaviorIncidentsInnerHandler(
+    const response = await listBehaviorIncidentsBusinessHandler(
       ctx,
       mockHttpRequest({ query: { pageSize: '10' } })
     );
@@ -51,16 +51,16 @@ describe('behavior-incidents handlers', () => {
     expect((response.jsonBody as { nextToken: string | null }).nextToken).toBe('next');
   });
 
-  it('createBehaviorIncidentInnerHandler returns body invalid', async () => {
-    const response = await createBehaviorIncidentInnerHandler(
+  it('createBehaviorIncidentBusinessHandler returns body invalid', async () => {
+    const response = await createBehaviorIncidentBusinessHandler(
       buildContext(),
       mockHttpRequest({ method: 'POST', rawBodyString: '{bad-json' })
     );
     expectValidationErrorIds(response, ['incidents.body.invalid']);
   });
 
-  it('createBehaviorIncidentInnerHandler validates payload', async () => {
-    const response = await createBehaviorIncidentInnerHandler(
+  it('createBehaviorIncidentBusinessHandler validates payload', async () => {
+    const response = await createBehaviorIncidentBusinessHandler(
       buildContext(),
       mockHttpRequest({
         method: 'POST',
@@ -80,10 +80,10 @@ describe('behavior-incidents handlers', () => {
     expect(response.status).toBe(400);
   });
 
-  it('createBehaviorIncidentInnerHandler creates incident and appends event', async () => {
+  it('createBehaviorIncidentBusinessHandler creates incident and appends event', async () => {
     const ctx = buildContext();
     const createSpy = ctx.containers.behaviorIncidents.items.create as unknown as ReturnType<typeof vi.fn>;
-    const response = await createBehaviorIncidentInnerHandler(
+    const response = await createBehaviorIncidentBusinessHandler(
       ctx,
       mockHttpRequest({
         method: 'POST',
@@ -104,3 +104,4 @@ describe('behavior-incidents handlers', () => {
     expect(vi.mocked(appendTimelineEvent)).toHaveBeenCalledTimes(1);
   });
 });
+

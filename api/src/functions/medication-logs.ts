@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { randomUUID } from 'crypto';
 import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
@@ -9,9 +9,9 @@ import { MedicationLogDocument } from '../models/medication-log';
 import { MedicationDocument } from '../models/medication';
 import { projectMedicationLogToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+import { bindBusinessHandler, resolveParticipantContext } from '../shared/endpoint-template';
 import { computeUtcFromLocal, isTimeOnly } from '../shared/validators';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -260,19 +260,295 @@ type ListMedicationLogsResponse = {
   nextToken: string | null;
 };
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
+const listMedicationLogsBusinessHandler = async (
+  participantContext: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
+  const participantId = participantContext.participantId;
+  const containers = participantContext.containers;
+
+  const pageSize = parsePageSize(req.query.get('pageSize'));
+  const nextToken = req.query.get('nextToken');
+  const startDate = req.query.get('startDate');
+  const endDate = req.query.get('endDate');
+  const medicationIds = parseMedicationIds(req.query.get('medicationIds'));
+
+  const errors = validateListRequest(startDate, endDate);
+  if (errors.length > 0) {
+    return buildValidationError(errors);
   }
 
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
+  const query = buildMedicationLogListQuery(participantId, startDate!, endDate!, medicationIds);
+  const response = await containers.medicationLogs.items.query<MedicationLogDocument>(query, {
+    partitionKey: participantId,
+    maxItemCount: pageSize,
+    continuationToken: nextToken ?? undefined
+  }).fetchNext();
+
+  const payload: ListMedicationLogsResponse = {
+    items: response.resources ?? [],
+    nextToken: response.continuationToken ?? null
   };
-}
+  return { status: 200, jsonBody: payload };
+};
+
+const upsertMedicationLogBusinessHandler = async (
+  participantContext: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
+  const participantId = participantContext.participantId;
+  const medicationId = req.params.medicationId;
+  const logLocalDate = req.params.logLocalDate;
+  if (!medicationId || !logLocalDate) {
+    const errors: ValidationErrorDetail[] = [];
+    if (!medicationId) {
+      errors.push({
+        id: 'medicationLogs.medicationId.required',
+        message: 'Medication id is required.'
+      });
+    }
+    if (!logLocalDate) {
+      errors.push({
+        id: 'medicationLogs.logLocalDate.required',
+        message: 'logLocalDate is required.'
+      });
+    }
+    return buildValidationError(errors);
+  }
+
+  const parsed = await parseJsonBody<UpsertMedicationLogRequest>(req, {
+    id: 'medicationLogs.body.invalid',
+    message: 'Request body must be valid JSON.'
+  });
+  if (!parsed.ok) {
+    return parsed.response;
+  }
+
+  const errors = validateUpsertRequest(parsed.value, logLocalDate);
+  if (errors.length > 0) {
+    return buildValidationError(errors);
+  }
+
+  const medication = await readMedication(participantContext.containers.medications, participantId, medicationId);
+  if (!medication) {
+    return { status: 404, jsonBody: { message: 'Medication not found.' } };
+  }
+
+  const now = new Date();
+  const logDate = new Date(`${logLocalDate}T00:00:00Z`);
+  const daysAgo = daysBetweenUtc(now, logDate);
+  if (daysAgo < 0 || daysAgo > 30) {
+    return buildValidationError([
+      {
+        id: 'medicationLogs.dateRange.invalid',
+        message: 'Log date must be within the last 30 days.'
+      }
+    ]);
+  }
+
+  const medicationWindowErrors = validateMedicationWindow(medication, logLocalDate);
+  if (medicationWindowErrors.length > 0) {
+    return buildValidationError(medicationWindowErrors);
+  }
+
+  const occurrenceKey = parsed.value.occurrenceKey?.trim();
+  if (!occurrenceKey) {
+    return buildValidationError([
+      {
+        id: 'medicationLogs.occurrence.required',
+        message: 'occurrenceKey is required.'
+      }
+    ]);
+  }
+
+  if (medication.frequency === 'interval-days' && occurrenceKey !== 'interval') {
+    return buildValidationError([
+      {
+        id: 'medicationLogs.occurrence.invalid',
+        message: 'occurrenceKey is not valid for frequency interval-days.'
+      }
+    ]);
+  }
+
+  if (medication.frequency !== 'as-needed' && medication.frequency !== 'interval-days') {
+    const allowedOccurrenceKeys = scheduledOccurrenceKeys(medication.frequency);
+    if (!allowedOccurrenceKeys.includes(occurrenceKey)) {
+      return buildValidationError([
+        {
+          id: 'medicationLogs.occurrence.invalid',
+          message: `occurrenceKey is not valid for frequency ${medication.frequency}.`
+        }
+      ]);
+    }
+  }
+
+  const logId = `medlog_${medicationId}_${logLocalDate}_${occurrenceKey}`;
+  const existing = await participantContext.containers.medicationLogs.item(logId, participantId).read<MedicationLogDocument>();
+  if (medication.frequency === 'as-needed' && !existing.resource) {
+    return { status: 404, jsonBody: { message: 'Medication log not found.' } };
+  }
+
+  const base: MedicationLogDocument = existing.resource ?? {
+    id: logId,
+    participantId,
+    medicationId,
+    logLocalDate,
+    logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
+    occurrenceKey,
+    status: parsed.value.status,
+    createdAtUtc: now.toISOString(),
+    updatedAtUtc: now.toISOString()
+  };
+  const incomingLogLocalTime = typeof parsed.value.logLocalTime === 'string'
+    ? parsed.value.logLocalTime.trim()
+    : undefined;
+  const logLocalTime = parsed.value.status === 'taken'
+    ? (incomingLogLocalTime ?? base.logLocalTime)
+    : undefined;
+  const takenAtUtc = parsed.value.status === 'taken'
+    ? (logLocalTime
+      ? computeUtcFromLocal(logLocalDate, logLocalTime, parsed.value.logTzOffsetMinutes)
+      : base.takenAtUtc)
+    : undefined;
+
+  const updated: MedicationLogDocument = {
+    ...base,
+    logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
+    logLocalTime,
+    takenAtUtc,
+    occurrenceKey,
+    status: parsed.value.status,
+    updatedAtUtc: now.toISOString()
+  };
+
+  await participantContext.containers.medicationLogs.items.upsert(updated);
+
+  let medicationForResponse = medication;
+  if (medication.frequency === 'interval-days' && medication.intervalSchedule && parsed.value.status === 'taken') {
+    medicationForResponse = {
+      ...medication,
+      intervalSchedule: {
+        ...medication.intervalSchedule,
+        anchorDateLocal: logLocalDate,
+        anchorPolicy: 'reset-on-taken'
+      },
+      updatedAtUtc: now.toISOString()
+    };
+    await participantContext.containers.medications.items.upsert(medicationForResponse);
+  }
+
+  await appendTimelineEvent(
+    participantContext.containers.eventIndex,
+    projectMedicationLogToEventIndex(updated, medicationForResponse)
+  );
+
+  const referenceLocalDate = localDateForOffset(now, parsed.value.logTzOffsetMinutes);
+  const dueDetails = buildIntervalDueDetails(medicationForResponse, referenceLocalDate);
+  const responseBody: UpsertMedicationLogResponse = dueDetails
+    ? { ...updated, ...dueDetails }
+    : updated;
+
+  return { status: 200, jsonBody: responseBody };
+};
+
+const createAsNeededMedicationLogBusinessHandler = async (
+  participantContext: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
+  const participantId = participantContext.participantId;
+  const medicationId = req.params.medicationId;
+  const logLocalDate = req.params.logLocalDate;
+  if (!medicationId || !logLocalDate) {
+    const errors: ValidationErrorDetail[] = [];
+    if (!medicationId) {
+      errors.push({
+        id: 'medicationLogs.medicationId.required',
+        message: 'Medication id is required.'
+      });
+    }
+    if (!logLocalDate) {
+      errors.push({
+        id: 'medicationLogs.logLocalDate.required',
+        message: 'logLocalDate is required.'
+      });
+    }
+    return buildValidationError(errors);
+  }
+
+  const parsed = await parseJsonBody<CreateAsNeededMedicationLogRequest>(req, {
+    id: 'medicationLogs.body.invalid',
+    message: 'Request body must be valid JSON.'
+  });
+  if (!parsed.ok) {
+    return parsed.response;
+  }
+
+  const errors = validateAsNeededCreateRequest(parsed.value, logLocalDate);
+  if (errors.length > 0) {
+    return buildValidationError(errors);
+  }
+
+  const medication = await readMedication(participantContext.containers.medications, participantId, medicationId);
+  if (!medication) {
+    return { status: 404, jsonBody: { message: 'Medication not found.' } };
+  }
+
+  if (medication.frequency !== 'as-needed') {
+    return buildValidationError([
+      {
+        id: 'medicationLogs.frequency.route.invalid',
+        message: 'This endpoint only supports as-needed medications.'
+      }
+    ]);
+  }
+
+  const now = new Date();
+  const logDate = new Date(`${logLocalDate}T00:00:00Z`);
+  const daysAgo = daysBetweenUtc(now, logDate);
+  if (daysAgo < 0 || daysAgo > 30) {
+    return buildValidationError([
+      {
+        id: 'medicationLogs.dateRange.invalid',
+        message: 'Log date must be within the last 30 days.'
+      }
+    ]);
+  }
+
+  const medicationWindowErrors = validateMedicationWindow(medication, logLocalDate);
+  if (medicationWindowErrors.length > 0) {
+    return buildValidationError(medicationWindowErrors);
+  }
+
+  const timestamp = Date.now();
+  const occurrenceKey = `as-needed-${timestamp}-${randomUUID().slice(0, 8)}`;
+  const nowIso = now.toISOString();
+  const logLocalTime = typeof parsed.value.logLocalTime === 'string'
+    ? parsed.value.logLocalTime.trim()
+    : undefined;
+  const created: MedicationLogDocument = {
+    id: `medlog_${medicationId}_${logLocalDate}_${occurrenceKey}`,
+    participantId,
+    medicationId,
+    logLocalDate,
+    logLocalTime,
+    logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
+    takenAtUtc: logLocalTime
+      ? computeUtcFromLocal(logLocalDate, logLocalTime, parsed.value.logTzOffsetMinutes)
+      : undefined,
+    occurrenceKey,
+    status: 'taken',
+    createdAtUtc: nowIso,
+    updatedAtUtc: nowIso
+  };
+
+  await participantContext.containers.medicationLogs.items.create(created);
+  await appendTimelineEvent(
+    participantContext.containers.eventIndex,
+    projectMedicationLogToEventIndex(created, medication)
+  );
+
+  return { status: 201, jsonBody: created };
+};
 
 const listMedicationLogsHandler = composeHttpHandler({
   middlewares: [
@@ -281,35 +557,7 @@ const listMedicationLogsHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    const participantId = participantContext.participantId;
-    const containers = participantContext.containers;
-
-    const pageSize = parsePageSize(req.query.get('pageSize'));
-    const nextToken = req.query.get('nextToken');
-    const startDate = req.query.get('startDate');
-    const endDate = req.query.get('endDate');
-    const medicationIds = parseMedicationIds(req.query.get('medicationIds'));
-
-    const errors = validateListRequest(startDate, endDate);
-    if (errors.length > 0) {
-      return buildValidationError(errors);
-    }
-
-    const query = buildMedicationLogListQuery(participantId, startDate!, endDate!, medicationIds);
-    const response = await containers.medicationLogs.items.query<MedicationLogDocument>(query, {
-      partitionKey: participantId,
-      maxItemCount: pageSize,
-      continuationToken: nextToken ?? undefined
-    }).fetchNext();
-
-    const payload: ListMedicationLogsResponse = {
-      items: response.resources ?? [],
-      nextToken: response.continuationToken ?? null
-    };
-    return { status: 200, jsonBody: payload };
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, listMedicationLogsBusinessHandler)
 });
 
 const upsertMedicationLogHandler = composeHttpHandler({
@@ -319,162 +567,7 @@ const upsertMedicationLogHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    const participantId = participantContext.participantId;
-    const medicationId = req.params.medicationId;
-    const logLocalDate = req.params.logLocalDate;
-    if (!medicationId || !logLocalDate) {
-      const errors: ValidationErrorDetail[] = [];
-      if (!medicationId) {
-        errors.push({
-          id: 'medicationLogs.medicationId.required',
-          message: 'Medication id is required.'
-        });
-      }
-      if (!logLocalDate) {
-        errors.push({
-          id: 'medicationLogs.logLocalDate.required',
-          message: 'logLocalDate is required.'
-        });
-      }
-      return buildValidationError(errors);
-    }
-
-    const parsed = await parseJsonBody<UpsertMedicationLogRequest>(req, {
-      id: 'medicationLogs.body.invalid',
-      message: 'Request body must be valid JSON.'
-    });
-    if (!parsed.ok) {
-      return parsed.response;
-    }
-
-    const errors = validateUpsertRequest(parsed.value, logLocalDate);
-    if (errors.length > 0) {
-      return buildValidationError(errors);
-    }
-
-    const medication = await readMedication(participantContext.containers.medications, participantId, medicationId);
-    if (!medication) {
-      return { status: 404, jsonBody: { message: 'Medication not found.' } };
-    }
-
-    const now = new Date();
-    const logDate = new Date(`${logLocalDate}T00:00:00Z`);
-    const daysAgo = daysBetweenUtc(now, logDate);
-    if (daysAgo < 0 || daysAgo > 30) {
-      return buildValidationError([
-        {
-          id: 'medicationLogs.dateRange.invalid',
-          message: 'Log date must be within the last 30 days.'
-        }
-      ]);
-    }
-
-    const medicationWindowErrors = validateMedicationWindow(medication, logLocalDate);
-    if (medicationWindowErrors.length > 0) {
-      return buildValidationError(medicationWindowErrors);
-    }
-
-    const occurrenceKey = parsed.value.occurrenceKey?.trim();
-    if (!occurrenceKey) {
-      return buildValidationError([
-        {
-          id: 'medicationLogs.occurrence.required',
-          message: 'occurrenceKey is required.'
-        }
-      ]);
-    }
-
-    if (medication.frequency === 'interval-days' && occurrenceKey !== 'interval') {
-      return buildValidationError([
-        {
-          id: 'medicationLogs.occurrence.invalid',
-          message: 'occurrenceKey is not valid for frequency interval-days.'
-        }
-      ]);
-    }
-
-    if (medication.frequency !== 'as-needed' && medication.frequency !== 'interval-days') {
-      const allowedOccurrenceKeys = scheduledOccurrenceKeys(medication.frequency);
-      if (!allowedOccurrenceKeys.includes(occurrenceKey)) {
-        return buildValidationError([
-          {
-            id: 'medicationLogs.occurrence.invalid',
-            message: `occurrenceKey is not valid for frequency ${medication.frequency}.`
-          }
-        ]);
-      }
-    }
-
-    const logId = `medlog_${medicationId}_${logLocalDate}_${occurrenceKey}`;
-    const existing = await participantContext.containers.medicationLogs.item(logId, participantId).read<MedicationLogDocument>();
-    if (medication.frequency === 'as-needed' && !existing.resource) {
-      return { status: 404, jsonBody: { message: 'Medication log not found.' } };
-    }
-
-    const base: MedicationLogDocument = existing.resource ?? {
-      id: logId,
-      participantId,
-      medicationId,
-      logLocalDate,
-      logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
-      occurrenceKey,
-      status: parsed.value.status,
-      createdAtUtc: now.toISOString(),
-      updatedAtUtc: now.toISOString()
-    };
-    const incomingLogLocalTime = typeof parsed.value.logLocalTime === 'string'
-      ? parsed.value.logLocalTime.trim()
-      : undefined;
-    const logLocalTime = parsed.value.status === 'taken'
-      ? (incomingLogLocalTime ?? base.logLocalTime)
-      : undefined;
-    const takenAtUtc = parsed.value.status === 'taken'
-      ? (logLocalTime
-        ? computeUtcFromLocal(logLocalDate, logLocalTime, parsed.value.logTzOffsetMinutes)
-        : base.takenAtUtc)
-      : undefined;
-
-    const updated: MedicationLogDocument = {
-      ...base,
-      logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
-      logLocalTime,
-      takenAtUtc,
-      occurrenceKey,
-      status: parsed.value.status,
-      updatedAtUtc: now.toISOString()
-    };
-
-    await participantContext.containers.medicationLogs.items.upsert(updated);
-
-    let medicationForResponse = medication;
-    if (medication.frequency === 'interval-days' && medication.intervalSchedule && parsed.value.status === 'taken') {
-      medicationForResponse = {
-        ...medication,
-        intervalSchedule: {
-          ...medication.intervalSchedule,
-          anchorDateLocal: logLocalDate,
-          anchorPolicy: 'reset-on-taken'
-        },
-        updatedAtUtc: now.toISOString()
-      };
-      await participantContext.containers.medications.items.upsert(medicationForResponse);
-    }
-
-    await appendTimelineEvent(
-      participantContext.containers.eventIndex,
-      projectMedicationLogToEventIndex(updated, medicationForResponse)
-    );
-
-    const referenceLocalDate = localDateForOffset(now, parsed.value.logTzOffsetMinutes);
-    const dueDetails = buildIntervalDueDetails(medicationForResponse, referenceLocalDate);
-    const responseBody: UpsertMedicationLogResponse = dueDetails
-      ? { ...updated, ...dueDetails }
-      : updated;
-
-    return { status: 200, jsonBody: responseBody };
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, upsertMedicationLogBusinessHandler)
 });
 
 const createAsNeededMedicationLogHandler = composeHttpHandler({
@@ -484,102 +577,7 @@ const createAsNeededMedicationLogHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    const participantId = participantContext.participantId;
-    const medicationId = req.params.medicationId;
-    const logLocalDate = req.params.logLocalDate;
-    if (!medicationId || !logLocalDate) {
-      const errors: ValidationErrorDetail[] = [];
-      if (!medicationId) {
-        errors.push({
-          id: 'medicationLogs.medicationId.required',
-          message: 'Medication id is required.'
-        });
-      }
-      if (!logLocalDate) {
-        errors.push({
-          id: 'medicationLogs.logLocalDate.required',
-          message: 'logLocalDate is required.'
-        });
-      }
-      return buildValidationError(errors);
-    }
-
-    const parsed = await parseJsonBody<CreateAsNeededMedicationLogRequest>(req, {
-      id: 'medicationLogs.body.invalid',
-      message: 'Request body must be valid JSON.'
-    });
-    if (!parsed.ok) {
-      return parsed.response;
-    }
-
-    const errors = validateAsNeededCreateRequest(parsed.value, logLocalDate);
-    if (errors.length > 0) {
-      return buildValidationError(errors);
-    }
-
-    const medication = await readMedication(participantContext.containers.medications, participantId, medicationId);
-    if (!medication) {
-      return { status: 404, jsonBody: { message: 'Medication not found.' } };
-    }
-
-    if (medication.frequency !== 'as-needed') {
-      return buildValidationError([
-        {
-          id: 'medicationLogs.frequency.route.invalid',
-          message: 'This endpoint only supports as-needed medications.'
-        }
-      ]);
-    }
-
-    const now = new Date();
-    const logDate = new Date(`${logLocalDate}T00:00:00Z`);
-    const daysAgo = daysBetweenUtc(now, logDate);
-    if (daysAgo < 0 || daysAgo > 30) {
-      return buildValidationError([
-        {
-          id: 'medicationLogs.dateRange.invalid',
-          message: 'Log date must be within the last 30 days.'
-        }
-      ]);
-    }
-
-    const medicationWindowErrors = validateMedicationWindow(medication, logLocalDate);
-    if (medicationWindowErrors.length > 0) {
-      return buildValidationError(medicationWindowErrors);
-    }
-
-    const timestamp = Date.now();
-    const occurrenceKey = `as-needed-${timestamp}-${randomUUID().slice(0, 8)}`;
-    const nowIso = now.toISOString();
-    const logLocalTime = typeof parsed.value.logLocalTime === 'string'
-      ? parsed.value.logLocalTime.trim()
-      : undefined;
-    const created: MedicationLogDocument = {
-      id: `medlog_${medicationId}_${logLocalDate}_${occurrenceKey}`,
-      participantId,
-      medicationId,
-      logLocalDate,
-      logLocalTime,
-      logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
-      takenAtUtc: logLocalTime
-        ? computeUtcFromLocal(logLocalDate, logLocalTime, parsed.value.logTzOffsetMinutes)
-        : undefined,
-      occurrenceKey,
-      status: 'taken',
-      createdAtUtc: nowIso,
-      updatedAtUtc: nowIso
-    };
-
-    await participantContext.containers.medicationLogs.items.create(created);
-    await appendTimelineEvent(
-      participantContext.containers.eventIndex,
-      projectMedicationLogToEventIndex(created, medication)
-    );
-
-    return { status: 201, jsonBody: created };
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, createAsNeededMedicationLogBusinessHandler)
 });
 
 app.http('medication-logs-list', {
@@ -603,4 +601,11 @@ app.http('medication-logs-as-needed-create', {
   handler: createAsNeededMedicationLogHandler
 });
 
-export { listMedicationLogsHandler, upsertMedicationLogHandler, createAsNeededMedicationLogHandler };
+export {
+  listMedicationLogsHandler,
+  upsertMedicationLogHandler,
+  createAsNeededMedicationLogHandler,
+  listMedicationLogsBusinessHandler,
+  upsertMedicationLogBusinessHandler,
+  createAsNeededMedicationLogBusinessHandler
+};

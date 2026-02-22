@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { parseJsonBody } from '../shared/requests';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { BehaviorIncidentDocument } from '../models/behavior-incident';
@@ -13,8 +13,8 @@ import {
   projectDailyReflectionToEventIndex
 } from '../shared/timeline/projectors';
 import type { AuthContext } from '../shared/handler-context';
+import { bindBusinessHandler, resolveAuthContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -102,27 +102,10 @@ function validateVerifyRequest(body: VerifyRequest): ValidationErrorDetail[] {
   return errors;
 }
 
-function requireAuthContext(context: InvocationContext): AuthContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user) {
-    throw new Error('Auth context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers
-  };
-}
-
-const adminBackfillTimelineHandler = composeHttpHandler({
-  middlewares: [
-    errorMiddleware,
-    requestContextMiddleware,
-    authMiddleware,
-    adminGuardMiddleware
-  ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const authContext = requireAuthContext(context);
+const adminBackfillTimelineBusinessHandler = async (
+  authContext: AuthContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
 
     const parsed = await parseJsonBody<BackfillRequest>(req, {
       id: 'timeline.backfill.body.invalid',
@@ -259,18 +242,22 @@ const adminBackfillTimelineHandler = composeHttpHandler({
     };
 
     return { status: 200, jsonBody: payload };
-  }
-});
+};
 
-const adminVerifyTimelineHandler = composeHttpHandler({
+const adminBackfillTimelineHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
     requestContextMiddleware,
     authMiddleware,
     adminGuardMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const authContext = requireAuthContext(context);
+  handler: bindBusinessHandler(resolveAuthContext, adminBackfillTimelineBusinessHandler)
+});
+
+const adminVerifyTimelineBusinessHandler = async (
+  authContext: AuthContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
 
     const parsed = await parseJsonBody<VerifyRequest>(req, {
       id: 'timeline.verify.body.invalid',
@@ -433,7 +420,16 @@ const adminVerifyTimelineHandler = composeHttpHandler({
     };
 
     return { status: 200, jsonBody: payload };
-  }
+};
+
+const adminVerifyTimelineHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    adminGuardMiddleware
+  ],
+  handler: bindBusinessHandler(resolveAuthContext, adminVerifyTimelineBusinessHandler)
 });
 
 app.http('admin-timeline-backfill', {
@@ -450,4 +446,9 @@ app.http('admin-timeline-verify', {
   handler: adminVerifyTimelineHandler
 });
 
-export { adminBackfillTimelineHandler, adminVerifyTimelineHandler };
+export {
+  adminBackfillTimelineHandler,
+  adminVerifyTimelineHandler,
+  adminBackfillTimelineBusinessHandler,
+  adminVerifyTimelineBusinessHandler
+};

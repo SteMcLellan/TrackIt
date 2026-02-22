@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import { randomUUID } from 'crypto';
 import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
@@ -7,8 +7,8 @@ import { buildBehaviorIncidentListQuery } from '../shared/data/behavior-incident
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
 import { projectIncidentToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+import { bindBusinessHandler, resolveParticipantContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -89,7 +89,7 @@ type ListBehaviorIncidentsResponse = {
   nextToken: string | null;
 };
 
-const listBehaviorIncidentsInnerHandler = async (
+const listBehaviorIncidentsBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -138,7 +138,7 @@ const listBehaviorIncidentsInnerHandler = async (
     return { status: 200, jsonBody: payload };
   };
 
-const createBehaviorIncidentInnerHandler = async (
+const createBehaviorIncidentBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -188,20 +188,6 @@ const createBehaviorIncidentInnerHandler = async (
     return { status: 201, jsonBody: incident };
   };
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
-  };
-}
-
 const listBehaviorIncidentsHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
@@ -209,10 +195,7 @@ const listBehaviorIncidentsHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return listBehaviorIncidentsInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, listBehaviorIncidentsBusinessHandler)
 });
 
 const createBehaviorIncidentHandler = composeHttpHandler({
@@ -222,10 +205,7 @@ const createBehaviorIncidentHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    return createBehaviorIncidentInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, createBehaviorIncidentBusinessHandler)
 });
 
 app.http('behavior-incidents-list', {
@@ -242,4 +222,5 @@ app.http('behavior-incidents-create', {
   handler: createBehaviorIncidentHandler
 });
 
-export { listBehaviorIncidentsHandler, createBehaviorIncidentHandler, listBehaviorIncidentsInnerHandler, createBehaviorIncidentInnerHandler };
+export { listBehaviorIncidentsHandler, createBehaviorIncidentHandler, listBehaviorIncidentsBusinessHandler, createBehaviorIncidentBusinessHandler };
+

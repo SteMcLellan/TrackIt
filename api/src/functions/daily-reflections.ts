@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
@@ -7,8 +7,8 @@ import { DailyReflectionDocument } from '../models/daily-reflection';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
 import { projectDailyReflectionToEventIndex } from '../shared/timeline/projectors';
 import { isDateOnly, isFutureDate, isValidTzOffset } from '../shared/validators';
+import { bindBusinessHandler, resolveParticipantContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -216,19 +216,150 @@ function buildMetricSummary(
   };
 }
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
+const listDailyReflectionsBusinessHandler = async (
+  participantContext: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
+  const participantId = participantContext.participantId;
+  const containers = participantContext.containers;
+
+  const startDate = req.query.get('startDate');
+  const endDate = req.query.get('endDate');
+  const errors = validateListRequest(startDate, endDate);
+  if (errors.length > 0) {
+    return buildValidationError(errors);
   }
 
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
+  const pageSize = parsePageSize(req.query.get('pageSize'));
+  const nextToken = req.query.get('nextToken');
+  const query = buildDailyReflectionListQuery(participantId, startDate!, endDate!);
+  const response = await containers.dailyReflections.items.query<DailyReflectionDocument>(query, {
+    partitionKey: participantId,
+    maxItemCount: pageSize,
+    continuationToken: nextToken ?? undefined
+  }).fetchNext();
+
+  const payload: ListDailyReflectionsResponse = {
+    items: response.resources ?? [],
+    nextToken: response.continuationToken ?? null
   };
-}
+
+  return { status: 200, jsonBody: payload };
+};
+
+const upsertDailyReflectionBusinessHandler = async (
+  participantContext: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
+  const participantId = participantContext.participantId;
+  const logLocalDate = req.params.logLocalDate;
+  if (!logLocalDate) {
+    return buildValidationError([
+      {
+        id: 'dailyReflections.logLocalDate.required',
+        message: 'logLocalDate is required.'
+      }
+    ]);
+  }
+
+  const parsed = await parseJsonBody<UpsertDailyReflectionRequest>(req, {
+    id: 'dailyReflections.body.invalid',
+    message: 'Request body must be valid JSON.'
+  });
+  if (!parsed.ok) {
+    return parsed.response;
+  }
+
+  const validationErrors = validateUpsertRequest(parsed.value, logLocalDate);
+  if (validationErrors.length > 0) {
+    return buildValidationError(validationErrors);
+  }
+
+  const reflectionId = `daily_reflection_${logLocalDate}`;
+  const existing = await readDailyReflection(participantContext.containers.dailyReflections, participantId, reflectionId);
+  const now = new Date().toISOString();
+  const normalizedNote = typeof parsed.value.journalNote === 'string'
+    ? parsed.value.journalNote.trim()
+    : '';
+
+  const reflection: DailyReflectionDocument = {
+    id: reflectionId,
+    participantId,
+    logLocalDate,
+    logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
+    moodScore: parsed.value.moodScore,
+    focusScore: parsed.value.focusScore,
+    energyScore: parsed.value.energyScore,
+    sleepScore: parsed.value.sleepScore,
+    journalNote: normalizedNote.length > 0 ? normalizedNote : undefined,
+    createdAtUtc: existing?.createdAtUtc ?? now,
+    updatedAtUtc: now,
+    createdByUserId: existing?.createdByUserId ?? participantContext.user.sub,
+    updatedByUserId: participantContext.user.sub
+  };
+
+  await participantContext.containers.dailyReflections.items.upsert(reflection);
+  await appendTimelineEvent(
+    participantContext.containers.eventIndex,
+    projectDailyReflectionToEventIndex(reflection)
+  );
+
+  return { status: 200, jsonBody: reflection };
+};
+
+const dailyReflectionsSummaryBusinessHandler = async (
+  participantContext: ParticipantContext,
+  req: HttpRequest
+): Promise<HttpResponseInit> => {
+  const participantId = participantContext.participantId;
+  const containers = participantContext.containers;
+
+  const endDate = req.query.get('endDate');
+  const days = parseSummaryDays(req.query.get('days'));
+  const errors: ValidationErrorDetail[] = [];
+
+  if (!endDate || !isDateOnly(endDate)) {
+    errors.push({
+      id: 'dailyReflections.summary.endDate.invalid',
+      message: 'endDate must be YYYY-MM-DD.'
+    });
+  } else if (isFutureDate(endDate)) {
+    errors.push({
+      id: 'dailyReflections.summary.endDate.future',
+      message: 'endDate cannot be in the future.'
+    });
+  }
+
+  if (errors.length > 0) {
+    return buildValidationError(errors);
+  }
+
+  const startDate = computeStartDate(endDate!, days);
+  const query = buildDailyReflectionListQuery(participantId, startDate, endDate!);
+  const response = await containers.dailyReflections.items.query<DailyReflectionDocument>(query, {
+    partitionKey: participantId,
+    maxItemCount: days
+  }).fetchAll();
+
+  const items = response.resources ?? [];
+  const byDate = new Map<string, DailyReflectionDocument>();
+  for (const item of items) {
+    byDate.set(item.logLocalDate, item);
+  }
+
+  const dateRange = buildDateRange(startDate, endDate!);
+  const payload: DailyReflectionSummaryResponse = {
+    startDate,
+    endDate: endDate!,
+    days,
+    mood: buildMetricSummary(dateRange, byDate, (item) => item.moodScore),
+    focus: buildMetricSummary(dateRange, byDate, (item) => item.focusScore),
+    energy: buildMetricSummary(dateRange, byDate, (item) => item.energyScore),
+    sleep: buildMetricSummary(dateRange, byDate, (item) => item.sleepScore)
+  };
+
+  return { status: 200, jsonBody: payload };
+};
 
 const listDailyReflectionsHandler = composeHttpHandler({
   middlewares: [
@@ -237,34 +368,7 @@ const listDailyReflectionsHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    const participantId = participantContext.participantId;
-    const containers = participantContext.containers;
-
-    const startDate = req.query.get('startDate');
-    const endDate = req.query.get('endDate');
-    const errors = validateListRequest(startDate, endDate);
-    if (errors.length > 0) {
-      return buildValidationError(errors);
-    }
-
-    const pageSize = parsePageSize(req.query.get('pageSize'));
-    const nextToken = req.query.get('nextToken');
-    const query = buildDailyReflectionListQuery(participantId, startDate!, endDate!);
-    const response = await containers.dailyReflections.items.query<DailyReflectionDocument>(query, {
-      partitionKey: participantId,
-      maxItemCount: pageSize,
-      continuationToken: nextToken ?? undefined
-    }).fetchNext();
-
-    const payload: ListDailyReflectionsResponse = {
-      items: response.resources ?? [],
-      nextToken: response.continuationToken ?? null
-    };
-
-    return { status: 200, jsonBody: payload };
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, listDailyReflectionsBusinessHandler)
 });
 
 const upsertDailyReflectionHandler = composeHttpHandler({
@@ -274,63 +378,7 @@ const upsertDailyReflectionHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    const participantId = participantContext.participantId;
-    const logLocalDate = req.params.logLocalDate;
-    if (!logLocalDate) {
-      return buildValidationError([
-        {
-          id: 'dailyReflections.logLocalDate.required',
-          message: 'logLocalDate is required.'
-        }
-      ]);
-    }
-
-    const parsed = await parseJsonBody<UpsertDailyReflectionRequest>(req, {
-      id: 'dailyReflections.body.invalid',
-      message: 'Request body must be valid JSON.'
-    });
-    if (!parsed.ok) {
-      return parsed.response;
-    }
-
-    const validationErrors = validateUpsertRequest(parsed.value, logLocalDate);
-    if (validationErrors.length > 0) {
-      return buildValidationError(validationErrors);
-    }
-
-    const reflectionId = `daily_reflection_${logLocalDate}`;
-    const existing = await readDailyReflection(participantContext.containers.dailyReflections, participantId, reflectionId);
-    const now = new Date().toISOString();
-    const normalizedNote = typeof parsed.value.journalNote === 'string'
-      ? parsed.value.journalNote.trim()
-      : '';
-
-    const reflection: DailyReflectionDocument = {
-      id: reflectionId,
-      participantId,
-      logLocalDate,
-      logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
-      moodScore: parsed.value.moodScore,
-      focusScore: parsed.value.focusScore,
-      energyScore: parsed.value.energyScore,
-      sleepScore: parsed.value.sleepScore,
-      journalNote: normalizedNote.length > 0 ? normalizedNote : undefined,
-      createdAtUtc: existing?.createdAtUtc ?? now,
-      updatedAtUtc: now,
-      createdByUserId: existing?.createdByUserId ?? participantContext.user.sub,
-      updatedByUserId: participantContext.user.sub
-    };
-
-    await participantContext.containers.dailyReflections.items.upsert(reflection);
-    await appendTimelineEvent(
-      participantContext.containers.eventIndex,
-      projectDailyReflectionToEventIndex(reflection)
-    );
-
-    return { status: 200, jsonBody: reflection };
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, upsertDailyReflectionBusinessHandler)
 });
 
 const dailyReflectionsSummaryHandler = composeHttpHandler({
@@ -340,57 +388,7 @@ const dailyReflectionsSummaryHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const participantContext = requireParticipantContext(context);
-    const participantId = participantContext.participantId;
-    const containers = participantContext.containers;
-
-    const endDate = req.query.get('endDate');
-    const days = parseSummaryDays(req.query.get('days'));
-    const errors: ValidationErrorDetail[] = [];
-
-    if (!endDate || !isDateOnly(endDate)) {
-      errors.push({
-        id: 'dailyReflections.summary.endDate.invalid',
-        message: 'endDate must be YYYY-MM-DD.'
-      });
-    } else if (isFutureDate(endDate)) {
-      errors.push({
-        id: 'dailyReflections.summary.endDate.future',
-        message: 'endDate cannot be in the future.'
-      });
-    }
-
-    if (errors.length > 0) {
-      return buildValidationError(errors);
-    }
-
-    const startDate = computeStartDate(endDate!, days);
-    const query = buildDailyReflectionListQuery(participantId, startDate, endDate!);
-    const response = await containers.dailyReflections.items.query<DailyReflectionDocument>(query, {
-      partitionKey: participantId,
-      maxItemCount: days
-    }).fetchAll();
-
-    const items = response.resources ?? [];
-    const byDate = new Map<string, DailyReflectionDocument>();
-    for (const item of items) {
-      byDate.set(item.logLocalDate, item);
-    }
-
-    const dateRange = buildDateRange(startDate, endDate!);
-    const payload: DailyReflectionSummaryResponse = {
-      startDate,
-      endDate: endDate!,
-      days,
-      mood: buildMetricSummary(dateRange, byDate, (item) => item.moodScore),
-      focus: buildMetricSummary(dateRange, byDate, (item) => item.focusScore),
-      energy: buildMetricSummary(dateRange, byDate, (item) => item.energyScore),
-      sleep: buildMetricSummary(dateRange, byDate, (item) => item.sleepScore)
-    };
-
-    return { status: 200, jsonBody: payload };
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, dailyReflectionsSummaryBusinessHandler)
 });
 
 app.http('daily-reflections-list', {
@@ -414,4 +412,11 @@ app.http('daily-reflections-summary', {
   handler: dailyReflectionsSummaryHandler
 });
 
-export { listDailyReflectionsHandler, upsertDailyReflectionHandler, dailyReflectionsSummaryHandler };
+export {
+  listDailyReflectionsHandler,
+  upsertDailyReflectionHandler,
+  dailyReflectionsSummaryHandler,
+  listDailyReflectionsBusinessHandler,
+  upsertDailyReflectionBusinessHandler,
+  dailyReflectionsSummaryBusinessHandler
+};

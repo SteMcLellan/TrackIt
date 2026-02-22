@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  readBehaviorIncidentInnerHandler,
-  updateBehaviorIncidentInnerHandler,
-  deleteBehaviorIncidentInnerHandler
+  readBehaviorIncidentBusinessHandler,
+  updateBehaviorIncidentBusinessHandler,
+  deleteBehaviorIncidentBusinessHandler
 } from '../../src/functions/behavior-incident-detail';
 import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 import { mockHttpRequest } from '../helpers/http';
@@ -34,44 +34,44 @@ describe('behavior-incident-detail handlers', () => {
     vi.clearAllMocks();
   });
 
-  it('readBehaviorIncidentInnerHandler requires incident id', async () => {
-    const response = await readBehaviorIncidentInnerHandler(buildContext(), mockHttpRequest({ params: {} }));
+  it('readBehaviorIncidentBusinessHandler requires incident id', async () => {
+    const response = await readBehaviorIncidentBusinessHandler(buildContext(), mockHttpRequest({ params: {} }));
     expectValidationErrorIds(response, ['incidents.incidentId.required']);
   });
 
-  it('readBehaviorIncidentInnerHandler returns 404 when missing', async () => {
+  it('readBehaviorIncidentBusinessHandler returns 404 when missing', async () => {
     const ctx = buildContext();
     (ctx.containers.behaviorIncidents.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: null })
     });
-    const response = await readBehaviorIncidentInnerHandler(
+    const response = await readBehaviorIncidentBusinessHandler(
       ctx,
       mockHttpRequest({ params: { incidentId: 'incident_1' } })
     );
     expect(response.status).toBe(404);
   });
 
-  it('updateBehaviorIncidentInnerHandler validates request body', async () => {
-    const response = await updateBehaviorIncidentInnerHandler(
+  it('updateBehaviorIncidentBusinessHandler validates request body', async () => {
+    const response = await updateBehaviorIncidentBusinessHandler(
       buildContext(),
       mockHttpRequest({ method: 'PATCH', params: { incidentId: 'incident_1' }, body: {} })
     );
     expectValidationErrorIds(response, ['incidents.update.empty']);
   });
 
-  it('updateBehaviorIncidentInnerHandler returns 404 for unknown incident', async () => {
+  it('updateBehaviorIncidentBusinessHandler returns 404 for unknown incident', async () => {
     const ctx = buildContext();
     (ctx.containers.behaviorIncidents.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: null })
     });
-    const response = await updateBehaviorIncidentInnerHandler(
+    const response = await updateBehaviorIncidentBusinessHandler(
       ctx,
       mockHttpRequest({ method: 'PATCH', params: { incidentId: 'incident_1' }, body: { antecedent: 'x' } })
     );
     expect(response.status).toBe(404);
   });
 
-  it('updateBehaviorIncidentInnerHandler upserts and appends timeline event', async () => {
+  it('updateBehaviorIncidentBusinessHandler upserts and appends timeline event', async () => {
     const ctx = buildContext();
     (ctx.containers.behaviorIncidents.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({
@@ -93,7 +93,7 @@ describe('behavior-incident-detail handlers', () => {
       })
     });
     const upsertSpy = ctx.containers.behaviorIncidents.items.upsert as unknown as ReturnType<typeof vi.fn>;
-    const response = await updateBehaviorIncidentInnerHandler(
+    const response = await updateBehaviorIncidentBusinessHandler(
       ctx,
       mockHttpRequest({ method: 'PATCH', params: { incidentId: 'incident_1' }, body: { place: 'School' } })
     );
@@ -102,7 +102,7 @@ describe('behavior-incident-detail handlers', () => {
     expect(vi.mocked(appendTimelineEvent)).toHaveBeenCalledTimes(1);
   });
 
-  it('deleteBehaviorIncidentInnerHandler deletes incident and appends delete event', async () => {
+  it('deleteBehaviorIncidentBusinessHandler deletes incident and appends delete event', async () => {
     const ctx = buildContext();
     const deleteSpy = vi.fn().mockResolvedValue(undefined);
     (ctx.containers.behaviorIncidents.item as unknown as ReturnType<typeof vi.fn>)
@@ -128,7 +128,7 @@ describe('behavior-incident-detail handlers', () => {
       .mockReturnValueOnce({
         delete: deleteSpy
       });
-    const response = await deleteBehaviorIncidentInnerHandler(
+    const response = await deleteBehaviorIncidentBusinessHandler(
       ctx,
       mockHttpRequest({ params: { incidentId: 'incident_1' } })
     );
@@ -137,3 +137,4 @@ describe('behavior-incident-detail handlers', () => {
     expect(vi.mocked(appendTimelineEvent)).toHaveBeenCalledTimes(1);
   });
 });
+

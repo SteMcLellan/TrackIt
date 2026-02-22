@@ -1,11 +1,11 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { readParticipant } from '../shared/data/participants';
 import { ParticipantDocument } from '../models/participant';
+import { bindBusinessHandler, resolveParticipantContext } from '../shared/endpoint-template';
 import { composeHttpHandler } from '../shared/http-middleware';
-import { getRequestState } from '../shared/request-state';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 import { authMiddleware } from '../shared/middleware/auth';
@@ -53,8 +53,9 @@ export function normalizeParticipantForResponse(participant: ParticipantDocument
   };
 }
 
-const readParticipantInnerHandler = async (
-  ctx: ParticipantContext
+const readParticipantBusinessHandler = async (
+  ctx: ParticipantContext,
+  _req: HttpRequest
 ): Promise<HttpResponseInit> => {
     const participant = await readParticipant(ctx.containers.participants, ctx.participantId);
     if (!participant) {
@@ -64,7 +65,7 @@ const readParticipantInnerHandler = async (
     return { status: 200, jsonBody: { ...normalizeParticipantForResponse(participant), role: ctx.link.role } };
   };
 
-const updateParticipantInnerHandler = async (
+const updateParticipantBusinessHandler = async (
   ctx: ParticipantContext,
   req: HttpRequest
 ): Promise<HttpResponseInit> => {
@@ -136,20 +137,6 @@ const updateParticipantInnerHandler = async (
     return { status: 200, jsonBody: { ...normalizeParticipantForResponse(updated), role: ctx.link.role } };
   };
 
-function requireParticipantContext(context: InvocationContext): ParticipantContext {
-  const state = getRequestState(context);
-  if (!state.containers || !state.user || !state.participant) {
-    throw new Error('Participant context was not initialized.');
-  }
-
-  return {
-    user: state.user,
-    containers: state.containers,
-    participantId: state.participant.id,
-    link: state.participant.link
-  };
-}
-
 const readParticipantHandler = composeHttpHandler({
   middlewares: [
     errorMiddleware,
@@ -157,10 +144,7 @@ const readParticipantHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (_req: HttpRequest, context: InvocationContext) => {
-    const participantContext = requireParticipantContext(context);
-    return readParticipantInnerHandler(participantContext);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, readParticipantBusinessHandler)
 });
 
 const updateParticipantHandler = composeHttpHandler({
@@ -170,10 +154,7 @@ const updateParticipantHandler = composeHttpHandler({
     authMiddleware,
     participantMiddleware
   ],
-  handler: async (req: HttpRequest, context: InvocationContext) => {
-    const participantContext = requireParticipantContext(context);
-    return updateParticipantInnerHandler(participantContext, req);
-  }
+  handler: bindBusinessHandler(resolveParticipantContext, updateParticipantBusinessHandler)
 });
 
 app.http('participant-detail-get', {
@@ -190,4 +171,5 @@ app.http('participant-detail-patch', {
   handler: updateParticipantHandler
 });
 
-export { readParticipantHandler, updateParticipantHandler, readParticipantInnerHandler, updateParticipantInnerHandler };
+export { readParticipantHandler, updateParticipantHandler, readParticipantBusinessHandler, updateParticipantBusinessHandler };
+

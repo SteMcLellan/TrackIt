@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { deleteMedicationLogInnerHandler, readMedicationLogInnerHandler } from '../../src/functions/medication-log-detail';
+import { deleteMedicationLogBusinessHandler, readMedicationLogBusinessHandler } from '../../src/functions/medication-log-detail';
 import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 import { mockHttpRequest } from '../helpers/http';
 import { expectValidationErrorIds } from '../helpers/assertions';
@@ -30,36 +30,36 @@ describe('medication-log-detail handlers', () => {
     vi.clearAllMocks();
   });
 
-  it('readMedicationLogInnerHandler requires logId', async () => {
-    const response = await readMedicationLogInnerHandler(buildContext(), mockHttpRequest({ params: {} }));
+  it('readMedicationLogBusinessHandler requires logId', async () => {
+    const response = await readMedicationLogBusinessHandler(buildContext(), mockHttpRequest({ params: {} }));
     expectValidationErrorIds(response, ['medicationLogs.logId.required']);
   });
 
-  it('readMedicationLogInnerHandler returns 404 for missing log', async () => {
+  it('readMedicationLogBusinessHandler returns 404 for missing log', async () => {
     const ctx = buildContext();
     (ctx.containers.medicationLogs.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: null })
     });
-    const response = await readMedicationLogInnerHandler(
+    const response = await readMedicationLogBusinessHandler(
       ctx,
       mockHttpRequest({ params: { logId: 'log_1' } })
     );
     expect(response.status).toBe(404);
   });
 
-  it('deleteMedicationLogInnerHandler returns 404 for missing log', async () => {
+  it('deleteMedicationLogBusinessHandler returns 404 for missing log', async () => {
     const ctx = buildContext();
     (ctx.containers.medicationLogs.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: null })
     });
-    const response = await deleteMedicationLogInnerHandler(
+    const response = await deleteMedicationLogBusinessHandler(
       ctx,
       mockHttpRequest({ params: { logId: 'log_1' } })
     );
     expect(response.status).toBe(404);
   });
 
-  it('deleteMedicationLogInnerHandler deletes log and appends timeline delete', async () => {
+  it('deleteMedicationLogBusinessHandler deletes log and appends timeline delete', async () => {
     const ctx = buildContext();
     const deleteSpy = vi.fn().mockResolvedValue(undefined);
     (ctx.containers.medicationLogs.item as unknown as ReturnType<typeof vi.fn>)
@@ -85,7 +85,7 @@ describe('medication-log-detail handlers', () => {
       read: vi.fn().mockResolvedValue({ resource: null })
     });
 
-    const response = await deleteMedicationLogInnerHandler(
+    const response = await deleteMedicationLogBusinessHandler(
       ctx,
       mockHttpRequest({ params: { logId: 'log_1' } })
     );
@@ -94,3 +94,4 @@ describe('medication-log-detail handlers', () => {
     expect(vi.mocked(appendTimelineEvent)).toHaveBeenCalledTimes(1);
   });
 });
+

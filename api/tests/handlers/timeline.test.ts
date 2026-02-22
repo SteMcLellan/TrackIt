@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { listTimelineInnerHandler, timelineContextInnerHandler } from '../../src/functions/timeline';
+import { listTimelineBusinessHandler, timelineContextBusinessHandler } from '../../src/functions/timeline';
 import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 import { mockHttpRequest } from '../helpers/http';
 import { expectValidationErrorIds } from '../helpers/assertions';
@@ -21,15 +21,15 @@ function buildContext(): ParticipantContext {
 }
 
 describe('timeline handlers', () => {
-  it('listTimelineInnerHandler validates date/cursorDate', async () => {
-    const response = await listTimelineInnerHandler(
+  it('listTimelineBusinessHandler validates date/cursorDate', async () => {
+    const response = await listTimelineBusinessHandler(
       buildContext(),
       mockHttpRequest({ query: { date: 'bad', cursorDate: 'bad' } })
     );
     expectValidationErrorIds(response, ['timeline.date.invalid', 'timeline.cursorDate.invalid']);
   });
 
-  it('listTimelineInnerHandler returns projected timeline payload', async () => {
+  it('listTimelineBusinessHandler returns projected timeline payload', async () => {
     const ctx = buildContext();
     (ctx.containers.eventIndex.items.query as unknown as ReturnType<typeof vi.fn>)
       .mockReturnValueOnce({
@@ -38,7 +38,7 @@ describe('timeline handlers', () => {
       .mockReturnValueOnce({
         fetchNext: vi.fn().mockResolvedValue({ resources: [] })
       });
-    const response = await listTimelineInnerHandler(
+    const response = await listTimelineBusinessHandler(
       ctx,
       mockHttpRequest({ query: { date: '2026-02-01' } })
     );
@@ -46,30 +46,30 @@ describe('timeline handlers', () => {
     expect((response.jsonBody as { projectionMode: string }).projectionMode).toBe('daily-final-state');
   });
 
-  it('timelineContextInnerHandler validates required params and source type', async () => {
-    const missing = await timelineContextInnerHandler(buildContext(), mockHttpRequest({ params: {} }));
+  it('timelineContextBusinessHandler validates required params and source type', async () => {
+    const missing = await timelineContextBusinessHandler(buildContext(), mockHttpRequest({ params: {} }));
     expectValidationErrorIds(missing, ['timeline.context.params.required']);
 
-    const invalid = await timelineContextInnerHandler(
+    const invalid = await timelineContextBusinessHandler(
       buildContext(),
       mockHttpRequest({ params: { sourceType: 'bad', sourceId: 'id' } })
     );
     expectValidationErrorIds(invalid, ['timeline.sourceType.invalid']);
   });
 
-  it('timelineContextInnerHandler returns 404 when anchor missing', async () => {
+  it('timelineContextBusinessHandler returns 404 when anchor missing', async () => {
     const ctx = buildContext();
     (ctx.containers.eventIndex.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       fetchNext: vi.fn().mockResolvedValue({ resources: [] })
     });
-    const response = await timelineContextInnerHandler(
+    const response = await timelineContextBusinessHandler(
       ctx,
       mockHttpRequest({ params: { sourceType: 'incident', sourceId: 'incident_1' } })
     );
     expect(response.status).toBe(404);
   });
 
-  it('timelineContextInnerHandler returns anchor and context items', async () => {
+  it('timelineContextBusinessHandler returns anchor and context items', async () => {
     const ctx = buildContext();
     const anchor = { eventAtUtc: '2026-02-01T12:00:00.000Z', sourceType: 'incident', sourceId: 'incident_1' };
     (ctx.containers.eventIndex.items.query as unknown as ReturnType<typeof vi.fn>)
@@ -79,7 +79,7 @@ describe('timeline handlers', () => {
       .mockReturnValueOnce({
         fetchNext: vi.fn().mockResolvedValue({ resources: [] })
       });
-    const response = await timelineContextInnerHandler(
+    const response = await timelineContextBusinessHandler(
       ctx,
       mockHttpRequest({ params: { sourceType: 'incident', sourceId: 'incident_1' }, query: { minutes: '30' } })
     );
@@ -87,3 +87,4 @@ describe('timeline handlers', () => {
     expect((response.jsonBody as { minutes: number }).minutes).toBe(30);
   });
 });
+
