@@ -144,15 +144,20 @@ const createThingBusinessHandler = async (
   return { status: 201, jsonBody: created };
 };
 
-const createThingHandler = composeHttpHandler({
-  middlewares: [
-    errorMiddleware,
-    requestContextMiddleware,
-    authMiddleware,
-    participantMiddleware,
-    validateCreateThingMiddleware
-  ],
-  handler: createThingBusinessHandler
+app.http('thinghandler-post', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'thing',
+  handler: composeHttpHandler({
+            middlewares: [
+              errorMiddleware,
+              requestContextMiddleware,
+              authMiddleware,
+              participantMiddleware,
+              validateCreateThingMiddleware
+            ],
+            handler: createThingBusinessHandler
+          })
 });
 ```
 
