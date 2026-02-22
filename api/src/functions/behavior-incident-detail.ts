@@ -1,11 +1,17 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
-import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { readBehaviorIncident } from '../shared/data/behavior-incidents';
 import { BehaviorFunction, BehaviorIncidentDocument } from '../models/behavior-incident';
 import { projectIncidentToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
+import { authMiddleware } from '../shared/middleware/auth';
+import { participantMiddleware } from '../shared/middleware/participant';
 import {
   isNonEmpty,
   isDateOnly,
@@ -210,26 +216,58 @@ const deleteBehaviorIncidentInnerHandler = async (
     return { status: 204 };
   };
 
-const readBehaviorIncidentHandler = withParticipantContext(
-  {
-    missingParticipantErrorId: 'incidents.participantId.required'
-  },
-  readBehaviorIncidentInnerHandler
-);
+function requireParticipantContext(context: InvocationContext): ParticipantContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user || !state.participant) {
+    throw new Error('Participant context was not initialized.');
+  }
 
-const updateBehaviorIncidentHandler = withParticipantContext(
-  {
-    missingParticipantErrorId: 'incidents.participantId.required'
-  },
-  updateBehaviorIncidentInnerHandler
-);
+  return {
+    user: state.user,
+    containers: state.containers,
+    participantId: state.participant.id,
+    link: state.participant.link
+  };
+}
 
-const deleteBehaviorIncidentHandler = withParticipantContext(
-  {
-    missingParticipantErrorId: 'incidents.participantId.required'
-  },
-  deleteBehaviorIncidentInnerHandler
-);
+const readBehaviorIncidentHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    return readBehaviorIncidentInnerHandler(participantContext, req);
+  }
+});
+
+const updateBehaviorIncidentHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    return updateBehaviorIncidentInnerHandler(participantContext, req);
+  }
+});
+
+const deleteBehaviorIncidentHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    return deleteBehaviorIncidentInnerHandler(participantContext, req);
+  }
+});
 
 app.http('behavior-incident-detail-get', {
   methods: ['GET'],

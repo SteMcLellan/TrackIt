@@ -1,6 +1,5 @@
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
 import jwt from 'jsonwebtoken';
-import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 
 /**
  * Remote JWKS for Google ID token validation.
@@ -113,25 +112,3 @@ export function buildConfig(): AuthConfig {
   };
 }
 
-/**
- * Wraps an Azure Function handler to return structured errors.
- */
-export function withErrorHandling(
-  handler: (req: HttpRequest, context: InvocationContext) => Promise<HttpResponseInit>
-) {
-  return async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    try {
-      return await handler(req, context);
-    } catch (err: unknown) {
-      context.error('Error', err);
-      const status =
-        typeof err === 'object' && err && 'status' in err && typeof (err as { status?: unknown }).status === 'number'
-          ? (err as { status: number }).status
-          : 500;
-      return {
-        status,
-        jsonBody: { message: err instanceof Error ? err.message : 'Internal error' }
-      };
-    }
-  };
-}

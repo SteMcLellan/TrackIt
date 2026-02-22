@@ -45,6 +45,7 @@ function buildAdminContainers() {
 describe('admin event-index migrations handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    buildCosmosMock.mockResolvedValue({ containers: createCosmosContainersStub() });
     projectIncidentToEventIndexMock.mockReturnValue({
       id: 'evt_incident_1',
       participantId: 'participant_1',

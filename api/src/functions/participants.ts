@@ -1,10 +1,15 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { randomUUID } from 'crypto';
-import { withAuthContext, AuthContext } from '../shared/handler-context';
+import type { AuthContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { listParticipantLinks, readParticipant } from '../shared/data/participants';
 import { ParticipantDocument, UserParticipantLinkDocument } from '../models/participant';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
+import { authMiddleware } from '../shared/middleware/auth';
 
 type ParticipantResponse = Omit<ParticipantDocument, 'ageYears'> & {
   ageYears: number | null;
@@ -160,8 +165,41 @@ const createParticipantInnerHandler = async (
     return { status: 201, jsonBody: normalizeParticipant(participant) };
   };
 
-const listParticipantsHandler = withAuthContext(listParticipantsInnerHandler);
-const createParticipantHandler = withAuthContext(createParticipantInnerHandler);
+function requireAuthContext(context: InvocationContext): AuthContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user) {
+    throw new Error('Auth context was not initialized.');
+  }
+
+  return {
+    user: state.user,
+    containers: state.containers
+  };
+}
+
+const listParticipantsHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const authContext = requireAuthContext(context);
+    return listParticipantsInnerHandler(authContext, req);
+  }
+});
+
+const createParticipantHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const authContext = requireAuthContext(context);
+    return createParticipantInnerHandler(authContext, req);
+  }
+});
 
 app.http('participants-list', {
   methods: ['GET'],

@@ -1,10 +1,16 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
-import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
 import { readMedicationLog } from '../shared/data/medication-logs';
 import { readMedication } from '../shared/data/medications';
 import { projectMedicationLogToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
+import { authMiddleware } from '../shared/middleware/auth';
+import { participantMiddleware } from '../shared/middleware/participant';
 
 const readMedicationLogInnerHandler = async (
   ctx: ParticipantContext,
@@ -50,19 +56,45 @@ const deleteMedicationLogInnerHandler = async (
     return { status: 204 };
   };
 
-const readMedicationLogHandler = withParticipantContext(
-  {
-    missingParticipantErrorId: 'medicationLogs.participantId.required'
-  },
-  readMedicationLogInnerHandler
-);
+function requireParticipantContext(context: InvocationContext): ParticipantContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user || !state.participant) {
+    throw new Error('Participant context was not initialized.');
+  }
 
-const deleteMedicationLogHandler = withParticipantContext(
-  {
-    missingParticipantErrorId: 'medicationLogs.participantId.required'
-  },
-  deleteMedicationLogInnerHandler
-);
+  return {
+    user: state.user,
+    containers: state.containers,
+    participantId: state.participant.id,
+    link: state.participant.link
+  };
+}
+
+const readMedicationLogHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    return readMedicationLogInnerHandler(participantContext, req);
+  }
+});
+
+const deleteMedicationLogHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    return deleteMedicationLogInnerHandler(participantContext, req);
+  }
+});
 
 app.http('medication-log-detail-get', {
   methods: ['GET'],

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockHttpRequest } from '../helpers/http';
+import { mockInvocationContext } from '../helpers/context';
 
 const buildConfigMock = vi.fn();
 const readJwtHeaderMock = vi.fn();
@@ -56,26 +57,26 @@ describe('auth-login handler', () => {
   });
 
   it('returns 401 when token is missing', async () => {
-    const response = await authLogin(mockHttpRequest({ method: 'POST' }));
+    const response = await authLogin(mockHttpRequest({ method: 'POST' }), mockInvocationContext());
     expect(response.status).toBe(401);
   });
 
   it('returns 401 for HS algorithm header', async () => {
     readJwtHeaderMock.mockReturnValue({ alg: 'HS256', kid: 'kid' });
-    const response = await authLogin(mockHttpRequest({ method: 'POST', body: { idToken: 'token' } }));
+    const response = await authLogin(mockHttpRequest({ method: 'POST', body: { idToken: 'token' } }), mockInvocationContext());
     expect(response.status).toBe(401);
     expect((response.jsonBody as { alg?: string }).alg).toBe('HS256');
   });
 
   it('returns specific unsupported alg error', async () => {
     verifyGoogleIdTokenMock.mockRejectedValue(new Error('Unsupported "alg" value for a JSON Web Key Set'));
-    const response = await authLogin(mockHttpRequest({ method: 'POST', body: { idToken: 'token' } }));
+    const response = await authLogin(mockHttpRequest({ method: 'POST', body: { idToken: 'token' } }), mockInvocationContext());
     expect(response.status).toBe(401);
     expect((response.jsonBody as { message?: string }).message).toContain('Expected a Google ID token');
   });
 
   it('returns token and persisted user fields on success', async () => {
-    const response = await authLogin(mockHttpRequest({ method: 'POST', body: { idToken: 'token' } }));
+    const response = await authLogin(mockHttpRequest({ method: 'POST', body: { idToken: 'token' } }), mockInvocationContext());
     expect(response.status).toBe(200);
     const body = response.jsonBody as { token: string; roles: string[] };
     expect(body.token).toBe('app.jwt.token');

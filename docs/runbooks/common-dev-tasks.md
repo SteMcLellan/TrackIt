@@ -5,8 +5,12 @@ This runbook captures common implementation workflows in TrackIt.
 ## Add a New API Endpoint
 
 1. Create `api/src/functions/{resource}-{action}.ts`.
-2. Wrap handler with `withErrorHandling`.
-3. Add `authorize()` for protected routes (or `requireAdmin()` for admin-only routes).
+2. Compose handler with `composeHttpHandler({ middlewares: [...], handler })`.
+3. Add middleware for route scope:
+   - `errorMiddleware` + `requestContextMiddleware` baseline.
+   - `authMiddleware` for protected routes.
+   - `participantMiddleware` for participant-scoped routes.
+   - `adminGuardMiddleware` for admin-only routes.
 4. Register endpoint with `app.http()`.
 5. Validate request/response and time fields against `docs/architecture/data-modeling.md`.
 

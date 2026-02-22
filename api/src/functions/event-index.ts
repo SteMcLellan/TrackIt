@@ -1,8 +1,14 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
-import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
 import { buildTimelineByLocalDateQuery } from '../shared/data/event-index';
 import { EventIndexDocument, EventSourceType } from '../models/event-index';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
+import { authMiddleware } from '../shared/middleware/auth';
+import { participantMiddleware } from '../shared/middleware/participant';
 
 const sourceTypeOptions: EventSourceType[] = ['incident', 'medication_log', 'medication', 'daily_reflection'];
 const defaultSourceTypeFilter: EventSourceType[] = ['incident', 'medication_log', 'medication', 'daily_reflection'];
@@ -67,12 +73,32 @@ const listRawEventIndexByDateInnerHandler = async (
     };
   };
 
-const listRawEventIndexByDateHandler = withParticipantContext(
-  {
-    missingParticipantErrorId: 'eventIndex.participantId.required'
-  },
-  listRawEventIndexByDateInnerHandler
-);
+function requireParticipantContext(context: InvocationContext): ParticipantContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user || !state.participant) {
+    throw new Error('Participant context was not initialized.');
+  }
+
+  return {
+    user: state.user,
+    containers: state.containers,
+    participantId: state.participant.id,
+    link: state.participant.link
+  };
+}
+
+const listRawEventIndexByDateHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    return listRawEventIndexByDateInnerHandler(participantContext, req);
+  }
+});
 
 app.http('event-index-list', {
   methods: ['GET'],

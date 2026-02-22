@@ -1,10 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authorize } from '../shared/authorize';
-import { buildCosmos } from '../shared/cosmos';
-import { withErrorHandling } from '../shared/auth';
 import { parseJsonBody } from '../shared/requests';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
-import { requireAdmin } from '../shared/admin';
 import { BehaviorIncidentDocument } from '../models/behavior-incident';
 import { MedicationLogDocument } from '../models/medication-log';
 import { MedicationDocument } from '../models/medication';
@@ -16,6 +12,13 @@ import {
   projectMedicationToEventIndex,
   projectDailyReflectionToEventIndex
 } from '../shared/timeline/projectors';
+import type { AuthContext } from '../shared/handler-context';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
+import { authMiddleware } from '../shared/middleware/auth';
+import { adminGuardMiddleware } from '../shared/middleware/admin-guard';
 
 type BackfillSource = 'incidents' | 'medicationLogs' | 'medications' | 'dailyReflections';
 
@@ -99,13 +102,27 @@ function validateVerifyRequest(body: VerifyRequest): ValidationErrorDetail[] {
   return errors;
 }
 
-const adminBackfillTimelineHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const auth = authorize(context, req);
-    const adminError = requireAdmin(auth);
-    if (adminError) {
-      return adminError;
-    }
+function requireAuthContext(context: InvocationContext): AuthContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user) {
+    throw new Error('Auth context was not initialized.');
+  }
+
+  return {
+    user: state.user,
+    containers: state.containers
+  };
+}
+
+const adminBackfillTimelineHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    adminGuardMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const authContext = requireAuthContext(context);
 
     const parsed = await parseJsonBody<BackfillRequest>(req, {
       id: 'timeline.backfill.body.invalid',
@@ -125,7 +142,7 @@ const adminBackfillTimelineHandler = withErrorHandling(
     const include = parseSources(parsed.value.include);
     const maxItems = parseMaxItems(parsed.value.maxItems);
     const continuation = parsed.value.continuation ?? {};
-    const { containers } = await buildCosmos();
+    const containers = authContext.containers;
 
     let remaining = maxItems;
     let scanned = 0;
@@ -243,15 +260,17 @@ const adminBackfillTimelineHandler = withErrorHandling(
 
     return { status: 200, jsonBody: payload };
   }
-);
+});
 
-const adminVerifyTimelineHandler = withErrorHandling(
-  async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
-    const auth = authorize(context, req);
-    const adminError = requireAdmin(auth);
-    if (adminError) {
-      return adminError;
-    }
+const adminVerifyTimelineHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    adminGuardMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const authContext = requireAuthContext(context);
 
     const parsed = await parseJsonBody<VerifyRequest>(req, {
       id: 'timeline.verify.body.invalid',
@@ -270,7 +289,7 @@ const adminVerifyTimelineHandler = withErrorHandling(
     const include = parseSources(parsed.value.include);
     const maxItems = parseMaxItems(parsed.value.maxItems);
     const continuation = parsed.value.continuation ?? {};
-    const { containers } = await buildCosmos();
+    const containers = authContext.containers;
 
     let remaining = maxItems;
     let scanned = 0;
@@ -415,7 +434,7 @@ const adminVerifyTimelineHandler = withErrorHandling(
 
     return { status: 200, jsonBody: payload };
   }
-);
+});
 
 app.http('admin-timeline-backfill', {
   methods: ['POST'],

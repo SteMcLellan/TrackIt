@@ -1,12 +1,18 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { randomUUID } from 'crypto';
-import { withParticipantContext, ParticipantContext } from '../shared/handler-context';
+import type { ParticipantContext } from '../shared/handler-context';
 import { buildValidationError, ValidationErrorDetail } from '../shared/errors';
 import { parseJsonBody } from '../shared/requests';
 import { buildMedicationListQuery } from '../shared/data/medications';
 import { IntervalSchedule, MedicationDocument, MedicationFrequency } from '../models/medication';
 import { projectMedicationToEventIndex } from '../shared/timeline/projectors';
 import { appendTimelineEvent } from '../shared/timeline/write-through';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
+import { authMiddleware } from '../shared/middleware/auth';
+import { participantMiddleware } from '../shared/middleware/participant';
 
 type IntervalScheduleRequest = {
   intervalDays: number;
@@ -251,19 +257,45 @@ const createMedicationInnerHandler = async (
     return { status: 201, jsonBody: medication };
   };
 
-const listMedicationsHandler = withParticipantContext(
-  {
-    missingParticipantErrorId: 'medications.participantId.required'
-  },
-  listMedicationsInnerHandler
-);
+function requireParticipantContext(context: InvocationContext): ParticipantContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user || !state.participant) {
+    throw new Error('Participant context was not initialized.');
+  }
 
-const createMedicationHandler = withParticipantContext(
-  {
-    missingParticipantErrorId: 'medications.participantId.required'
-  },
-  createMedicationInnerHandler
-);
+  return {
+    user: state.user,
+    containers: state.containers,
+    participantId: state.participant.id,
+    link: state.participant.link
+  };
+}
+
+const listMedicationsHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    return listMedicationsInnerHandler(participantContext, req);
+  }
+});
+
+const createMedicationHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    return createMedicationInnerHandler(participantContext, req);
+  }
+});
 
 app.http('medications-list', {
   methods: ['GET'],

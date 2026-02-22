@@ -10,7 +10,7 @@ This document defines backend endpoint conventions for TrackIt Azure Functions.
 - Keep `app.http(...)` registration near the bottom of the file.
 - Keep shared request/data helpers in `api/src/shared/*` and `api/src/shared/data/*`.
 
-## Middleware Composition and Compatibility Wrappers
+## Middleware Composition
 - Preferred shape for new/refactored endpoints:
   - `composeHttpHandler({ middlewares: [...], handler })`
   - middleware order is explicit at the call site.
@@ -21,7 +21,7 @@ This document defines backend endpoint conventions for TrackIt Azure Functions.
   - `participantMiddleware`
   - `adminGuardMiddleware`
   - endpoint-specific validation middleware(s)
-- Existing wrappers (`withAuthContext`, `withParticipantContext`, `withErrorHandling`) remain compatibility adapters for untouched handlers during migration. Do not introduce new wrapper-based handler composition.
+- Do not use wrapper-based handler composition; handlers should declare explicit middleware arrays via `composeHttpHandler(...)`.
 
 ## Baseline Middleware Stacks (Guidance)
 - Public endpoints:
@@ -113,7 +113,7 @@ type Result<T> =
 
 ## Testing Conventions
 - Unit-test inner handlers directly for business behavior and validation.
-- Test middleware layers/wrapper adapters separately for auth, participant link, and error handling behavior.
+- Test middleware layers for auth, participant link, and error handling behavior.
 - Keep helper factories under `api/tests/helpers/*`.
 - Prefer deterministic tests that avoid network and runtime dependencies.
 
@@ -165,7 +165,7 @@ const createThingHandler = composeHttpHandler({
 - Validation errors use stable IDs and `buildValidationError`.
 - Status codes align with this doc.
 - Partition-aware data access (no accidental cross-partition primary path).
-- Tests include inner-handler behavior and middleware/wrapper-adapter behavior.
+- Tests include inner-handler behavior and middleware behavior.
 
 ## Related Docs
 - `docs/architecture/auth-flow.md`

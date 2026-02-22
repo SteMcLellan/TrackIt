@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockHttpRequest } from '../helpers/http';
+import { mockInvocationContext } from '../helpers/context';
 
 const buildConfigMock = vi.fn();
 const verifyGoogleIdTokenMock = vi.fn();
@@ -44,12 +45,12 @@ describe('auth-refresh handler', () => {
   });
 
   it('returns 401 when id token is missing', async () => {
-    const response = await authRefresh(mockHttpRequest({ method: 'POST' }));
+    const response = await authRefresh(mockHttpRequest({ method: 'POST' }), mockInvocationContext());
     expect(response.status).toBe(401);
   });
 
   it('returns token and roles on success', async () => {
-    const response = await authRefresh(mockHttpRequest({ method: 'POST', body: { idToken: 'google-token' } }));
+    const response = await authRefresh(mockHttpRequest({ method: 'POST', body: { idToken: 'google-token' } }), mockInvocationContext());
     expect(response.status).toBe(200);
     const body = response.jsonBody as { token: string; roles: string[]; role: string };
     expect(body.token).toBe('refreshed.token');

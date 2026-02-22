@@ -1,12 +1,28 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
-import { buildConfig, signAppJwt, verifyGoogleIdToken, withErrorHandling } from '../shared/auth';
-import { buildCosmos } from '../shared/cosmos';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import { buildConfig, signAppJwt, verifyGoogleIdToken } from '../shared/auth';
 import { readUserBySub } from '../shared/data/users';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
 
 /**
  * Issues a fresh app JWT using a valid Google ID token.
  */
-const authRefresh = withErrorHandling(async (req: HttpRequest): Promise<HttpResponseInit> => {
+function requireContainers(context: InvocationContext) {
+  const state = getRequestState(context);
+  if (!state.containers) {
+    throw new Error('Request context was not initialized.');
+  }
+  return state.containers;
+}
+
+const authRefresh = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
   let bodyToken = '';
   try {
     const body = (await req.json()) as unknown;
@@ -27,7 +43,7 @@ const authRefresh = withErrorHandling(async (req: HttpRequest): Promise<HttpResp
 
   const config = buildConfig();
   const claims = await verifyGoogleIdToken(idToken, config);
-  const { containers } = await buildCosmos();
+  const containers = requireContainers(context);
   const user = await readUserBySub(containers.users, claims.sub as string);
   const roles = user?.roles && user.roles.length > 0 ? user.roles : ['parent'];
   const token = signAppJwt(
@@ -43,6 +59,7 @@ const authRefresh = withErrorHandling(async (req: HttpRequest): Promise<HttpResp
   );
 
   return { status: 200, jsonBody: { token, role: roles[0], roles } };
+  }
 });
 
 /**

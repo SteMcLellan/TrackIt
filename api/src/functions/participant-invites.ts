@@ -1,10 +1,16 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { randomUUID } from 'crypto';
-import { withAuthContext, withParticipantContext, AuthContext, ParticipantContext } from '../shared/handler-context';
+import type { AuthContext, ParticipantContext } from '../shared/handler-context';
 import { buildValidationError } from '../shared/errors';
 import { readParticipant, readParticipantLink } from '../shared/data/participants';
 import { ParticipantInviteDocument } from '../models/participant-invite';
 import { UserParticipantLinkDocument } from '../models/participant';
+import { composeHttpHandler } from '../shared/http-middleware';
+import { getRequestState } from '../shared/request-state';
+import { errorMiddleware } from '../shared/middleware/error';
+import { requestContextMiddleware } from '../shared/middleware/request-context';
+import { authMiddleware } from '../shared/middleware/auth';
+import { participantMiddleware } from '../shared/middleware/participant';
 
 type ParticipantInviteResponse = {
   participantId: string;
@@ -245,23 +251,69 @@ const acceptParticipantInviteInnerHandler = async (
     return { status: 200, jsonBody: response };
   };
 
-const readActiveParticipantInviteHandler = withParticipantContext(
-  {
-    missingParticipantErrorId: 'participants.id.invalid',
-    missingParticipantErrorMessage: 'Participant id must start with participant_.'
-  },
-  readActiveParticipantInviteInnerHandler
-);
+function requireParticipantContext(context: InvocationContext): ParticipantContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user || !state.participant) {
+    throw new Error('Participant context was not initialized.');
+  }
 
-const createParticipantInviteHandler = withParticipantContext(
-  {
-    missingParticipantErrorId: 'participants.id.invalid',
-    missingParticipantErrorMessage: 'Participant id must start with participant_.'
-  },
-  createParticipantInviteInnerHandler
-);
+  return {
+    user: state.user,
+    containers: state.containers,
+    participantId: state.participant.id,
+    link: state.participant.link
+  };
+}
 
-const acceptParticipantInviteHandler = withAuthContext(acceptParticipantInviteInnerHandler);
+function requireAuthContext(context: InvocationContext): AuthContext {
+  const state = getRequestState(context);
+  if (!state.containers || !state.user) {
+    throw new Error('Auth context was not initialized.');
+  }
+
+  return {
+    user: state.user,
+    containers: state.containers
+  };
+}
+
+const readActiveParticipantInviteHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (_req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    return readActiveParticipantInviteInnerHandler(participantContext);
+  }
+});
+
+const createParticipantInviteHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware,
+    participantMiddleware
+  ],
+  handler: async (_req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const participantContext = requireParticipantContext(context);
+    return createParticipantInviteInnerHandler(participantContext);
+  }
+});
+
+const acceptParticipantInviteHandler = composeHttpHandler({
+  middlewares: [
+    errorMiddleware,
+    requestContextMiddleware,
+    authMiddleware
+  ],
+  handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    const authContext = requireAuthContext(context);
+    return acceptParticipantInviteInnerHandler(authContext, req);
+  }
+});
 
 app.http('participant-invites-active-get', {
   methods: ['GET'],
