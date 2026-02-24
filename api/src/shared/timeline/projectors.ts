@@ -180,10 +180,10 @@ function buildMedicationLogSubtitle(
   if (medication?.frequency === 'interval-days' && medication.intervalSchedule) {
     const intervalLabel = `Every ${medication.intervalSchedule.intervalDays} days`;
     if (medication.name && medication.dosageText) {
-      return `${intervalLabel} â€¢ ${medication.name} ${medication.dosageText}`;
+      return `${intervalLabel} • ${medication.name} ${medication.dosageText}`;
     }
     if (medication.name) {
-      return `${intervalLabel} â€¢ ${medication.name}`;
+      return `${intervalLabel} • ${medication.name}`;
     }
     return intervalLabel;
   }
