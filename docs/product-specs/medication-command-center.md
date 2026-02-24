@@ -2,7 +2,8 @@
 
 ## Status
 
-Implemented in frontend (commit `7f6366fbab95f9a8c464bcd70c392ec569eca1e0`, 2026-02-15).
+Implemented in frontend.
+Last updated: 2026-02-24.
 
 ## Problem
 
@@ -25,14 +26,28 @@ Medication logging moved to a dedicated `/medications` route, and Insights now s
 - Show supportive status messaging:
   - `All on track` when complete.
   - `N remaining` when pending.
-  - `None scheduled` when no scheduled doses exist that day.
-- Show a pending medication name hint when available.
+  - `None scheduled` when no actionable scheduled/interval doses exist.
+- Keep `remaining` actionable-now:
+  - scheduled pending doses
+  - interval medications that are `due` or `overdue`
+  - exclude interval medications that are still `early`
+- Show one pending medication name hint when available for scheduled doses.
+- Show nearest interval guidance line when interval meds exist:
+  - `Next interval due today`
+  - `Next interval due in N days`
+  - `Next interval overdue by N days`
 - Card is tappable and navigates to `/medications`.
 - Insights does not expose medication swipe/edit/remove interactions.
 
 ### Medications (`/medications`)
 
 - Dedicated logging surface for all medication interaction.
+- Show active interval medications in Scheduled section (not only on due days).
+- Interval card copy includes:
+  - frequency label (`Every X days`)
+  - `Last logged`
+  - `Next due`
+  - due-state chip (`Due today`, `Due in N days`, `Overdue by N days`)
 - Preserve swipe-first workflow:
   - Scheduled dose rows: swipe right to mark `taken`; swipe left to mark `not_taken`.
   - As-needed base rows: swipe right to log a new as-needed dose.
@@ -49,6 +64,9 @@ Medication logging moved to a dedicated `/medications` route, and Insights now s
   - `once-daily` => 1 expected dose
   - `twice-daily` => 2 expected doses
   - `three-times-daily` => 3 expected doses
+- Interval medications contribute to actionable state through due-state evaluation:
+  - `early` does not increase remaining
+  - `due` and `overdue` increase remaining
 - Taken count is capped at expected doses per medication/day for progress display.
 - Dose labels are context-based:
   - Prospective checklist context (`/medications` untaken rows): slot labels from `occurrenceKey`.
@@ -65,6 +83,7 @@ Medication logging moved to a dedicated `/medications` route, and Insights now s
 - Uses existing participant-scoped medication and medication-log APIs.
 - Relies on `frequency` enum model and occurrence-key rules documented in `docs/product-specs/medication-frequency.md`.
 - Time edits compute timezone offsets from local date/time and persist via medication-log upsert.
+- Interval log upsert responses may include `dueState` and `nextDueLocalDate`.
 
 ## Routing and Access
 
@@ -77,6 +96,7 @@ Medication logging moved to a dedicated `/medications` route, and Insights now s
 - Bottom-nav medications tab (not implemented in this change).
 - Reminder/notification scheduling.
 - New backend schema changes beyond existing frequency/occurrence model.
+- Date correction for existing taken logs in `/medications` is intentionally deferred; current in-place correction supports time only.
 
 ## Success Criteria
 
@@ -84,3 +104,4 @@ Medication logging moved to a dedicated `/medications` route, and Insights now s
 - Medication logging behaviors remain fully available on `/medications`.
 - Fractional adherence is visible in both Insights and Medications summary cards.
 - Multi-dose scheduled medications are represented as per-dose actionable rows.
+- Interval medications are visible with due guidance in `/medications` and summary context in `/insights`.

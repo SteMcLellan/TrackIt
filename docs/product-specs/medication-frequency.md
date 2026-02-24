@@ -1,33 +1,57 @@
-# Medication Frequency: Bounded Enum Approach
+# Medication Frequency and Occurrence Model
 
 ## Status
 
-Implemented in backend.
+Implemented in backend and frontend.
+Last updated: 2026-02-24.
 
-- `MedicationDocument` now stores `frequency` (bounded enum), not `frequencyText`.
+- `MedicationDocument` stores bounded `frequency` values (no `frequencyText`).
+- Interval medications are supported via `frequency='interval-days'` with `intervalSchedule`.
 - Medication log occurrence handling is strict and frequency-aware.
 - As-needed logs use a dedicated server-generated endpoint.
 
-## Use Case
+## Product Intent
 
-As a parent tracking a child's medication, the primary concern is accountability: verifying that every scheduled dose was actually administered. If a medication is prescribed twice daily, there should be two separate check-in slots, each independently confirmable.
+TrackIt medication logging is a caregiver record-keeping flow, not a reminder engine.
 
-This is a record-keeping and review need, not a reminder or scheduling engine.
+- Capture what happened.
+- Keep slot/occurrence identity explicit for reliable history.
+- Allow interval logging without hard schedule rejection.
 
 ## Frequency Model
 
-`frequency` is a bounded enum mapped to daily slot count:
+`frequency` is a bounded enum:
 
-| Value | Doses per day | Label |
+| Value | Expected daily slots | Notes |
 |---|---|---|
-| `once-daily` | 1 | Once daily |
-| `twice-daily` | 2 | Twice daily |
-| `three-times-daily` | 3 | Three times daily |
-| `as-needed` | variable | As needed |
+| `once-daily` | 1 | Uses `dose-1` |
+| `twice-daily` | 2 | Uses `dose-1`, `dose-2` |
+| `three-times-daily` | 3 | Uses `dose-1`, `dose-2`, `dose-3` |
+| `interval-days` | 1 action row | Uses `occurrenceKey='interval'`; next due derives from anchor + interval |
+| `as-needed` | variable | Uses server-generated `as-needed-*` keys |
 
-`every-other-day`, `weekly`, and `four-times-daily` are intentionally out of scope.
+`weekly` is modeled as interval-days with `intervalDays=7`.
 
-## Log Model and Occurrence Keys
+## Interval Schedule Contract
+
+When `frequency='interval-days'`, medication payload includes:
+
+```ts
+type IntervalSchedule = {
+  intervalDays: number; // integer, 2..30
+  anchorDateLocal: string | null; // YYYY-MM-DD
+  anchorPolicy: 'reset-on-taken';
+};
+```
+
+Rules:
+
+- `intervalSchedule` is required for `interval-days`.
+- `intervalSchedule` is rejected for non-interval frequencies.
+- `intervalDays` must be an integer in `2..30`.
+- `anchorPolicy` must be `reset-on-taken`.
+
+## Occurrence-Key Rules
 
 `MedicationLogDocument.occurrenceKey` semantics:
 
@@ -36,9 +60,10 @@ This is a record-keeping and review need, not a reminder or scheduling engine.
 | `once-daily` | `dose-1` |
 | `twice-daily` | `dose-1`, `dose-2` |
 | `three-times-daily` | `dose-1`, `dose-2`, `dose-3` |
+| `interval-days` | `interval` |
 | `as-needed` | `as-needed-{timestamp}-{suffix}` (server generated) |
 
-Each `(medicationId, logLocalDate, occurrenceKey)` is a distinct log row and log id component.
+Each `(medicationId, logLocalDate, occurrenceKey)` is a distinct log row and part of the log id: `medlog_{medicationId}_{logLocalDate}_{occurrenceKey}`.
 
 ## API Enforcement (Current Behavior)
 
@@ -48,32 +73,47 @@ Each `(medicationId, logLocalDate, occurrenceKey)` is a distinct log row and log
 - `PATCH /participants/{participantId}/medications/{medicationId}`
 
 Rules:
-- `frequency` is required and must be one of the four enum values.
-- `frequencyText` is rejected with `400` (`medications.frequencyText.unsupported`).
 
-### Scheduled medication logging
+- `frequency` is required and must be one of the enum values above.
+- `frequencyText` is rejected (`medications.frequencyText.unsupported`).
+- Interval schedule validation errors:
+  - `medications.intervalSchedule.required`
+  - `medications.intervalSchedule.invalid`
+
+### Medication log upsert
 
 - `PUT /participants/{participantId}/medication-logs/{medicationId}/{logLocalDate}`
 
 Rules:
-- For scheduled medications, `occurrenceKey` is required.
-- `occurrenceKey` must match the allowed slot keys for the medication's frequency.
+
+- `occurrenceKey` is required.
+- `occurrenceKey` must match frequency rules above.
 - `as-needed` medications are rejected on this route (`medicationLogs.frequency.route.invalid`).
-- Existing date constraints still apply:
-  - log date must be within last 30 days
-  - log date must be within medication start/end window
+- Date/window constraints apply:
+  - `logLocalDate` must be within last 30 days.
+  - `logLocalDate` must be within medication start/end window.
+
+Interval behavior on successful `status='taken'`:
+
+- Log is written/updated at the requested date + `occurrenceKey='interval'`.
+- Medication anchor resets to logged date:
+  - `medication.intervalSchedule.anchorDateLocal = logLocalDate`.
+- Response may include interval guidance fields:
+  - `dueState: 'early' | 'due' | 'overdue'`
+  - `nextDueLocalDate: string | null`
 
 ### As-needed logging
 
 - `POST /participants/{participantId}/medication-logs/{medicationId}/{logLocalDate}/as-needed`
 
 Rules:
-- Medication must have `frequency = as-needed`.
+
+- Medication must have `frequency='as-needed'`.
 - Server generates `occurrenceKey` as `as-needed-{timestamp}-{suffix}`.
-- Entry is always recorded as `status = taken`.
+- Entry is always recorded as `status='taken'`.
 - Same date/window constraints apply.
 
-## Data Model
+## Data Model References
 
 `api/src/models/medication.ts`:
 
@@ -82,42 +122,30 @@ export type MedicationFrequency =
   | 'once-daily'
   | 'twice-daily'
   | 'three-times-daily'
+  | 'interval-days'
   | 'as-needed';
 
-export interface MedicationDocument {
-  // ...
-  frequency: MedicationFrequency;
+export interface IntervalSchedule {
+  intervalDays: number;
+  anchorDateLocal: string | null;
+  anchorPolicy: 'reset-on-taken';
 }
 ```
 
 `api/src/models/medication-log.ts`:
 
 ```ts
-occurrenceKey: string; // scheduled: dose-1..dose-N, PRN: as-needed-*
+occurrenceKey: string; // scheduled: dose-1..dose-N, interval: interval, PRN: as-needed-*
 ```
 
 ## Timeline Projection Notes
 
-Medication log projections now include occurrence context:
+Medication log projections include occurrence context and interval-aware copy:
+
 - tag: `occurrence:{occurrenceKey}`
 - summary field: `occurrenceKey`
-- subtitle includes occurrence key for medication-log events.
+- interval log subtitle includes `Every X days` context
 
 ## Migration
 
-Not required for current environment. Medication and medication-log data was reset before cutover.
-
-## UI Labeling Policy
-
-Dose labels are presentation-only and do not change `occurrenceKey` semantics.
-
-- Checklist context (scheduled untaken rows): labels may use slot mapping from `occurrenceKey` to preserve "what's left" clarity.
-- Retrospective context (taken rows and timeline history): labels are derived from logged local time using daypart windows.
-- As-needed history labels also use daypart derivation in retrospective views.
-
-Daypart windows:
-
-- `Morning`: `03:00-10:59`
-- `Midday`: `11:00-13:59`
-- `Afternoon`: `14:00-17:59`
-- `Evening`: `18:00-02:59`
+No schema migration is required for interval support because this change is additive.

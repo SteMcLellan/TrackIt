@@ -116,11 +116,11 @@ type WeeklyMetricCard = {
             </div>
             <div class="med-summary-copy">
               <p class="med-summary-title">Today's Medications</p>
-              @if (medicationSummary().totalExpectedDoses === 0 && medicationSummary().intervalDueCount === 0) {
+              @if (medicationSummary().totalExpectedDoses === 0 && medicationSummary().intervalActionableCount === 0) {
                 <p class="med-summary-fraction">No scheduled doses today</p>
               } @else if (medicationSummary().totalExpectedDoses === 0) {
                 <p class="med-summary-fraction">
-                  {{ medicationSummary().intervalDueCount }} interval medication{{ medicationSummary().intervalDueCount === 1 ? '' : 's' }} due
+                  {{ medicationSummary().intervalActionableCount }} interval medication{{ medicationSummary().intervalActionableCount === 1 ? '' : 's' }} due
                 </p>
               } @else {
                 <p class="med-summary-fraction">
@@ -131,19 +131,20 @@ type WeeklyMetricCard = {
                 <p class="med-summary-pending">
                   {{ medicationSummary().pendingNames[0] }} pending
                 </p>
-              } @else if (medicationSummary().intervalDueCount > 0) {
+              }
+              @if (medicationSummary().nearestIntervalDueLabel) {
                 <p class="med-summary-pending">
-                  {{ medicationSummary().intervalDueCount }} interval medication{{ medicationSummary().intervalDueCount === 1 ? '' : 's' }} due or overdue
+                  {{ medicationSummary().nearestIntervalDueLabel }}
                 </p>
               }
             </div>
           </div>
           <div class="med-summary-trailing">
-            @if (adherenceStatus() === 'complete' && medicationSummary().intervalDueCount === 0) {
+            @if (adherenceStatus() === 'complete' && medicationSummary().intervalActionableCount === 0) {
               <span class="med-chip complete">All on track</span>
-            } @else if (adherenceStatus() === 'pending' || medicationSummary().intervalDueCount > 0) {
+            } @else if (adherenceStatus() === 'pending' || medicationSummary().intervalActionableCount > 0) {
               <span class="med-chip pending">
-                {{ medicationSummary().totalExpectedDoses - medicationSummary().takenDoses + medicationSummary().intervalDueCount }} remaining
+                {{ medicationSummary().totalExpectedDoses - medicationSummary().takenDoses + medicationSummary().intervalActionableCount }} remaining
               </span>
             } @else {
               <span class="med-chip none">None scheduled</span>
@@ -817,7 +818,9 @@ export class InsightsDashboardComponent {
   readonly medicationSummary = computed(() => {
     let totalExpectedDoses = 0;
     let takenDoses = 0;
-    let intervalDueCount = 0;
+    let intervalActionableCount = 0;
+    let intervalMedicationCount = 0;
+    let nearestIntervalDeltaDays: number | null = null;
     const pendingNames: string[] = [];
 
     for (const med of this.routineMedications()) {
@@ -825,10 +828,24 @@ export class InsightsDashboardComponent {
       if (!frequency || frequency === 'as-needed') continue;
 
       if (frequency === 'interval-days') {
+        intervalMedicationCount += 1;
+        const nextDueLocalDate = this.intervalNextDueLocalDate(med);
+        const intervalDeltaDays = nextDueLocalDate
+          ? this.daysBetweenLocalDates(this.todayLocalDate(), nextDueLocalDate)
+          : 0;
+        if (
+          intervalDeltaDays !== null
+          && (
+            nearestIntervalDeltaDays === null
+            || this.isPreferredIntervalDelta(intervalDeltaDays, nearestIntervalDeltaDays)
+          )
+        ) {
+          nearestIntervalDeltaDays = intervalDeltaDays;
+        }
+
         const dueState = this.intervalDueState(med);
         if (dueState !== 'early') {
-          intervalDueCount += 1;
-          pendingNames.push(med.name);
+          intervalActionableCount += 1;
         }
         continue;
       }
@@ -847,7 +864,11 @@ export class InsightsDashboardComponent {
       }
     }
 
-    return { totalExpectedDoses, takenDoses, intervalDueCount, pendingNames };
+    const nearestIntervalDueLabel = intervalMedicationCount > 0
+      ? this.intervalLabelFromDeltaDays(nearestIntervalDeltaDays ?? 0)
+      : null;
+
+    return { totalExpectedDoses, takenDoses, intervalActionableCount, nearestIntervalDueLabel, pendingNames };
   });
 
   readonly progressPercent = computed(() => {
@@ -926,6 +947,32 @@ export class InsightsDashboardComponent {
       return 'due';
     }
     return 'overdue';
+  }
+
+  private intervalLabelFromDeltaDays(deltaDays: number): string {
+    if (deltaDays === 0) {
+      return 'Next interval due today';
+    }
+    if (deltaDays < 0) {
+      const days = Math.abs(deltaDays);
+      return `Next interval due in ${days} day${days === 1 ? '' : 's'}`;
+    }
+    return `Next interval overdue by ${deltaDays} day${deltaDays === 1 ? '' : 's'}`;
+  }
+
+  private isPreferredIntervalDelta(candidateDelta: number, currentDelta: number): boolean {
+    const candidateDistance = Math.abs(candidateDelta);
+    const currentDistance = Math.abs(currentDelta);
+    if (candidateDistance !== currentDistance) {
+      return candidateDistance < currentDistance;
+    }
+    if (candidateDelta >= 0 && currentDelta < 0) {
+      return true;
+    }
+    if (candidateDelta < 0 && currentDelta >= 0) {
+      return false;
+    }
+    return candidateDelta > currentDelta;
   }
 
   private intervalNextDueLocalDate(medication: Medication): string | null {
