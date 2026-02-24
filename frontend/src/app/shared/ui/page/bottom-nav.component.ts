@@ -41,25 +41,24 @@ import { filter, map } from 'rxjs';
       max-width: 28rem;
       margin: 0 auto;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 0.5rem 1.25rem calc(0.375rem + env(safe-area-inset-bottom, 0px));
+      padding: 0.5rem 0 calc(0.375rem + env(safe-area-inset-bottom, 0px));
       border-top: 1px solid #f1f5f9;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
     }
 
     .nav-item {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       gap: 0.25rem;
       color: #94a3b8;
       text-decoration: none;
       transition: color var(--transition-fast, 120ms ease);
-      min-width: 44px;
-      min-height: 40px;
-      justify-content: center;
+      min-height: 44px;
     }
 
     .nav-item.active {
@@ -80,7 +79,7 @@ import { filter, map } from 'rxjs';
 
     @media (max-width: 480px) {
       .bottom-nav {
-        padding: 0.4375rem 1rem calc(0.25rem + env(safe-area-inset-bottom, 0px));
+        padding: 0.4375rem 0 calc(0.25rem + env(safe-area-inset-bottom, 0px));
       }
 
       .material-symbols-outlined {
