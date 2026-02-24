@@ -19,7 +19,7 @@ Without a policy, each implementation touchpoint (API validation, calendar navig
 
 Families miss days. Travel, illness, hectic weeks — a parent may want to backfill 3 days of reflections on a Sunday afternoon. Should TrackIt allow this, and if so, under what constraints?
 
-TrackIt's established logging principle (see `docs/backlog/weekly-medications.md`) is:
+TrackIt's established logging principle (see `docs/product-specs/medication-frequency.md`) is:
 
 > Optimize for "record what actually happened." Avoid strict rules that block historical entry.
 
