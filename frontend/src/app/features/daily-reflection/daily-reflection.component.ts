@@ -9,12 +9,65 @@ import { environment } from '../../../environments/environment';
 
 type DailyReflectionsResponse = CollectionResponse<DailyReflection>;
 type ScoreField = 'mood' | 'focus' | 'energy' | 'sleep';
+type BucketOption = { bucket: number; score: number; label: string; microcopy: string };
+
+const MOOD_BUCKETS: BucketOption[] = [
+  { bucket: 1, score: 10, label: 'Struggling',
+    microcopy: 'Meltdowns, shutdowns, or persistent distress through the day.' },
+  { bucket: 2, score: 30, label: 'Irritable',
+    microcopy: 'More reactive or flat than usual — quick to frustrate or disengage.' },
+  { bucket: 3, score: 50, label: 'Steady',
+    microcopy: 'Typical ups and downs — nothing stood out.' },
+  { bucket: 4, score: 70, label: 'Upbeat',
+    microcopy: 'Mostly positive, cooperative, and rolling with things.' },
+  { bucket: 5, score: 90, label: 'Thriving',
+    microcopy: 'Genuinely happy, engaged, and rolling with challenges.' },
+];
+
+const FOCUS_BUCKETS: BucketOption[] = [
+  { bucket: 1, score: 10, label: 'Scattered',
+    microcopy: "Couldn't get started or stay on anything — constant redirection to make any progress." },
+  { bucket: 2, score: 30, label: 'Drifting',
+    microcopy: 'Started tasks but drifted off repeatedly — needed regular reminders to get back on track.' },
+  { bucket: 3, score: 50, label: 'Typical',
+    microcopy: 'Some distractibility but managed to get things done.' },
+  { bucket: 4, score: 70, label: 'Dialed In',
+    microcopy: 'Stayed on task well with minimal prompting.' },
+  { bucket: 5, score: 90, label: 'Locked In',
+    microcopy: 'Unusually sustained attention across activities.' },
+];
+
+const ENERGY_BUCKETS: BucketOption[] = [
+  { bucket: 1, score: 10, label: 'Drained',
+    microcopy: 'Lethargic or listless — hard to get going or stay engaged.' },
+  { bucket: 2, score: 30, label: 'Sluggish',
+    microcopy: 'Slow to start or faded early — less pep than usual.' },
+  { bucket: 3, score: 50, label: 'Level',
+    microcopy: 'Normal energy throughout the day.' },
+  { bucket: 4, score: 70, label: 'Buzzing',
+    microcopy: 'Noticeably more active and on-the-go than usual.' },
+  { bucket: 5, score: 90, label: 'Wired',
+    microcopy: "Noticeably restless or hyperactive — hard to settle or channel the energy." },
+];
+
+const SLEEP_BUCKETS: BucketOption[] = [
+  { bucket: 1, score: 10, label: 'Rough Night',
+    microcopy: 'Barely slept — major trouble falling or staying asleep.' },
+  { bucket: 2, score: 30, label: 'Restless',
+    microcopy: "Woke frequently, tossed and turned, or didn't get enough hours." },
+  { bucket: 3, score: 50, label: 'Fine',
+    microcopy: 'Typical night — nothing unusual to note.' },
+  { bucket: 4, score: 70, label: 'Solid',
+    microcopy: 'Fell asleep easily and stayed asleep through the night.' },
+  { bucket: 5, score: 90, label: 'Refreshed',
+    microcopy: 'Woke up bright-eyed and clearly well-rested.' },
+];
 
 /**
  * @stitch-project projects/2002730124455423542
  * @stitch-screen projects/2002730124455423542/screens/57dc91ea7516465ea3bb05ba8f35b7d9
  * @stitch-screen-title Daily Reflection Entry
- * @stitch-status converted
+ * @stitch-status pending
  * @stitch-last-sync 2026-02-12
  */
 @Component({
@@ -29,113 +82,111 @@ type ScoreField = 'mood' | 'focus' | 'energy' | 'sleep';
 
       <div class="cards">
         <section class="metric-card mood">
-          <div class="metric-top">
+          <div class="metric-header">
             <div class="metric-icon">
               <span class="material-symbols-outlined">sentiment_satisfied</span>
             </div>
-            <div>
-              <h2>Mood</h2>
-              <p>Interaction and reactivity levels.</p>
-            </div>
-            <span class="metric-value">{{ moodScore() }}</span>
+            <h2>Mood</h2>
           </div>
-          <div class="metric-scale">
-            <span>Withdrawn</span>
-            <span>Overstimulated</span>
+          <div class="bucket-list">
+            @for (opt of moodBuckets; track opt.score) {
+              <button
+                class="bucket-option"
+                [class.selected]="moodScore() === opt.score"
+                type="button"
+                (click)="onBucketSelect('mood', opt.score)"
+              >
+                <span class="bucket-label">{{ opt.label }}</span>
+                <span class="bucket-copy">{{ opt.microcopy }}</span>
+              </button>
+            }
           </div>
-          <input
-            class="slider slider-violet"
-            type="range"
-            min="0"
-            max="100"
-            [value]="moodScore()"
-            (input)="onScoreInput('mood', $event)"
-          />
+          @if (!seededFromExisting() && !isDirty()) {
+            <p class="default-hint">If you're unsure, the middle option means a typical day. Adjust if something stood out.</p>
+          }
         </section>
 
         <section class="metric-card focus">
-          <div class="metric-top">
+          <div class="metric-header">
             <div class="metric-icon">
               <span class="material-symbols-outlined">target</span>
             </div>
-            <div>
-              <h2>Focus</h2>
-              <p>Ability to stay on a task or follow instructions.</p>
-            </div>
-            <span class="metric-value">{{ focusScore() }}</span>
+            <h2>Focus</h2>
           </div>
-          <div class="metric-scale">
-            <span>Needs Redirection</span>
-            <span>Sustained Attention</span>
+          <div class="bucket-list">
+            @for (opt of focusBuckets; track opt.score) {
+              <button
+                class="bucket-option"
+                [class.selected]="focusScore() === opt.score"
+                type="button"
+                (click)="onBucketSelect('focus', opt.score)"
+              >
+                <span class="bucket-label">{{ opt.label }}</span>
+                <span class="bucket-copy">{{ opt.microcopy }}</span>
+              </button>
+            }
           </div>
-          <input
-            class="slider slider-amber"
-            type="range"
-            min="0"
-            max="100"
-            [value]="focusScore()"
-            (input)="onScoreInput('focus', $event)"
-          />
+          @if (!seededFromExisting() && !isDirty()) {
+            <p class="default-hint">If you're unsure, the middle option means a typical day. Adjust if something stood out.</p>
+          }
         </section>
 
         <section class="metric-card energy">
-          <div class="metric-top">
+          <div class="metric-header">
             <div class="metric-icon">
               <span class="material-symbols-outlined">bolt</span>
             </div>
-            <div>
-              <h2>Energy</h2>
-              <p>Physical activity and movement levels today.</p>
-            </div>
-            <span class="metric-value">{{ energyScore() }}</span>
+            <h2>Energy</h2>
           </div>
-          <div class="metric-scale">
-            <span>Low Drive</span>
-            <span>Restless / On-the-go</span>
+          <div class="bucket-list">
+            @for (opt of energyBuckets; track opt.score) {
+              <button
+                class="bucket-option"
+                [class.selected]="energyScore() === opt.score"
+                type="button"
+                (click)="onBucketSelect('energy', opt.score)"
+              >
+                <span class="bucket-label">{{ opt.label }}</span>
+                <span class="bucket-copy">{{ opt.microcopy }}</span>
+              </button>
+            }
           </div>
-          <input
-            class="slider slider-azure"
-            type="range"
-            min="0"
-            max="100"
-            [value]="energyScore()"
-            (input)="onScoreInput('energy', $event)"
-          />
+          @if (!seededFromExisting() && !isDirty()) {
+            <p class="default-hint">If you're unsure, the middle option means a typical day. Adjust if something stood out.</p>
+          }
         </section>
 
         <section class="metric-card sleep">
-          <div class="metric-top">
+          <div class="metric-header">
             <div class="metric-icon">
               <span class="material-symbols-outlined">bedtime</span>
             </div>
-            <div>
-              <h2>Sleep</h2>
-              <p>Quality and continuity of last night's rest.</p>
-            </div>
-            <span class="metric-value">{{ sleepScore() }}</span>
+            <h2>Sleep</h2>
           </div>
-          <div class="metric-scale">
-            <span>Frequent Night Waking</span>
-            <span>Slept Through Night</span>
+          <div class="bucket-list">
+            @for (opt of sleepBuckets; track opt.score) {
+              <button
+                class="bucket-option"
+                [class.selected]="sleepScore() === opt.score"
+                type="button"
+                (click)="onBucketSelect('sleep', opt.score)"
+              >
+                <span class="bucket-label">{{ opt.label }}</span>
+                <span class="bucket-copy">{{ opt.microcopy }}</span>
+              </button>
+            }
           </div>
-          <input
-            class="slider slider-emerald"
-            type="range"
-            min="0"
-            max="100"
-            [value]="sleepScore()"
-            (input)="onScoreInput('sleep', $event)"
-          />
+          @if (!seededFromExisting() && !isDirty()) {
+            <p class="default-hint">If you're unsure, the middle option means a typical day. Adjust if something stood out.</p>
+          }
         </section>
 
         <section class="metric-card note">
-          <div class="metric-top notes-head">
+          <div class="metric-header notes-head">
             <div class="metric-icon neutral">
               <span class="material-symbols-outlined">notes</span>
             </div>
-            <div>
-              <h2>Journal Notes</h2>
-            </div>
+            <h2>Journal Notes</h2>
           </div>
           <textarea
             [value]="journalNote()"
@@ -220,9 +271,9 @@ type ScoreField = 'mood' | 'focus' | 'energy' | 'sleep';
       gap: 0.75rem;
     }
 
-    .metric-top {
+    .metric-header {
       display: grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: auto 1fr;
       align-items: center;
       gap: 0.65rem;
       min-width: 0;
@@ -267,76 +318,62 @@ type ScoreField = 'mood' | 'focus' | 'energy' | 'sleep';
       line-height: 1.2;
     }
 
-    .metric-top p {
-      margin: 0.2rem 0 0;
-      color: #64748b;
-      font-size: 0.75rem;
-      line-height: 1.35;
+    .bucket-list {
+      display: grid;
+      gap: 0.5rem;
     }
 
-    .metric-value {
-      color: #1e293b;
-      font-size: 0.875rem;
-      font-weight: 700;
-      min-width: 2.25rem;
-      text-align: right;
-    }
-
-    .metric-scale {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      color: #94a3b8;
-      font-size: 0.625rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-    }
-
-    .slider {
+    .bucket-option {
       width: 100%;
-      height: 0.5rem;
-      border-radius: 999px;
-      appearance: none;
-      background: #e2e8f0;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      background: #fff;
       cursor: pointer;
+      display: grid;
+      gap: 0.2rem;
+      min-height: 44px;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+
+    .bucket-label {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #1e293b;
+    }
+
+    .bucket-copy {
+      font-size: 0.75rem;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    .mood .bucket-option.selected {
+      background: rgba(139, 92, 246, 0.08);
+      border-color: #8b5cf6;
+    }
+
+    .focus .bucket-option.selected {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: #f59e0b;
+    }
+
+    .energy .bucket-option.selected {
+      background: rgba(14, 165, 233, 0.08);
+      border-color: #0ea5e9;
+    }
+
+    .sleep .bucket-option.selected {
+      background: rgba(16, 185, 129, 0.08);
+      border-color: #10b981;
+    }
+
+    .default-hint {
       margin: 0;
-    }
-
-    .slider::-webkit-slider-thumb {
-      appearance: none;
-      width: 1.75rem;
-      height: 1.75rem;
-      border-radius: 999px;
-      border: 2px solid currentColor;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.16);
-    }
-
-    .slider::-moz-range-thumb {
-      width: 1.75rem;
-      height: 1.75rem;
-      border-radius: 999px;
-      border: 2px solid currentColor;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.16);
-    }
-
-    .slider-violet {
-      color: #8b5cf6;
-    }
-
-    .slider-amber {
-      color: #f59e0b;
-    }
-
-    .slider-azure {
-      color: #0ea5e9;
-    }
-
-    .slider-emerald {
-      color: #10b981;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      line-height: 1.4;
     }
 
     .note textarea {
@@ -434,7 +471,12 @@ export class DailyReflectionComponent {
   readonly isSaving = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly isDirty = signal(false);
-  private readonly seededFromExisting = signal(false);
+  readonly seededFromExisting = signal(false);
+
+  readonly moodBuckets = MOOD_BUCKETS;
+  readonly focusBuckets = FOCUS_BUCKETS;
+  readonly energyBuckets = ENERGY_BUCKETS;
+  readonly sleepBuckets = SLEEP_BUCKETS;
 
   readonly existingReflectionResource = httpResource<DailyReflectionsResponse>(() => {
     const participantId = this.activeParticipantId();
@@ -475,22 +517,11 @@ export class DailyReflectionComponent {
     });
   }
 
-  onScoreInput(field: ScoreField, event: Event): void {
-    const target = event.target as HTMLInputElement | null;
-    if (!target) {
-      return;
-    }
-    const nextValue = Number(target.value);
-    const value = Number.isFinite(nextValue) ? Math.min(100, Math.max(0, Math.round(nextValue))) : 0;
-    if (field === 'mood') {
-      this.moodScore.set(value);
-    } else if (field === 'focus') {
-      this.focusScore.set(value);
-    } else if (field === 'energy') {
-      this.energyScore.set(value);
-    } else {
-      this.sleepScore.set(value);
-    }
+  onBucketSelect(field: ScoreField, score: number): void {
+    if (field === 'mood') this.moodScore.set(score);
+    else if (field === 'focus') this.focusScore.set(score);
+    else if (field === 'energy') this.energyScore.set(score);
+    else this.sleepScore.set(score);
     this.isDirty.set(true);
   }
 

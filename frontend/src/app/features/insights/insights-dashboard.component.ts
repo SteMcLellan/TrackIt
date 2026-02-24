@@ -1038,23 +1038,32 @@ export class InsightsDashboardComponent {
       return 'No Data';
     }
     if (metric === 'mood') {
-      if (score < 34) return 'Withdrawn';
-      if (score < 67) return 'Balanced';
-      return 'Vibrant';
+      if (score < 20) return 'Struggling';
+      if (score < 40) return 'Irritable';
+      if (score < 60) return 'Steady';
+      if (score < 80) return 'Upbeat';
+      return 'Thriving';
     }
     if (metric === 'focus') {
-      if (score < 34) return 'Redirecting';
-      if (score < 67) return 'Building';
-      return 'Steady';
+      if (score < 20) return 'Scattered';
+      if (score < 40) return 'Drifting';
+      if (score < 60) return 'Typical';
+      if (score < 80) return 'Dialed In';
+      return 'Locked In';
     }
     if (metric === 'sleep') {
-      if (score < 34) return 'Fragmented';
-      if (score < 67) return 'Settling';
-      return 'Restful';
+      if (score < 20) return 'Rough Night';
+      if (score < 40) return 'Restless';
+      if (score < 60) return 'Fine';
+      if (score < 80) return 'Solid';
+      return 'Refreshed';
     }
-    if (score < 34) return 'Low Drive';
-    if (score < 67) return 'Balanced';
-    return 'Active';
+    // energy
+    if (score < 20) return 'Drained';
+    if (score < 40) return 'Sluggish';
+    if (score < 60) return 'Level';
+    if (score < 80) return 'Buzzing';
+    return 'Wired';
   }
 
   private buildSparklinePath(points: Array<number | null>): string {
