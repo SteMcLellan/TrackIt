@@ -28,7 +28,7 @@ export const ActiveParticipantGuard: CanActivateFn = () => {
   return participantsService.listParticipants(2).pipe(
     map((response) => {
       if (response.items.length === 0) {
-        return router.parseUrl('/profile');
+        return router.parseUrl('/setup');
       }
       if (response.items.length === 1) {
         participantsService.setActiveParticipant(response.items[0].id);

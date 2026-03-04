@@ -10,6 +10,7 @@ import { InsightsDashboardComponent } from './features/insights/insights-dashboa
 import { ProfileDashboardComponent } from './features/profile/profile-dashboard.component';
 import { DailyReflectionComponent } from './features/daily-reflection/daily-reflection.component';
 import { MedicationsDashboardComponent } from './features/medications/medications-dashboard.component';
+import { ParticipantSetupComponent } from './features/onboarding/participant-setup.component';
 
 /**
  * Application routes for the TrackIt frontend.
@@ -17,6 +18,7 @@ import { MedicationsDashboardComponent } from './features/medications/medication
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'invite/:participantId/:inviteId', component: InviteAcceptComponent, canActivate: [AuthGuard] },
+  { path: 'setup', component: ParticipantSetupComponent, canActivate: [AuthGuard] },
   {
     path: '',
     component: ShellComponent,
