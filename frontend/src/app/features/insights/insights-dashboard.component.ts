@@ -20,12 +20,15 @@ type IntervalDueState = 'early' | 'due' | 'overdue';
 
 type WeeklyMetricKey = 'mood' | 'focus' | 'sleep' | 'energy';
 
+type SwingMarker = { x: number; y: number };
+
 type WeeklyMetricCard = {
   key: WeeklyMetricKey;
   label: string;
   icon: string;
   scoreLabel: string;
   path: string;
+  swingMarkers: SwingMarker[];
 };
 
 /**
@@ -93,6 +96,9 @@ type WeeklyMetricCard = {
                 <p class="metric-value">{{ metric.scoreLabel }}</p>
                 <svg viewBox="0 0 100 40" aria-hidden="true">
                   <path [attr.d]="metric.path"></path>
+                  @for (marker of metric.swingMarkers; track $index) {
+                    <circle class="swing-marker" [attr.cx]="marker.x" [attr.cy]="marker.y" r="2.5" />
+                  }
                 </svg>
               </article>
             }
@@ -377,6 +383,12 @@ type WeeklyMetricCard = {
       stroke-width: 3;
       stroke-linecap: round;
       stroke-linejoin: round;
+    }
+
+    .metric-card .swing-marker {
+      fill: white;
+      stroke: currentColor;
+      stroke-width: 2;
     }
 
     .metric-head {
@@ -1025,17 +1037,18 @@ export class InsightsDashboardComponent {
       label,
       icon,
       scoreLabel: this.metricDescriptor(key, summary.latestScore),
-      path: this.buildSparklinePath(points)
+      path: this.buildSparklinePath(points),
+      swingMarkers: this.buildSwingMarkers(points),
     };
   }
 
   private defaultMetricCards(): WeeklyMetricCard[] {
     const flatPath = this.buildSparklinePath([]);
     return [
-      { key: 'mood', label: 'Mood', icon: 'sentiment_satisfied', scoreLabel: 'No Data', path: flatPath },
-      { key: 'focus', label: 'Focus', icon: 'center_focus_strong', scoreLabel: 'No Data', path: flatPath },
-      { key: 'sleep', label: 'Sleep', icon: 'bedtime', scoreLabel: 'No Data', path: flatPath },
-      { key: 'energy', label: 'Energy', icon: 'bolt', scoreLabel: 'No Data', path: flatPath }
+      { key: 'mood', label: 'Mood', icon: 'sentiment_satisfied', scoreLabel: 'No Data', path: flatPath, swingMarkers: [] },
+      { key: 'focus', label: 'Focus', icon: 'center_focus_strong', scoreLabel: 'No Data', path: flatPath, swingMarkers: [] },
+      { key: 'sleep', label: 'Sleep', icon: 'bedtime', scoreLabel: 'No Data', path: flatPath, swingMarkers: [] },
+      { key: 'energy', label: 'Energy', icon: 'bolt', scoreLabel: 'No Data', path: flatPath, swingMarkers: [] }
     ];
   }
 
@@ -1090,6 +1103,21 @@ export class InsightsDashboardComponent {
 
   private scoreToY(score: number): number {
     return Number((35 - (score / 100) * 24).toFixed(2));
+  }
+
+  private buildSwingMarkers(points: Array<number | null>): SwingMarker[] {
+    const markers: SwingMarker[] = [];
+    const n = points.length;
+    if (n < 2) return markers;
+    for (let i = 1; i < n; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      if (prev !== null && curr !== null && Math.abs(curr - prev) >= 40) {
+        markers.push({ x: Number(((i - 1) / (n - 1) * 100).toFixed(2)), y: this.scoreToY(prev) });
+        markers.push({ x: Number((i / (n - 1) * 100).toFixed(2)), y: this.scoreToY(curr) });
+      }
+    }
+    return markers;
   }
 
   private formatLocalDate(date: Date): string {
