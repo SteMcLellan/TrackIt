@@ -15,79 +15,13 @@
       "children": [
         {
           "type": "frame",
-          "id": "Ru8ur",
-          "x": 0,
-          "y": 0,
-          "name": "Status Bar",
-          "width": 390,
-          "height": 62,
-          "padding": [
-            0,
-            20
-          ],
-          "justifyContent": "space_between",
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "text",
-              "id": "pqnI0",
-              "name": "timeText",
-              "fill": "#0f172a",
-              "content": "9:41",
-              "fontFamily": "Inter",
-              "fontSize": 15,
-              "fontWeight": "600"
-            },
-            {
-              "type": "frame",
-              "id": "tdeL7",
-              "name": "statusIcons",
-              "gap": 6,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon_font",
-                  "id": "DeYHd",
-                  "name": "signalIcon",
-                  "width": 16,
-                  "height": 16,
-                  "iconFontName": "signal_cellular_alt",
-                  "iconFontFamily": "Material Symbols Rounded",
-                  "fill": "#0f172a"
-                },
-                {
-                  "type": "icon_font",
-                  "id": "nkIWT",
-                  "name": "wifiIcon",
-                  "width": 16,
-                  "height": 16,
-                  "iconFontName": "wifi",
-                  "iconFontFamily": "Material Symbols Rounded",
-                  "fill": "#0f172a"
-                },
-                {
-                  "type": "icon_font",
-                  "id": "WoP1G",
-                  "name": "batteryIcon",
-                  "width": 16,
-                  "height": 16,
-                  "iconFontName": "battery_full",
-                  "iconFontFamily": "Material Symbols Rounded",
-                  "fill": "#0f172a"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
           "id": "30NOP",
           "x": 0,
-          "y": 62,
+          "y": 64,
           "name": "Scroll Content",
           "clip": true,
           "width": 390,
-          "height": 1003,
+          "height": 998,
           "layout": "vertical",
           "padding": [
             0,
@@ -385,23 +319,80 @@
                               "id": "jgWc8",
                               "name": "moodValue",
                               "fill": "#0f172a",
-                              "content": "3.8 / 5",
+                              "content": "Upbeat",
                               "fontFamily": "Inter",
                               "fontSize": 18,
                               "fontWeight": "700"
                             },
                             {
                               "type": "frame",
-                              "id": "8dZWi",
+                              "id": "IrJm8",
                               "name": "moodSparkline",
                               "width": "fill_container",
                               "height": 40,
                               "fill": "#8b5cf600",
-                              "stroke": {
-                                "align": "center",
-                                "thickness": 2.5,
-                                "fill": "#8b5cf6"
-                              }
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "BW52H",
+                                  "x": 6,
+                                  "y": 20,
+                                  "name": "moodTrendline",
+                                  "width": 112,
+                                  "height": 2.5,
+                                  "fill": "#8b5cf6",
+                                  "cornerRadius": 999
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "3LWHp",
+                                  "x": 18,
+                                  "y": 17,
+                                  "name": "moodSwingA",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#8b5cf6"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "V10Gp",
+                                  "x": 64,
+                                  "y": 15,
+                                  "name": "moodSwingB",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#8b5cf6"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "p2KH1",
+                                  "x": 110,
+                                  "y": 18,
+                                  "name": "moodSwingC",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#8b5cf6"
+                                  }
+                                }
+                              ]
                             }
                           ]
                         },
@@ -460,23 +451,80 @@
                               "id": "jlQkc",
                               "name": "sleepValue",
                               "fill": "#0f172a",
-                              "content": "7.5 hrs",
+                              "content": "Fine",
                               "fontFamily": "Inter",
                               "fontSize": 18,
                               "fontWeight": "700"
                             },
                             {
                               "type": "frame",
-                              "id": "MORL0",
+                              "id": "qOCut",
                               "name": "sleepSparkline",
                               "width": "fill_container",
                               "height": 40,
                               "fill": "#0ea5e900",
-                              "stroke": {
-                                "align": "center",
-                                "thickness": 2.5,
-                                "fill": "#0ea5e9"
-                              }
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "TZEHS",
+                                  "x": 6,
+                                  "y": 20,
+                                  "name": "sleepTrendline",
+                                  "width": 112,
+                                  "height": 2.5,
+                                  "fill": "#0ea5e9",
+                                  "cornerRadius": 999
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "e6lHP",
+                                  "x": 16,
+                                  "y": 18,
+                                  "name": "sleepSwingA",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#0ea5e9"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "wy6bU",
+                                  "x": 58,
+                                  "y": 16,
+                                  "name": "sleepSwingB",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#0ea5e9"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "6ECfD",
+                                  "x": 104,
+                                  "y": 19,
+                                  "name": "sleepSwingC",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#0ea5e9"
+                                  }
+                                }
+                              ]
                             }
                           ]
                         }
@@ -534,7 +582,7 @@
                                   "name": "focusIcon",
                                   "width": 18,
                                   "height": 18,
-                                  "iconFontName": "psychology",
+                                  "iconFontName": "center_focus_strong",
                                   "iconFontFamily": "Material Symbols Rounded",
                                   "fill": "#10b981"
                                 }
@@ -545,23 +593,80 @@
                               "id": "Yv3gJ",
                               "name": "focusValue",
                               "fill": "#0f172a",
-                              "content": "4.1 / 5",
+                              "content": "Dialed In",
                               "fontFamily": "Inter",
                               "fontSize": 18,
                               "fontWeight": "700"
                             },
                             {
                               "type": "frame",
-                              "id": "96tJF",
+                              "id": "QFlIv",
                               "name": "focusSparkline",
                               "width": "fill_container",
                               "height": 40,
                               "fill": "#10b98100",
-                              "stroke": {
-                                "align": "center",
-                                "thickness": 2.5,
-                                "fill": "#10b981"
-                              }
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "Ko3uE",
+                                  "x": 6,
+                                  "y": 20,
+                                  "name": "focusTrendline",
+                                  "width": 112,
+                                  "height": 2.5,
+                                  "fill": "#10b981",
+                                  "cornerRadius": 999
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "L9eQe",
+                                  "x": 20,
+                                  "y": 18,
+                                  "name": "focusSwingA",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#10b981"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "AytLt",
+                                  "x": 66,
+                                  "y": 15,
+                                  "name": "focusSwingB",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#10b981"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "9oijC",
+                                  "x": 112,
+                                  "y": 17,
+                                  "name": "focusSwingC",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#10b981"
+                                  }
+                                }
+                              ]
                             }
                           ]
                         },
@@ -620,23 +725,80 @@
                               "id": "O9Xgx",
                               "name": "energyValue",
                               "fill": "#0f172a",
-                              "content": "3.4 / 5",
+                              "content": "Buzzing",
                               "fontFamily": "Inter",
                               "fontSize": 18,
                               "fontWeight": "700"
                             },
                             {
                               "type": "frame",
-                              "id": "9Zvve",
+                              "id": "tRAeG",
                               "name": "energySparkline",
                               "width": "fill_container",
                               "height": 40,
                               "fill": "#f59e0b00",
-                              "stroke": {
-                                "align": "center",
-                                "thickness": 2.5,
-                                "fill": "#f59e0b"
-                              }
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "GBJut",
+                                  "x": 6,
+                                  "y": 20,
+                                  "name": "energyTrendline",
+                                  "width": 112,
+                                  "height": 2.5,
+                                  "fill": "#f59e0b",
+                                  "cornerRadius": 999
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "8g0iL",
+                                  "x": 17,
+                                  "y": 19,
+                                  "name": "energySwingA",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#f59e0b"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "7BGxx",
+                                  "x": 62,
+                                  "y": 16,
+                                  "name": "energySwingB",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#f59e0b"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "vGYXK",
+                                  "x": 108,
+                                  "y": 18,
+                                  "name": "energySwingC",
+                                  "width": 6,
+                                  "height": 6,
+                                  "fill": "#ffffff",
+                                  "cornerRadius": 999,
+                                  "stroke": {
+                                    "align": "inside",
+                                    "thickness": 2,
+                                    "fill": "#f59e0b"
+                                  }
+                                }
+                              ]
                             }
                           ]
                         }
@@ -1258,177 +1420,359 @@
           ]
         },
         {
-          "type": "frame",
-          "id": "CkChI",
+          "id": "UF16w",
+          "type": "ref",
+          "ref": "V2Kid",
           "x": 0,
-          "y": 1053,
-          "name": "Tab Bar",
+          "y": 0,
           "width": 390,
-          "padding": [
-            12,
-            21,
-            21,
-            21
-          ],
-          "justifyContent": "center",
-          "alignItems": "end",
+          "height": 64,
+          "name": "topRef"
+        },
+        {
+          "id": "8Epc8",
+          "type": "ref",
+          "ref": "a5GWt",
+          "x": 0,
+          "y": 1062,
+          "width": 390,
+          "height": 86,
+          "name": "bottomRef"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "V2Kid",
+      "x": 963,
+      "y": -217,
+      "name": "Top Bar Component",
+      "reusable": true,
+      "width": 390,
+      "height": 64,
+      "fill": "#ffffffe6",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#f1f5f9"
+      },
+      "padding": [
+        16,
+        16,
+        12,
+        16
+      ],
+      "justifyContent": "space_between",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "gqym3",
+          "name": "brandCluster",
+          "gap": 10,
+          "alignItems": "center",
           "children": [
             {
               "type": "frame",
-              "id": "vQW0l",
-              "name": "Tab Pill",
-              "width": "fill_container",
-              "height": 62,
-              "fill": "#1e293b",
-              "cornerRadius": 36,
-              "stroke": {
-                "align": "inside",
-                "thickness": 1,
-                "fill": "#ffffff1a"
-              },
-              "padding": 4,
-              "alignItems": "center",
+              "id": "RQ00n",
+              "name": "logoWrap",
+              "width": 24,
+              "height": 24,
+              "layout": "none",
               "children": [
                 {
                   "type": "frame",
-                  "id": "u14nl",
-                  "name": "tabHome",
-                  "width": "fill_container",
-                  "height": "fill_container",
+                  "id": "W0bh1",
+                  "x": 2,
+                  "y": 5,
+                  "name": "lineEmerald",
+                  "width": 16,
+                  "height": 2,
+                  "fill": "#10b981",
+                  "cornerRadius": 999
+                },
+                {
+                  "type": "frame",
+                  "id": "8OOtJ",
+                  "x": 4,
+                  "y": 11,
+                  "name": "lineViolet",
+                  "width": 16,
+                  "height": 2,
                   "fill": "#8b5cf6",
-                  "cornerRadius": 26,
-                  "layout": "vertical",
-                  "gap": 4,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon_font",
-                      "id": "8NR0h",
-                      "name": "tabHomeIcon",
-                      "width": 18,
-                      "height": 18,
-                      "iconFontName": "home",
-                      "iconFontFamily": "Material Symbols Rounded",
-                      "fill": "#ffffff"
-                    },
-                    {
-                      "type": "text",
-                      "id": "RLQoF",
-                      "name": "tabHomeLabel",
-                      "fill": "#ffffff",
-                      "content": "Home",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "600"
-                    }
-                  ]
+                  "cornerRadius": 999
                 },
                 {
                   "type": "frame",
-                  "id": "8NCqL",
-                  "name": "tabMeds",
-                  "width": "fill_container",
-                  "height": "fill_container",
-                  "cornerRadius": 26,
-                  "layout": "vertical",
-                  "gap": 4,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon_font",
-                      "id": "VRpK0",
-                      "name": "tabMedsIcon",
-                      "width": 18,
-                      "height": 18,
-                      "iconFontName": "medication",
-                      "iconFontFamily": "Material Symbols Rounded",
-                      "fill": "#64748b"
-                    },
-                    {
-                      "type": "text",
-                      "id": "ckjGt",
-                      "name": "tabMedsLabel",
-                      "fill": "#64748b",
-                      "content": "Meds",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
+                  "id": "i10xA",
+                  "x": 6,
+                  "y": 17,
+                  "name": "lineAmber",
+                  "width": 16,
+                  "height": 2,
+                  "fill": "#f59e0b",
+                  "cornerRadius": 999
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "7dzpU",
+              "name": "wordmark",
+              "fill": "#0f172a",
+              "content": "TrackIt",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "CJ5Oq",
+          "name": "actions",
+          "gap": 8,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "SIChj",
+              "name": "notificationsButton",
+              "width": 36,
+              "height": 36,
+              "fill": "#ffffff",
+              "cornerRadius": 999,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#f1f5f9"
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
                 {
-                  "type": "frame",
-                  "id": "gJHDk",
-                  "name": "tabTimeline",
-                  "width": "fill_container",
-                  "height": "fill_container",
-                  "cornerRadius": 26,
-                  "layout": "vertical",
-                  "gap": 4,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon_font",
-                      "id": "UskQe",
-                      "name": "tabTimelineIcon",
-                      "width": 18,
-                      "height": 18,
-                      "iconFontName": "timeline",
-                      "iconFontFamily": "Material Symbols Rounded",
-                      "fill": "#64748b"
-                    },
-                    {
-                      "type": "text",
-                      "id": "HSjz9",
-                      "name": "tabTimelineLabel",
-                      "fill": "#64748b",
-                      "content": "Timeline",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
+                  "type": "icon_font",
+                  "id": "qJ8Gl",
+                  "name": "notificationsIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "notifications",
+                  "iconFontFamily": "Material Symbols Outlined",
+                  "fill": "#94a3b8"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gcyPo",
+              "name": "accountButton",
+              "width": 36,
+              "height": 36,
+              "fill": "#f5f3ff",
+              "cornerRadius": 999,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#ede9fe"
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
                 {
-                  "type": "frame",
-                  "id": "9JzdH",
-                  "name": "tabSettings",
-                  "width": "fill_container",
-                  "height": "fill_container",
-                  "cornerRadius": 26,
-                  "layout": "vertical",
-                  "gap": 4,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon_font",
-                      "id": "zMGrd",
-                      "name": "tabSettingsIcon",
-                      "width": 18,
-                      "height": 18,
-                      "iconFontName": "settings",
-                      "iconFontFamily": "Material Symbols Rounded",
-                      "fill": "#64748b"
-                    },
-                    {
-                      "type": "text",
-                      "id": "z5iGg",
-                      "name": "tabSettingsLabel",
-                      "fill": "#64748b",
-                      "content": "Settings",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "600"
-                    }
-                  ]
+                  "type": "icon_font",
+                  "id": "0fbvi",
+                  "name": "accountIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "account_circle",
+                  "iconFontFamily": "Material Symbols Outlined",
+                  "fill": "#8b5cf6"
                 }
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "a5GWt",
+      "x": 963,
+      "y": -129,
+      "name": "Bottom Nav Component",
+      "reusable": true,
+      "width": 390,
+      "height": 86,
+      "fill": "#fffffff2",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#f1f5f9"
+      },
+      "padding": [
+        8,
+        0,
+        10,
+        0
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "3PjXC",
+          "name": "navItemInsights",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 4,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "nIb38",
+              "name": "insightsIcon",
+              "width": 26,
+              "height": 26,
+              "iconFontName": "query_stats",
+              "iconFontFamily": "Material Symbols Outlined",
+              "fill": "#8b5cf6"
+            },
+            {
+              "type": "text",
+              "id": "NjMyC",
+              "name": "insightsLabel",
+              "fill": "#8b5cf6",
+              "content": "INSIGHTS",
+              "fontFamily": "Inter",
+              "fontSize": 9,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "MNAJL",
+          "name": "navItemTimeline",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 4,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "rcv2I",
+              "name": "timelineIcon",
+              "width": 26,
+              "height": 26,
+              "iconFontName": "calendar_today",
+              "iconFontFamily": "Material Symbols Outlined",
+              "fill": "#94a3b8"
+            },
+            {
+              "type": "text",
+              "id": "rpoj7",
+              "name": "timelineLabel",
+              "fill": "#94a3b8",
+              "content": "TIMELINE",
+              "fontFamily": "Inter",
+              "fontSize": 9,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "1MgHy",
+          "name": "navItemProfile",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 4,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "T5RvA",
+              "name": "profileIcon",
+              "width": 26,
+              "height": 26,
+              "iconFontName": "settings",
+              "iconFontFamily": "Material Symbols Outlined",
+              "fill": "#94a3b8"
+            },
+            {
+              "type": "text",
+              "id": "8Tlby",
+              "name": "profileLabel",
+              "fill": "#94a3b8",
+              "content": "PROFILE",
+              "fontFamily": "Inter",
+              "fontSize": 9,
+              "fontWeight": "700"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "2n3nJ",
+      "x": 963,
+      "y": -19,
+      "name": "Shell Component",
+      "reusable": true,
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "#fcfcfd",
+      "layout": "none",
+      "children": [
+        {
+          "id": "VfVHo",
+          "type": "ref",
+          "ref": "V2Kid",
+          "name": "topBarRef",
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 64
+        },
+        {
+          "type": "frame",
+          "id": "TYvB8",
+          "x": 0,
+          "y": 64,
+          "name": "main",
+          "width": 390,
+          "height": 694,
+          "fill": "#fcfcfd",
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "text",
+              "id": "hkNzQ",
+              "name": "routerOutletPlaceholder",
+              "fill": "#94a3b8",
+              "content": "router-outlet",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "id": "onBkM",
+          "type": "ref",
+          "ref": "a5GWt",
+          "name": "bottomNavRef",
+          "x": 0,
+          "y": 758,
+          "width": 390,
+          "height": 86
         }
       ]
     }
