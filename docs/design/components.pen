@@ -21,7 +21,7 @@
           "name": "Scroll Content",
           "clip": true,
           "width": 390,
-          "height": 998,
+          "height": 1034,
           "layout": "vertical",
           "padding": [
             0,
@@ -1775,6 +1775,1387 @@
           "height": 86
         }
       ]
+    },
+    {
+      "id": "5oTbB",
+      "type": "ref",
+      "ref": "2n3nJ",
+      "name": "Daily Reflection",
+      "x": 1473,
+      "y": -217,
+      "width": 390,
+      "height": 1700,
+      "descendants": {
+        "TYvB8": {
+          "type": "frame",
+          "id": "aYkWY",
+          "x": 0,
+          "y": 64,
+          "name": "Daily Reflection Content",
+          "clip": true,
+          "width": 390,
+          "height": 1550,
+          "fill": "#fcfcfd",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            16,
+            16,
+            32,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "jzkWX",
+              "name": "Page Head",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Rg0zF",
+                  "name": "pageTitle",
+                  "fill": "#1e293b",
+                  "content": "Daily Reflection",
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "4Lln5",
+                  "name": "pageSubtitle",
+                  "fill": "#64748b",
+                  "content": "Track daily rhythms for consistent progress.",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "iWsai",
+              "name": "Cards",
+              "width": 385,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "U01Mi",
+                  "name": "Mood Card",
+                  "width": "fill_container",
+                  "fill": "#ffffff",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e8f0"
+                  },
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "QlDxL",
+                      "name": "metricHeader",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Af0oR",
+                          "name": "metricIcon",
+                          "width": 40,
+                          "height": 40,
+                          "fill": "#8b5cf61a",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "OrMpa",
+                              "name": "moodIcon",
+                              "width": 20,
+                              "height": 20,
+                              "iconFontName": "sentiment_satisfied",
+                              "iconFontFamily": "Material Symbols Outlined",
+                              "fill": "#8b5cf6"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "ZHkEu",
+                          "name": "metricTitle",
+                          "fill": "#1e293b",
+                          "content": "Mood",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rAVHJ",
+                      "name": "bucketList",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "2suvv",
+                          "name": "optStruggling",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "obN9l",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Struggling",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "bADIu",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Meltdowns, shutdowns, or persistent\ndistress through the day.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "0BBRm",
+                          "name": "optIrritable",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "9Fqrd",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Irritable",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Mjwnf",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "More reactive or flat than usual -\nquick to frustrate or disengage.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "5YTT9",
+                          "name": "optSteady",
+                          "width": "fill_container",
+                          "fill": "#8b5cf614",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#8b5cf6"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "m4XXd",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Steady",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Oh8EC",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Typical ups and downs -\nnothing stood out.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "loSMx",
+                          "name": "optUpbeat",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hNn69",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Upbeat",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "ZddSy",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Mostly positive, cooperative,\nand rolling with things.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "3KmDc",
+                          "name": "optThriving",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Qm26K",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Thriving",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "7DzYQ",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Genuinely happy, engaged,\nand rolling with challenges.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "jefy6",
+                      "name": "defaultHint",
+                      "fill": "#94a3b8",
+                      "content": "If you're unsure, the middle option means a typical day.\nAdjust if something stood out.",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "F2u4b",
+                  "name": "Focus Card",
+                  "width": "fill_container",
+                  "fill": "#ffffff",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e8f0"
+                  },
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "8praP",
+                      "name": "metricHeader",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Ie5ff",
+                          "name": "metricIcon",
+                          "width": 40,
+                          "height": 40,
+                          "fill": "#f59e0b1a",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "RJVQb",
+                              "name": "focusIcon",
+                              "width": 20,
+                              "height": 20,
+                              "iconFontName": "target",
+                              "iconFontFamily": "Material Symbols Outlined",
+                              "fill": "#f59e0b"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "j0ugq",
+                          "name": "metricTitle",
+                          "fill": "#1e293b",
+                          "content": "Focus",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KAAmW",
+                      "name": "bucketList",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "quv8K",
+                          "name": "optScattered",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "uKd5o",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Scattered",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "ODGHg",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Could not get started or stay on anything -\nconstant redirection to make progress.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "2U7kh",
+                          "name": "optDrifting",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "7ibnn",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Drifting",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "JC66X",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Started tasks but drifted off repeatedly -\nneeded reminders to get back on track.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "VmNCb",
+                          "name": "optTypical",
+                          "width": "fill_container",
+                          "fill": "#f59e0b14",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#f59e0b"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "j1lw3",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Typical",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "RZMWs",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Some distractibility, but managed\nto get things done.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "X2Bii",
+                          "name": "optDialedIn",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "0ypgT",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Dialed In",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "qgCW1",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Stayed on task well\nwith minimal prompting.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "WdDqf",
+                          "name": "optLockedIn",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "AmlkW",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Locked In",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Ya9hK",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Unusually sustained attention\nacross activities.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "y7C7Y",
+                      "name": "defaultHint",
+                      "fill": "#94a3b8",
+                      "content": "If you're unsure, the middle option means a typical day.\nAdjust if something stood out.",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "7CIaq",
+                  "name": "Energy Card",
+                  "width": "fill_container",
+                  "fill": "#ffffff",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e8f0"
+                  },
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "C5t6N",
+                      "name": "metricHeader",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "yByAj",
+                          "name": "metricIcon",
+                          "width": 40,
+                          "height": 40,
+                          "fill": "#0ea5e91a",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "XYXA2",
+                              "name": "energyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "iconFontName": "bolt",
+                              "iconFontFamily": "Material Symbols Outlined",
+                              "fill": "#0ea5e9"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "f6QWC",
+                          "name": "metricTitle",
+                          "fill": "#1e293b",
+                          "content": "Energy",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xdkrx",
+                      "name": "bucketList",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "l9xo9",
+                          "name": "optDrained",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "FlJp5",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Drained",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Jf82v",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Lethargic or listless - hard to get going\nor stay engaged.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "WAPcD",
+                          "name": "optSluggish",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "X6PLN",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Sluggish",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "edQnT",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Slow to start or faded early -\nless pep than usual.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "6r5ns",
+                          "name": "optLevel",
+                          "width": "fill_container",
+                          "fill": "#0ea5e914",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#0ea5e9"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "neyMn",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Level",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "7QDat",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Normal energy\nthroughout the day.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "tY5Xt",
+                          "name": "optBuzzing",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "HBIRH",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Buzzing",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "LLy2Y",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Noticeably more active and on-the-go\nthan usual.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "m0sG8",
+                          "name": "optWired",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "pgEcv",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Wired",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "WTiTi",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Noticeably restless or hyperactive -\nhard to settle or channel energy.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "NlVU2",
+                      "name": "defaultHint",
+                      "fill": "#94a3b8",
+                      "content": "If you're unsure, the middle option means a typical day.\nAdjust if something stood out.",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "CAo8a",
+                  "name": "Sleep Card",
+                  "width": "fill_container",
+                  "fill": "#ffffff",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e8f0"
+                  },
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "WiaJQ",
+                      "name": "metricHeader",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "mh2TW",
+                          "name": "metricIcon",
+                          "width": 40,
+                          "height": 40,
+                          "fill": "#10b9811a",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "wkjot",
+                              "name": "sleepIcon",
+                              "width": 20,
+                              "height": 20,
+                              "iconFontName": "bedtime",
+                              "iconFontFamily": "Material Symbols Outlined",
+                              "fill": "#10b981"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "GEQFE",
+                          "name": "metricTitle",
+                          "fill": "#1e293b",
+                          "content": "Sleep",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZsYcZ",
+                      "name": "bucketList",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Bgt5j",
+                          "name": "optRoughNight",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bc6Vs",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Rough Night",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "FG3lj",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Barely slept - major trouble\nfalling or staying asleep.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "CThtS",
+                          "name": "optRestless",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "pVOwn",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Restless",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "AkD1I",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Woke frequently, tossed and turned,\nor did not get enough hours.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "7hYz4",
+                          "name": "optFine",
+                          "width": "fill_container",
+                          "fill": "#10b98114",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#10b981"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Z4tIe",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Fine",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "P1Lje",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Typical night -\nnothing unusual to note.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "pEP34",
+                          "name": "optSolid",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "5muCr",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Solid",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "sRqbu",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Fell asleep easily and stayed asleep\nthrough the night.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "FETeT",
+                          "name": "optRefreshed",
+                          "width": "fill_container",
+                          "fill": "#ffffff",
+                          "cornerRadius": 8,
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e8f0"
+                          },
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            12,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "b6AXQ",
+                              "name": "label",
+                              "fill": "#1e293b",
+                              "content": "Refreshed",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "FZUhx",
+                              "name": "copy",
+                              "fill": "#64748b",
+                              "content": "Woke up bright-eyed and\nclearly well-rested.",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "N7LhF",
+                      "name": "defaultHint",
+                      "fill": "#94a3b8",
+                      "content": "If you're unsure, the middle option means a typical day.\nAdjust if something stood out.",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PtvFm",
+                  "name": "Journal Notes Card",
+                  "width": "fill_container",
+                  "fill": "#ffffff",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e8f0"
+                  },
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rJF0X",
+                      "name": "notesHead",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "sxJSG",
+                          "name": "metricIconNeutral",
+                          "width": 40,
+                          "height": 40,
+                          "fill": "#f1f5f9",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "IBCy6",
+                              "name": "notesIcon",
+                              "width": 20,
+                              "height": 20,
+                              "iconFontName": "notes",
+                              "iconFontFamily": "Material Symbols Outlined",
+                              "fill": "#64748b"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "bCCQX",
+                          "name": "metricTitle",
+                          "fill": "#1e293b",
+                          "content": "Journal Notes",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "DnKcn",
+                      "name": "textarea",
+                      "width": "fill_container",
+                      "height": 120,
+                      "fill": "#ffffff",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#cbd5e1"
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "BFEua",
+                          "name": "placeholder",
+                          "fill": "#94a3b8",
+                          "content": "Capture any observations, wins, or challenges from today...",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "22PkQ",
+                      "name": "charCount",
+                      "fill": "#64748b",
+                      "content": "0/2000",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "X6lV6",
+              "name": "Action Bar",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "0s8C5",
+                  "name": "saveButton",
+                  "width": "fill_container",
+                  "height": 56,
+                  "fill": "#10b981",
+                  "cornerRadius": 999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "zGNFU",
+                      "name": "saveLabel",
+                      "fill": "#ffffff",
+                      "content": "Save Reflection",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "p0S78",
+                  "name": "cancelButton",
+                  "width": "fill_container",
+                  "height": 44,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "BgoYM",
+                      "name": "cancelLabel",
+                      "fill": "#64748b",
+                      "content": "Cancel",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "onBkM": {
+          "x": 0,
+          "y": 1614,
+          "width": 390,
+          "height": 86
+        },
+        "onBkM/nIb38": {
+          "fill": "#94a3b8"
+        },
+        "onBkM/NjMyC": {
+          "fill": "#94a3b8"
+        }
+      }
     }
   ]
 }
