@@ -916,7 +916,13 @@ export class InsightsDashboardComponent {
     if (incident.logLocalDate === today) {
       return `Today - ${time}`;
     }
-    return `${incident.logLocalDate} - ${time}`;
+    return `${this.formatReadableDate(incident.logLocalDate)} - ${time}`;
+  }
+
+  private formatReadableDate(localDate: string): string {
+    const [year, month, day] = localDate.split('-').map(Number);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[month - 1]} ${day}, ${year}`;
   }
 
   private frequencySlotCount(frequency: MedicationFrequency): number {
