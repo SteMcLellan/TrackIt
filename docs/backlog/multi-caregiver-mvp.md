@@ -9,28 +9,7 @@ The invite infrastructure is in place end-to-end (invite link generation, `Invit
 
 ---
 
-## 1. Active Participant Persistence
-
-### Problem
-
-Per `docs/architecture/participant-association.md`: active participant selection is stored in memory only and is lost on every page reload or re-login. An invited caregiver who refreshes the app or returns the next day must re-select the participant manually — with no UI cue that this is required. This will be confusing for anyone who didn't build the app.
-
-### What to build
-
-- Persist the active participant ID in `localStorage` keyed by user ID.
-- On app load, restore the stored selection if the participant is still linked to the user.
-- Clear the stored value on logout or if the stored participant is no longer in the user's linked list.
-
-### Acceptance criteria
-
-- [ ] Active participant survives a page reload.
-- [ ] Active participant survives logging out and back in on the same device.
-- [ ] If the stored participant ID is no longer linked to the user, fall through to the normal no-participant state (no crash or blank screen).
-- [ ] Selecting a different participant updates the stored value immediately.
-
----
-
-## 2. Members List and Revoke Access UI
+## 1. Members List and Revoke Access UI
 
 ### Problem
 
@@ -56,7 +35,7 @@ Add a "Who has access" section to the Caregiver Access card in the Profile page 
 
 ---
 
-## 3. Participant Setup for New Users
+## 2. Participant Setup for New Users
 
 ### Problem
 
@@ -79,7 +58,7 @@ Invited users land on the app after accepting their invite and will have a parti
 
 ---
 
-## 4. Viewer Role UI Differentiation
+## 3. Viewer Role UI Differentiation
 
 ### Problem
 
@@ -100,7 +79,7 @@ Viewers get the same UI as managers but find that edit actions either fail silen
 
 ---
 
-## 5. Invite Link Context
+## 4. Invite Link Context
 
 ### Problem
 
