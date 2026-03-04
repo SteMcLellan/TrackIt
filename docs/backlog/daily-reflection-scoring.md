@@ -129,8 +129,6 @@ Each dimension uses labels that describe *that facet* in plain language rather t
 
 ### Mood
 
-### Sleep
-
 | Bucket | Label        | Micro-copy                                                     |
 |--------|--------------|----------------------------------------------------------------|
 | 1      | Struggling   | Meltdowns, shutdowns, or persistent distress through the day.  |
@@ -162,7 +160,7 @@ Each dimension uses labels that describe *that facet* in plain language rather t
 | 5      | Wired        | Noticeably restless or hyperactive — hard to settle or channel the energy. |
 > **Non-monotonic dimension:** Unlike Mood, Focus, and Sleep, high energy is not a positive signal. Both extremes (Drained and Wired) indicate dysregulation; Level is the optimum. The raw score (0–100) preserves the *direction* of dysregulation — underactive vs. overactive — which is clinically useful. Charts and insights must not render energy with a directional "higher = better" assumption.
 
-
+### Sleep
 
 | Bucket | Label        | Micro-copy                                                     |
 |--------|--------------|----------------------------------------------------------------|
@@ -298,4 +296,3 @@ If parents want finer control, offer an optional slider that maps to the 0–100
 - [ ] Null dimensions excluded from averages and trend calculations.
 - [x] Default selection (Balanced) has tooltip explaining its meaning.
 - [ ] No interpolation for missing days in charts.
-
