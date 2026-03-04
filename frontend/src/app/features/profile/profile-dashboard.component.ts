@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { environment } from '../../../environments/environment';
 import { CollectionResponse } from '../../shared/models/collection';
 import { Participant } from '../../shared/models/participant';
-import { ActiveParticipantInviteResponse } from '../../shared/models/participant-invite';
+import { ActiveParticipantInviteResponse, ParticipantMember } from '../../shared/models/participant-invite';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { BottomSheetComponent } from '../../shared/ui/page/bottom-sheet.component';
 
@@ -136,6 +136,42 @@ type MedicationRecord = {
 
         @if (inviteMessage()) {
           <p class="status" [class.error]="inviteMessageIsError()">{{ inviteMessage() }}</p>
+        }
+
+        @if (canManageInvites() && members().length > 0) {
+          <div class="members-section">
+            <p class="members-heading">Who has access</p>
+            @for (member of members(); track member.userId) {
+              <div class="member-row">
+                <div class="member-info">
+                  <span class="member-name">
+                    {{ member.name }}@if (member.isMe) { <span class="you-badge">(you)</span> }
+                  </span>
+                  <span class="member-role">{{ member.role }}</span>
+                </div>
+                @if (!member.isMe) {
+                  @if (revokingUserId() === member.userId) {
+                    <div class="revoke-confirm">
+                      <button type="button" class="text-btn danger"
+                        [disabled]="revokeBusy()"
+                        (click)="confirmRevoke(member.userId)">
+                        @if (revokeBusy()) { Removing... } @else { Confirm }
+                      </button>
+                      <button type="button" class="text-btn muted"
+                        [disabled]="revokeBusy()"
+                        (click)="cancelRevoke()">Cancel</button>
+                    </div>
+                  } @else {
+                    <button type="button" class="text-btn muted"
+                      (click)="startRevoke(member.userId)">Revoke</button>
+                  }
+                }
+              </div>
+            }
+          </div>
+          @if (revokeMessage()) {
+            <p class="status" [class.error]="revokeMessageIsError()">{{ revokeMessage() }}</p>
+          }
         }
       </section>
 
@@ -373,6 +409,15 @@ type MedicationRecord = {
       padding: 0;
     }
     .text-btn.muted { color: #64748b; }
+    .text-btn.danger { color: #b91c1c; }
+    .members-section { display: grid; gap: 0.5rem; }
+    .members-heading { margin: 0; color: #94a3b8; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+    .member-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.4rem 0; border-top: 1px solid rgba(139, 92, 246, 0.12); }
+    .member-info { display: grid; gap: 0.1rem; min-width: 0; }
+    .member-name { color: #1e293b; font-size: 0.85rem; font-weight: 600; }
+    .you-badge { color: #94a3b8; font-weight: 400; }
+    .member-role { color: #94a3b8; font-size: 0.7rem; font-weight: 600; text-transform: capitalize; }
+    .revoke-confirm { display: flex; gap: 0.5rem; }
     .muted { margin: 0; color: #64748b; font-size: 0.8rem; }
     .status { margin: 0; color: #0f766e; font-size: 0.76rem; font-weight: 600; }
     .error { margin: 0; color: #b91c1c; font-size: 0.76rem; font-weight: 600; }
@@ -403,6 +448,12 @@ export class ProfileDashboardComponent {
   readonly inviteBusy = signal(false);
   readonly inviteMessage = signal<string | null>(null);
   readonly inviteMessageIsError = signal(false);
+
+  readonly membersRefresh = signal(0);
+  readonly revokingUserId = signal<string | null>(null);
+  readonly revokeBusy = signal(false);
+  readonly revokeMessage = signal<string | null>(null);
+  readonly revokeMessageIsError = signal(false);
 
   readonly activeParticipantId = this.participantService.activeParticipantId;
 
@@ -436,6 +487,18 @@ export class ProfileDashboardComponent {
     }
     return {
       url: `${environment.apiBaseUrl}/participants/${participantId}/medications`,
+      method: 'GET',
+      params: { pageSize: '200' }
+    };
+  });
+
+  readonly membersResource = httpResource<CollectionResponse<ParticipantMember>>(() => {
+    this.membersRefresh();
+    const participantId = this.activeParticipantId();
+    const participant = this.participant();
+    if (!participantId || participant?.role !== 'manager') return undefined;
+    return {
+      url: `${environment.apiBaseUrl}/participants/${participantId}/members`,
       method: 'GET',
       params: { pageSize: '200' }
     };
@@ -480,6 +543,10 @@ export class ProfileDashboardComponent {
   });
 
   readonly canManageInvites = computed(() => this.participant()?.role === 'manager');
+
+  readonly members = computed(() =>
+    this.membersResource.hasValue() ? this.membersResource.value().items : []
+  );
 
   constructor() {
     effect(() => {
@@ -658,6 +725,34 @@ export class ProfileDashboardComponent {
     });
   }
 
+  startRevoke(userId: string): void {
+    this.revokingUserId.set(userId);
+  }
+
+  cancelRevoke(): void {
+    this.revokingUserId.set(null);
+  }
+
+  confirmRevoke(userId: string): void {
+    const participantId = this.activeParticipantId();
+    if (!participantId || this.revokeBusy()) return;
+    this.revokeBusy.set(true);
+    this.http.delete(
+      `${environment.apiBaseUrl}/participants/${participantId}/members/${userId}`
+    ).subscribe({
+      next: () => {
+        this.revokeBusy.set(false);
+        this.revokingUserId.set(null);
+        this.membersRefresh.update(v => v + 1);
+        this.setRevokeMessage('Access removed.');
+      },
+      error: () => {
+        this.revokeBusy.set(false);
+        this.setRevokeMessage('Unable to remove access. Try again.', true);
+      }
+    });
+  }
+
   copyInviteLink(): void {
     const link = this.activeInviteLink();
     if (!link) {
@@ -788,5 +883,10 @@ export class ProfileDashboardComponent {
   private setInviteMessage(message: string, isError = false): void {
     this.inviteMessageIsError.set(isError);
     this.inviteMessage.set(message);
+  }
+
+  private setRevokeMessage(message: string, isError = false): void {
+    this.revokeMessageIsError.set(isError);
+    this.revokeMessage.set(message);
   }
 }
