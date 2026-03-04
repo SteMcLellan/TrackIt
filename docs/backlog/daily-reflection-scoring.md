@@ -129,6 +129,8 @@ Each dimension uses labels that describe *that facet* in plain language rather t
 
 ### Mood
 
+### Sleep
+
 | Bucket | Label        | Micro-copy                                                     |
 |--------|--------------|----------------------------------------------------------------|
 | 1      | Struggling   | Meltdowns, shutdowns, or persistent distress through the day.  |
@@ -160,11 +162,7 @@ Each dimension uses labels that describe *that facet* in plain language rather t
 | 5      | Wired        | Noticeably restless or hyperactive — hard to settle or channel the energy. |
 > **Non-monotonic dimension:** Unlike Mood, Focus, and Sleep, high energy is not a positive signal. Both extremes (Drained and Wired) indicate dysregulation; Level is the optimum. The raw score (0–100) preserves the *direction* of dysregulation — underactive vs. overactive — which is clinically useful. Charts and insights must not render energy with a directional "higher = better" assumption.
 
-> **Non-monotonic dimension:** Unlike Mood, Focus, and Sleep, high energy is not a positive signal. Both extremes (Drained and Wired) indicate dysregulation; Level is the optimum. The raw score (0–100) preserves the *direction* of dysregulation — underactive vs. overactive — which is clinically useful. Charts and insights must not render energy with a directional "higher = better" assumption.
 
-> **Non-monotonic dimension:** Unlike Mood, Focus, and Sleep, high energy is not a positive signal. Both extremes (Drained and Wired) indicate dysregulation; Level is the optimum. The raw score (0–100) preserves the *direction* of dysregulation — underactive vs. overactive — which is clinically useful. Charts and insights must not render energy with a directional "higher = better" assumption.
-
-### Sleep
 
 | Bucket | Label        | Micro-copy                                                     |
 |--------|--------------|----------------------------------------------------------------|
@@ -266,37 +264,38 @@ If parents want finer control, offer an optional slider that maps to the 0–100
 
 ### US-DR-001: Bucket Selection Input
 
-- [ ] Parent sees 5 labeled buckets per dimension (Mood, Focus, Energy, Sleep).
-- [ ] Tapping a bucket highlights it and stores the midpoint value (10/30/50/70/90).
-- [ ] Balanced is pre-selected as default.
-- [ ] No raw numeric values are visible in the UI.
-- [ ] Micro-copy is displayed for each bucket to guide selection.
+- [x] Parent sees 5 labeled buckets per dimension (Mood, Focus, Energy, Sleep).
+- [x] Tapping a bucket highlights it and stores the midpoint value (10/30/50/70/90).
+- [x] Balanced is pre-selected as default.
+- [x] No raw numeric values are visible in the UI.
+- [x] Micro-copy is displayed for each bucket to guide selection.
 
 ### US-DR-002: Journal Note
 
-- [ ] Free-text field below the dimension selectors.
-- [ ] Optional — reflection can save without a note.
-- [ ] Character limit: 2000 characters with visible counter.
+- [x] Free-text field below the dimension selectors.
+- [x] Optional — reflection can save without a note.
+- [x] Character limit: 2000 characters with visible counter.
 
 ### US-DR-003: Save Behavior
 
-- [ ] One reflection per participant per `logLocalDate`.
-- [ ] Re-opening the same day loads existing values for editing.
-- [ ] Save updates `updatedAtUtc`; first save sets `createdAtUtc`.
+- [x] One reflection per participant per `logLocalDate`.
+- [x] Re-opening the same day loads existing values for editing.
+- [x] Save updates `updatedAtUtc`; first save sets `createdAtUtc`.
 - [ ] Partial entries (some dimensions null) are allowed.
 
 ### US-DR-004: Display & Trend
 
-- [ ] Dashboard card shows today's reflection as bucket labels (or prompt if missing).
+- [x] Dashboard card shows today's reflection as bucket labels (or prompt if missing).
 - [ ] Trend view shows 7-day rolling average as a line with individual day dots.
 - [ ] Missing days appear as gaps, not zeros.
 - [ ] Extreme swings are visually marked on the chart.
 - [ ] Energy chart displays a horizontal reference line at Level (score 50).
-- [ ] Energy chart has no directional color gradient or up/down arrow treatment.
-- [ ] Automated insight copy for energy always includes the bucket label alongside any score reference.
+- [x] Energy chart has no directional color gradient or up/down arrow treatment.
+- [x] Automated insight copy for energy always includes the bucket label alongside any score reference.
 
 ### US-DR-005: Edge Case Handling
 
 - [ ] Null dimensions excluded from averages and trend calculations.
-- [ ] Default selection (Balanced) has tooltip explaining its meaning.
+- [x] Default selection (Balanced) has tooltip explaining its meaning.
 - [ ] No interpolation for missing days in charts.
+
