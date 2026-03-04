@@ -51,7 +51,8 @@ docs/
 `-- backlog/
     |-- README.md
     |-- daily-reflection-scoring.md
-    `-- daily-reflection-historical-entry.md
+    |-- daily-reflection-historical-entry.md
+    `-- multi-caregiver-mvp.md
 ```
 
 ## Canonical Rule Docs
