@@ -52,6 +52,7 @@ docs/
     |-- README.md
     |-- daily-reflection-scoring.md
     |-- daily-reflection-historical-entry.md
+    |-- frontend-component-modularization-plan.md
     `-- multi-caregiver-mvp.md
 ```
 
