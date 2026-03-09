@@ -6,7 +6,7 @@ TrackIt operating guide for coding agents.
 
 1. Treat this file as the docs navigation source of truth.
 2. Update this file in the same change whenever doc paths move.
-3. Put each new doc in exactly one bucket: `architecture`, `product-specs`, `runbooks`, `references`, or `decisions`.
+3. Put each new doc in exactly one bucket: `architecture`, `product-specs`, `runbooks`, `references`, `decisions`, or `backlog`.
 4. Prefer updating canonical docs over creating duplicate guidance.
 
 ## Agent Lookup Order
@@ -53,7 +53,8 @@ docs/
     |-- daily-reflection-scoring.md
     |-- daily-reflection-historical-entry.md
     |-- frontend-component-modularization-plan.md
-    `-- multi-caregiver-mvp.md
+    |-- multi-caregiver-mvp.md
+    `-- ui-feedback-general.md
 ```
 
 ## Canonical Rule Docs
