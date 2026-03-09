@@ -52,8 +52,12 @@ docs/
     |-- README.md
     |-- daily-reflection-scoring.md
     |-- daily-reflection-historical-entry.md
+    |-- dynamic-hero-phrase.md
     |-- frontend-component-modularization-plan.md
     |-- multi-caregiver-mvp.md
+    |-- non-google-auth-for-automation-and-agent-access.md
+    |-- responsive-designs.md
+    |-- timeline-stitch-alignment.md
     `-- ui-feedback-general.md
 ```
 
