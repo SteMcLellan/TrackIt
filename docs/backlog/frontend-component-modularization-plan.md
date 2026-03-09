@@ -1,7 +1,7 @@
 # Frontend Component Modularization Plan
 
 Status: Ready to implement iteratively
-Last updated: 2026-03-03
+Last updated: 2026-03-08
 
 ## Overview
 
@@ -44,6 +44,33 @@ Out of scope:
 
 ## Reuse opportunities to extract
 
+### Cross-page findings (Profile + Incident form + Daily Reflection, Mar 2026)
+
+Candidates to extract now (confirmed in Pencil + Angular templates):
+
+1. **Tinted card base** (shared shell with tone variants)
+   - Proposed: `app-tone-card` (`tone`, `padding`, `headerSlot`, `bodySlot`)
+2. **Card header pattern** (title + optional trailing action)
+   - Proposed: `app-card-header`
+3. **Labeled value stack** (uppercase label + value)
+   - Proposed: `app-labeled-value`
+4. **Action pill + row** (save/cancel/copy/share style clusters)
+   - Proposed: `app-action-pill` + `app-action-row`
+5. **Chip pill visual token** (selected/unselected shell only)
+   - Proposed: `app-chip-pill`
+6. **Labeled field shell for inputs/textarea**
+   - Proposed: `app-labeled-field` (supports input/select/textarea slot)
+7. **Bucket option row pattern** (title + supporting copy + selected state treatment)
+   - Proposed: `app-bucket-option`
+8. **Reflection facet card scaffold** (facet title/icon + bucket list + optional hint)
+   - Proposed: `app-reflection-facet-card` (built on `app-tone-card`)
+
+Keep feature-local for now:
+
+1. Incident `abc-section-card` behavior (badge semantics + chip-selector wiring).
+2. Profile member/medication row logic (role/revoke/archive states and conditional actions).
+3. Reflection scoring semantics and facet-specific bucket mappings (Mood/Focus/Energy/Sleep labels and defaults).
+
 ### UI component patterns
 
 1. **Page intro block** (`title` / `hero` / `page-head` variants across Insights, Profile, Daily Reflection, Timeline, Incidents)
@@ -52,10 +79,24 @@ Out of scope:
    - Proposed: `app-section-card`
 3. **Standard async feedback blocks** (`loading`, `error`, `empty`, `muted/status`)
    - Proposed: `app-resource-state`
-4. **Pill/button action row** (Save/Cancel, Copy/Share, inline action clusters)
+4. **Loading placeholders / shimmer states**
+   - Proposed: `app-skeleton` (replace ad-hoc page-local loading placeholders where layout skeletons are known)
+5. **Pill/button action row** (Save/Cancel, Copy/Share, inline action clusters)
    - Proposed: `app-action-row`
-5. **Medication adherence ring summary** (duplicated between Insights and Medications)
+6. **Medication adherence ring summary** (duplicated between Insights and Medications)
    - Proposed: `app-medication-adherence-summary-card`
+7. **Tinted section cards with consistent radius/stroke/shadow**
+   - Proposed: `app-tone-card` (`sky`, `violet`, `emerald`, `amber`, `neutral`)
+8. **Card header with optional trailing action**
+   - Proposed: `app-card-header`
+9. **Labeled value field block** (uppercase metadata label + value text)
+   - Proposed: `app-labeled-value`
+10. **Shared input/textarea shell**
+   - Proposed: `app-labeled-field`
+11. **Bucket option list row**
+   - Proposed: `app-bucket-option`
+12. **Reflection facet card scaffold**
+   - Proposed: `app-reflection-facet-card`
 
 ### Shared utility/service patterns
 
@@ -80,7 +121,10 @@ Out of scope:
 
 - [ ] Create `app-page-intro` and adopt it in one low-risk page first (Timeline or Daily Reflection).
 - [ ] Create `app-section-card` for heading/body/action composition.
+- [ ] Create `app-tone-card` and `app-card-header` for tinted card sections with action affordances.
+- [ ] Create `app-labeled-value` and `app-labeled-field` primitives.
 - [ ] Create `app-resource-state` for loading/error/empty blocks.
+- [ ] Adopt `app-skeleton` for structured loading states (start with Insights metrics grid, then Profile and Daily Reflection card loads).
 - [ ] Create formatting helpers in `shared/utils/formatting.ts` and replace duplicate local helpers.
 - [ ] Update `shared/ui/index.ts` exports and add usage docs/comments.
 
@@ -107,6 +151,7 @@ Out of scope:
   - `participant-members-list`
   - `medication-management-card`
   - `medication-editor-sheet-content`
+- [ ] Adopt `app-tone-card`, `app-card-header`, `app-labeled-value`, and `app-action-row` in Profile before adding new bespoke markup.
 - [ ] Standardize message banners (success/error) with `app-resource-state` and/or `app-inline-message`.
 - [ ] Isolate invite/revoke flows behind narrow output events from sub-components.
 
@@ -117,11 +162,14 @@ Out of scope:
   - `journal-note-card`
   - `reflection-action-bar`
 - [ ] Extract shared bucket option UI to a dedicated presentational sub-component.
+- [ ] Adopt `app-tone-card`, `app-card-header`, and `app-bucket-option` in Daily Reflection to align with Profile/Incident visual primitives.
+- [ ] Keep facet score-to-label mapping and selection/default semantics inside Daily Reflection feature logic.
 - [ ] Extract Incident form into:
   - `abc-section-card` (A/B/C variants)
   - `function-selector`
   - `occurred-at-picker`
   - `incident-save-footer`
+- [ ] Reuse shared `app-tone-card`, `app-chip-pill`, and `app-labeled-field` in Incident form while keeping ABC interaction logic feature-local.
 
 ### Phase 5: Timeline + lower-bloat pages cleanup
 
@@ -146,6 +194,9 @@ Out of scope:
 - `FCM-A2` Section card container
 - `FCM-A3` Resource state/feedback component
 - `FCM-A4` Formatting utilities consolidation
+- `FCM-A5` Tone card + card header primitives
+- `FCM-A6` Labeled value/field + action pill primitives
+- `FCM-A7` Skeleton loading standardization (`app-skeleton` adoption + removal of ad-hoc placeholders)
 
 ### Category B: Data-heavy dashboard refactors
 
@@ -164,6 +215,8 @@ Out of scope:
 - `FCM-D1` Daily Reflection facet card extraction
 - `FCM-D2` Incident ABC section extraction
 - `FCM-D3` Shared action footer patterns
+- `FCM-D4` Incident form adoption of shared tone/field/chip primitives
+- `FCM-D5` Daily Reflection adoption of tone/card-header/bucket-option primitives
 
 ### Category E: Feed and supporting pages
 
@@ -186,4 +239,3 @@ Out of scope:
   - **Mitigation:** Extract from real duplicates only; avoid speculative APIs.
 - **Risk:** Hidden behavior drift during template splits.
   - **Mitigation:** Preserve CSS classes/DOM hooks in first extraction pass; compare screenshots/flows per page.
-
