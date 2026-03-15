@@ -213,7 +213,8 @@ function buildMedicationLogTitle(
   return 'Medication taken';
 }
 
-function toLabelTag(dimension: 'mood' | 'focus' | 'energy' | 'sleep', score: number): string {
+function toLabelTag(dimension: 'mood' | 'focus' | 'energy' | 'sleep', score: number | null): string {
+  if (score === null) return 'unknown';
   return reflectionBucketLabel(dimension, score).toLowerCase().replace(/\s+/g, '_');
 }
 
@@ -257,10 +258,10 @@ export function projectDailyReflectionToEventIndex(
     summary: {
       title: 'Daily reflection',
       subtitle: buildJournalPreview(reflection.journalNote),
-      moodScore: reflection.moodScore,
-      focusScore: reflection.focusScore,
-      energyScore: reflection.energyScore,
-      sleepScore: reflection.sleepScore,
+      moodScore: reflection.moodScore ?? undefined,
+      focusScore: reflection.focusScore ?? undefined,
+      energyScore: reflection.energyScore ?? undefined,
+      sleepScore: reflection.sleepScore ?? undefined,
       journalNotePreview: buildJournalPreview(reflection.journalNote)
     }
   });
