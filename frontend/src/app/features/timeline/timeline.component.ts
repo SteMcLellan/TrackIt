@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   ViewChild,
   computed,
@@ -10,6 +11,7 @@ import {
   inject,
   signal
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { TimelineService } from '../../shared/services/timeline.service';
 import { TimelineEvent, TimelineSourceType } from '../../shared/models/timeline-event';
@@ -19,6 +21,8 @@ type TimelineSection = {
   logLocalDate: string;
   label: string;
   items: TimelineEvent[];
+  isEmpty: boolean;
+  isWithin30Days: boolean;
 };
 
 const DAYS_PER_REQUEST = 7;
@@ -53,50 +57,88 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
         <div class="status loading">Loading timeline feed...</div>
       } @else if (loadError() && events().length === 0) {
         <p class="status error" role="alert">{{ loadError() }}</p>
-      } @else if (sections().length === 0) {
-        <p class="status muted">No timeline events found.</p>
       } @else {
         <div class="timeline-feed" role="feed" aria-label="Timeline feed">
           @for (section of sections(); track section.logLocalDate) {
-            <div class="day-label">{{ section.label }}</div>
+            <div class="day-label">
+              <span class="day-label-text">{{ section.label }}</span>
+              <div class="day-add-wrap">
+                <button
+                  class="day-add-btn"
+                  [class.day-add-btn-empty]="section.isEmpty"
+                  type="button"
+                  (click)="toggleMenu(section.logLocalDate, $event)"
+                  [attr.aria-label]="'Add entry for ' + section.label"
+                >+</button>
+                @if (openMenuDate() === section.logLocalDate) {
+                  <div class="day-menu" (click)="$event.stopPropagation()">
+                    <button class="day-menu-item" type="button" (click)="addReflection(section.logLocalDate)">
+                      <span class="material-symbols-outlined">edit_note</span>
+                      Add reflection
+                    </button>
+                    @if (section.isWithin30Days) {
+                      <button class="day-menu-item" type="button" (click)="logMedication(section.logLocalDate)">
+                        <span class="material-symbols-outlined">medical_services</span>
+                        Log medication
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
             <div class="day-group">
               <div class="timeline-line" aria-hidden="true"></div>
-              @for (event of section.items; track event.id) {
+              @if (section.isEmpty) {
                 <article class="entry" role="article">
-                  <div
-                    class="entry-node"
-                    [class.entry-node-incident]="event.sourceType === 'incident'"
-                    [class.entry-node-medication-log]="event.sourceType === 'medication_log'"
-                    [class.entry-node-medication]="event.sourceType === 'medication'"
-                    [class.entry-node-daily-reflection]="event.sourceType === 'daily_reflection'"
-                  >
-                    <span class="material-symbols-outlined">{{ sourceIcon(event.sourceType) }}</span>
-                  </div>
-                  <div class="entry-card">
-                    <div class="entry-head">
-                      <h2>{{ event.summary.title }}</h2>
-                      <span class="entry-time">{{ formatEventTime(event) }}</span>
-                    </div>
-
-                    @if (event.summary.subtitle) {
-                      <p class="entry-copy">{{ event.summary.subtitle }}</p>
-                    }
-
-                    @if (event.sourceType === 'incident' && incidentChipLabel(event); as chipLabel) {
-                      <div class="chip-row">
-                        <span class="chip chip-violet chip-incident">{{ chipLabel }}</span>
-                      </div>
-                    }
-
-                    @if (event.sourceType === 'daily_reflection' && reflectionChips(event).length > 0) {
-                      <div class="chip-row">
-                        @for (chip of reflectionChips(event); track chip.label) {
-                          <span class="chip" [class]="chip.colorClass">{{ chip.label }}</span>
-                        }
-                      </div>
-                    }
+                  <div class="entry-node entry-node-ghost"></div>
+                  <div class="entry-card entry-card-ghost">
+                    <span class="material-symbols-outlined ghost-icon">calendar_today</span>
+                    <p class="ghost-copy">Nothing logged for this day</p>
                   </div>
                 </article>
+              } @else {
+                @for (event of section.items; track event.id) {
+                  <article
+                    class="entry"
+                    [class.entry-tappable]="event.sourceType === 'daily_reflection' || event.sourceType === 'medication_log'"
+                    role="article"
+                    (click)="onCardTap(event)"
+                  >
+                    <div
+                      class="entry-node"
+                      [class.entry-node-incident]="event.sourceType === 'incident'"
+                      [class.entry-node-medication-log]="event.sourceType === 'medication_log'"
+                      [class.entry-node-medication]="event.sourceType === 'medication'"
+                      [class.entry-node-daily-reflection]="event.sourceType === 'daily_reflection'"
+                    >
+                      <span class="material-symbols-outlined">{{ sourceIcon(event.sourceType) }}</span>
+                    </div>
+                    <div class="entry-card">
+                      <div class="entry-head">
+                        <h2>{{ event.summary.title }}</h2>
+                        <span class="entry-time">{{ formatEventTime(event) }}</span>
+                      </div>
+
+                      @if (event.summary.subtitle) {
+                        <p class="entry-copy">{{ event.summary.subtitle }}</p>
+                      }
+
+                      @if (event.sourceType === 'incident' && incidentChipLabel(event); as chipLabel) {
+                        <div class="chip-row">
+                          <span class="chip chip-violet chip-incident">{{ chipLabel }}</span>
+                        </div>
+                      }
+
+                      @if (event.sourceType === 'daily_reflection' && reflectionChips(event).length > 0) {
+                        <div class="chip-row">
+                          @for (chip of reflectionChips(event); track chip.label) {
+                            <span class="chip" [class]="chip.colorClass">{{ chip.label }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </article>
+                }
               }
             </div>
           }
@@ -185,11 +227,81 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       padding: 0.85rem 0 0.3rem;
       background: rgba(252, 252, 253, 0.9);
       backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .day-label-text {
       color: var(--color-vital-emerald, #10b981);
       font-size: 0.68rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
+    }
+
+    .day-add-wrap {
+      position: relative;
+    }
+
+    .day-add-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #94a3b8;
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .day-add-btn-empty {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #10b981;
+    }
+
+    .day-menu {
+      position: absolute;
+      top: calc(100% + 0.3rem);
+      right: 0;
+      z-index: 20;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.12);
+      min-width: 160px;
+      overflow: hidden;
+    }
+
+    .day-menu-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.85rem;
+      border: none;
+      background: transparent;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: #1e293b;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .day-menu-item:hover {
+      background: #f8fafc;
+    }
+
+    .day-menu-item .material-symbols-outlined {
+      font-size: 1rem;
+      color: #64748b;
     }
 
     .day-group {
@@ -257,6 +369,44 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       border-radius: 0.75rem;
       padding: 0.85rem;
       box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
+    }
+
+    .entry-node-ghost {
+      background: transparent;
+      border: 2px dashed #94a3b8;
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+
+    .entry-card-ghost {
+      border: 1px dashed #e2e8f0;
+      background: #fff;
+      border-radius: 0.75rem;
+      padding: 0.85rem;
+      box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .ghost-icon {
+      font-size: 1rem;
+      color: #94a3b8;
+      flex-shrink: 0;
+    }
+
+    .ghost-copy {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+
+    .entry-tappable {
+      cursor: pointer;
+    }
+
+    .entry-tappable:hover .entry-card {
+      background: #f8fafc;
     }
 
     .entry-head {
@@ -365,6 +515,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
 export class TimelineComponent implements AfterViewInit, OnDestroy {
   private readonly participants = inject(ParticipantService);
   private readonly timeline = inject(TimelineService);
+  private readonly router = inject(Router);
 
   readonly activeParticipantId = this.participants.activeParticipantId;
   readonly events = signal<TimelineEvent[]>([]);
@@ -374,6 +525,7 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
   readonly loadError = signal<string | null>(null);
   readonly canLoadMore = computed(() => this.nextCursorDate() !== null && !this.isInitialLoading() && !this.isLoadingMore());
   readonly sections = computed<TimelineSection[]>(() => this.groupByLocalDate(this.events()));
+  readonly openMenuDate = signal<string | null>(null);
 
   private requestVersion = 0;
   private anchorDate = '';
@@ -596,9 +748,7 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
   }
 
   private groupByLocalDate(items: TimelineEvent[]): TimelineSection[] {
-    if (items.length === 0) {
-      return [];
-    }
+    const thirtyDaySet = new Set(this.generate30DayRange());
 
     const grouped = new Map<string, TimelineEvent[]>();
     for (const item of items) {
@@ -611,11 +761,23 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
       }
     }
 
-    return Array.from(grouped.entries()).map(([logLocalDate, groupItems]) => ({
-      logLocalDate,
-      label: this.formatDayLabel(logLocalDate),
-      items: groupItems
-    }));
+    const allDates = new Set<string>(thirtyDaySet);
+    for (const date of grouped.keys()) {
+      allDates.add(date);
+    }
+
+    return Array.from(allDates)
+      .sort((a, b) => b.localeCompare(a))
+      .map((logLocalDate) => {
+        const groupItems = grouped.get(logLocalDate) ?? [];
+        return {
+          logLocalDate,
+          label: this.formatDayLabel(logLocalDate),
+          items: groupItems,
+          isEmpty: groupItems.length === 0,
+          isWithin30Days: thirtyDaySet.has(logLocalDate)
+        };
+      });
   }
 
   private formatDayLabel(logLocalDate: string): string {
@@ -675,6 +837,48 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
     const period = hour >= 12 ? 'PM' : 'AM';
     const hour12 = hour % 12 || 12;
     return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.openMenuDate.set(null);
+  }
+
+  toggleMenu(date: string, event: MouseEvent): void {
+    event.stopPropagation();
+    this.openMenuDate.update((current) => (current === date ? null : date));
+  }
+
+  addReflection(date: string): void {
+    this.openMenuDate.set(null);
+    this.router.navigate(['/daily-reflection'], { queryParams: { date } });
+  }
+
+  logMedication(date: string): void {
+    this.openMenuDate.set(null);
+    this.router.navigate(['/medications'], { queryParams: { date } });
+  }
+
+  onCardTap(event: TimelineEvent): void {
+    if (event.sourceType === 'daily_reflection') {
+      this.router.navigate(['/daily-reflection'], { queryParams: { date: event.logLocalDate } });
+    } else if (event.sourceType === 'medication_log') {
+      this.router.navigate(['/medications'], { queryParams: { date: event.logLocalDate } });
+    }
+  }
+
+  private generate30DayRange(): string[] {
+    const today = new Date();
+    const dates: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      dates.push(`${year}-${month}-${day}`);
+    }
+    return dates;
   }
 
   private extractTagValue(event: TimelineEvent, prefix: string): string | null {

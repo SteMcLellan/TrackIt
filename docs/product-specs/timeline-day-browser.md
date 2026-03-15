@@ -1,6 +1,6 @@
 # Timeline — Day Browser & Backfill
 
-Status: Backlog (not scheduled)
+Status: Implemented
 Last updated: 2026-03-15
 
 ## Problem

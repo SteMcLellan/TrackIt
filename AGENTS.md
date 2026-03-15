@@ -38,7 +38,8 @@ docs/
 |   |-- dynamic-hero-phrase.md
 |   |-- daily-reflection-scoring.md
 |   |-- medication-command-center.md
-|   `-- medication-frequency.md
+|   |-- medication-frequency.md
+|   `-- timeline-day-browser.md
 |-- runbooks/
 |   |-- api-testing.md
 |   |-- common-dev-tasks.md
@@ -54,7 +55,6 @@ docs/
     |-- README.md
     |-- daily-reflection-historical-entry.md
     |-- dynamic-hero-phrase.md
-    |-- timeline-day-browser.md
     |-- frontend-component-modularization-plan.md
     |-- multi-caregiver-mvp.md
     |-- non-google-auth-for-automation-and-agent-access.md

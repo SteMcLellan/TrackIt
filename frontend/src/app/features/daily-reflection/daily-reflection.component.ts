@@ -1,6 +1,6 @@
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CollectionResponse } from '../../shared/models/collection';
 import { DailyReflection } from '../../shared/models/daily-reflection';
 import { DailyReflectionService } from '../../shared/services/daily-reflection.service';
@@ -79,6 +79,10 @@ const SLEEP_BUCKETS: BucketOption[] = [
         <h1>Daily Reflection</h1>
         <p>Track daily rhythms for consistent progress.</p>
       </header>
+
+      @if (dateContextLabel()) {
+        <div class="date-context-banner">{{ dateContextLabel() }}</div>
+      }
 
       <div class="cards">
         <section class="metric-card mood">
@@ -199,7 +203,7 @@ const SLEEP_BUCKETS: BucketOption[] = [
       </div>
 
       @if (existingReflectionResource.isLoading()) {
-        <p class="status">Loading today's reflection...</p>
+        <p class="status">{{ isBackfill ? 'Loading reflection...' : "Loading today's reflection..." }}</p>
       }
       @if (errorMessage()) {
         <p class="error">{{ errorMessage() }}</p>
@@ -255,6 +259,17 @@ const SLEEP_BUCKETS: BucketOption[] = [
       margin: 0;
       color: #64748b;
       font-size: 0.875rem;
+    }
+
+    .date-context-banner {
+      margin: 0 0 0.75rem;
+      padding: 0.6rem 0.85rem;
+      border-radius: 0.5rem;
+      background: #ecfdf5;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #059669;
+      font-size: 0.8125rem;
+      font-weight: 600;
     }
 
     .cards {
@@ -457,12 +472,15 @@ const SLEEP_BUCKETS: BucketOption[] = [
   `]
 })
 export class DailyReflectionComponent {
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly participantService = inject(ParticipantService);
   private readonly reflections = inject(DailyReflectionService);
 
   readonly activeParticipantId = this.participantService.activeParticipantId;
-  readonly todayLocalDate = signal(this.formatLocalDate(new Date()));
+  readonly logLocalDate = signal(this.resolveLogLocalDate());
+  readonly isBackfill = this.logLocalDate() !== this.formatLocalDate(new Date());
+  readonly dateContextLabel = computed(() => this.formatDateContextLabel(this.logLocalDate()));
   readonly moodScore = signal<number | null>(50);
   readonly focusScore = signal<number | null>(50);
   readonly energyScore = signal<number | null>(50);
@@ -480,7 +498,7 @@ export class DailyReflectionComponent {
 
   readonly existingReflectionResource = httpResource<DailyReflectionsResponse>(() => {
     const participantId = this.activeParticipantId();
-    const date = this.todayLocalDate();
+    const date = this.logLocalDate();
     if (!participantId) {
       return {
         url: `${environment.apiBaseUrl}/participants/unknown/daily-reflections`,
@@ -542,7 +560,7 @@ export class DailyReflectionComponent {
 
     this.errorMessage.set(null);
     this.isSaving.set(true);
-    const logLocalDate = this.todayLocalDate();
+    const logLocalDate = this.logLocalDate();
 
     this.reflections.upsertReflection(participantId, logLocalDate, {
       logTzOffsetMinutes: -new Date().getTimezoneOffset(),
@@ -554,7 +572,7 @@ export class DailyReflectionComponent {
     }).subscribe({
       next: () => {
         this.isSaving.set(false);
-        this.router.navigate(['/insights']);
+        this.router.navigate([this.isBackfill ? '/timeline' : '/insights']);
       },
       error: () => {
         this.isSaving.set(false);
@@ -567,7 +585,27 @@ export class DailyReflectionComponent {
     if (this.isSaving()) {
       return;
     }
-    this.router.navigate(['/insights']);
+    this.router.navigate([this.isBackfill ? '/timeline' : '/insights']);
+  }
+
+  private resolveLogLocalDate(): string {
+    const today = this.formatLocalDate(new Date());
+    const param = this.route.snapshot.queryParamMap.get('date');
+    if (!param || !/^\d{4}-\d{2}-\d{2}$/.test(param)) {
+      return today;
+    }
+    const parsed = new Date(`${param}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? today : param;
+  }
+
+  private formatDateContextLabel(logLocalDate: string): string | null {
+    const today = this.formatLocalDate(new Date());
+    if (logLocalDate === today) return null;
+    const parsed = new Date(`${logLocalDate}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return null;
+    const weekday = parsed.toLocaleDateString('en-US', { weekday: 'long' });
+    const monthDay = parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `Reflecting on ${weekday}, ${monthDay}`;
   }
 
   private formatLocalDate(date: Date): string {

@@ -1,5 +1,6 @@
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CollectionResponse } from '../../shared/models/collection';
 import { MedicationLog } from '../../shared/models/medication-log';
 import { IntervalSchedule, Medication, MedicationFrequency } from '../../shared/models/medication';
@@ -53,6 +54,21 @@ type ScheduledMedicationCard = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page">
+      @if (isOutOfWindow) {
+        <div class="out-of-window-banner">
+          <p>This date is outside the 30-day medication logging window.</p>
+          <button class="out-of-window-back" type="button" (click)="navigateBack()">Return to Timeline</button>
+        </div>
+      }
+      @if (isBackfill && !isOutOfWindow) {
+        <header class="backfill-header">
+          <button class="back-btn" type="button" (click)="navigateBack()">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+          <p class="backfill-date-label">{{ dateContextLabel() }}</p>
+        </header>
+      }
+
       <!-- Summary card -->
       <section class="summary-card">
         <div class="summary-ring-group">
@@ -68,7 +84,7 @@ type ScheduledMedicationCard = {
             <span class="material-symbols-outlined ring-icon">pill</span>
           </div>
           <div class="summary-copy">
-            <p class="summary-title">Today's Medications</p>
+            <p class="summary-title">{{ isBackfill ? backfillDateShortLabel() + ' Medications' : "Today's Medications" }}</p>
             @if (medicationSummary().totalExpectedDoses === 0) {
               <p class="summary-fraction">No scheduled doses today</p>
             } @else {
@@ -339,6 +355,71 @@ type ScheduledMedicationCard = {
       box-sizing: border-box;
       overflow-x: hidden;
       background: var(--color-ghost-white-canvas, #fcfcfd);
+    }
+
+    /* Backfill header */
+
+    .out-of-window-banner {
+      margin-bottom: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 0.5rem;
+      background: #fef2f2;
+      border: 1px solid rgba(185, 28, 28, 0.2);
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .out-of-window-banner p {
+      margin: 0;
+      color: #b91c1c;
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+
+    .out-of-window-back {
+      align-self: start;
+      border: none;
+      background: transparent;
+      color: #b91c1c;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+    }
+
+    .backfill-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .back-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #64748b;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 0;
+    }
+
+    .back-btn .material-symbols-outlined {
+      font-size: 1.125rem;
+      line-height: 1;
+    }
+
+    .backfill-date-label {
+      margin: 0;
+      color: #1e293b;
+      font-size: 0.9375rem;
+      font-weight: 700;
     }
 
     /* Summary card */
@@ -820,10 +901,15 @@ type ScheduledMedicationCard = {
   `]
 })
 export class MedicationsDashboardComponent {
+  private readonly route = inject(ActivatedRoute);
+  readonly router = inject(Router);
   private readonly participantService = inject(ParticipantService);
   private readonly medicationLogs = inject(MedicationLogService);
   readonly activeParticipantId = this.participantService.activeParticipantId;
-  readonly todayLocalDate = signal(this.formatLocalDate(new Date()));
+  private readonly _dateResolution = this.resolveDateParam();
+  readonly todayLocalDate = signal(this._dateResolution.date);
+  readonly isBackfill = this._dateResolution.isBackfill;
+  readonly isOutOfWindow = this._dateResolution.isOutOfWindow;
 
   readonly savingMap = signal<Record<string, boolean>>({});
   readonly timePickerRowId = signal<string | null>(null);
@@ -1033,6 +1119,10 @@ export class MedicationsDashboardComponent {
   });
 
   constructor() {
+    if (this.isOutOfWindow) {
+      Promise.resolve().then(() => this.router.navigate(['/timeline'], { replaceUrl: true }));
+    }
+
     effect(() => {
       this.activeParticipantId();
       this.todayLocalDate();
@@ -1498,6 +1588,43 @@ export class MedicationsDashboardComponent {
     if (!/^\d{2}:\d{2}$/.test(value)) return false;
     const [h, m] = value.split(':').map(Number);
     return h >= 0 && h <= 23 && m >= 0 && m <= 59;
+  }
+
+  navigateBack(): void {
+    this.router.navigate(['/timeline']);
+  }
+
+  dateContextLabel(): string {
+    const date = new Date(`${this.todayLocalDate()}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return '';
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+    const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `Medications for ${weekday}, ${monthDay}`;
+  }
+
+  backfillDateShortLabel(): string {
+    const date = new Date(`${this.todayLocalDate()}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  private resolveDateParam(): { date: string; isBackfill: boolean; isOutOfWindow: boolean } {
+    const today = this.formatLocalDate(new Date());
+    const param = this.route.snapshot.queryParamMap.get('date');
+    if (!param || !/^\d{4}-\d{2}-\d{2}$/.test(param)) {
+      return { date: today, isBackfill: false, isOutOfWindow: false };
+    }
+    const parsed = new Date(`${param}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return { date: today, isBackfill: false, isOutOfWindow: false };
+    }
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 29);
+    const cutoff = this.formatLocalDate(cutoffDate);
+    if (param < cutoff) {
+      return { date: today, isBackfill: true, isOutOfWindow: true };
+    }
+    return { date: param, isBackfill: param !== today, isOutOfWindow: false };
   }
 
   private formatLocalDate(date: Date): string {
