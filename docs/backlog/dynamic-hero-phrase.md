@@ -37,11 +37,11 @@ One phrase pair is selected per render (daily rotation by day-of-year index with
 | 2 | *"{participant} is ready to be understood."* | *"Each reflection adds a piece of the picture."* |
 | 3 | *"{participant} is a story in progress."* | *"Logging daily helps you see the patterns."* |
 | 4 | *"{participant} is full of patterns to uncover."* | *"A few reflections go a long way."* |
-| 5 | *"{participant} is waiting for your first log."* | *"A week of data reveals what single days can't."* |
+| 5 | *"{participant} is ready when you are."* | *"Daily reflections build the clearest picture."* |
 | 6 | *"{participant} is yours to discover."* | *"Every log brings the picture into focus."* |
 | 7 | *"{participant} is at the start of something."* | *"Consistent logging reveals patterns over time."* |
 | 8 | *"{participant} is worth tracking closely."* | *"Log a few days to start seeing patterns."* |
-| 9 | *"{participant} is ready when you are."* | *"Daily reflections build the clearest picture."* |
+| 9 | *"{participant} is waiting for your first log."* | *"A week of data reveals what single days can't."* |
 | 10 | *"{participant} is just getting started."* | *"Your first reflections are the most important ones."* |
 
 #### Tier 1 — Composite < 25
@@ -50,9 +50,9 @@ One phrase pair is selected per render (daily rotation by day-of-year index with
 |---|---|---|
 | 1 | *"{participant} is having a hard stretch."* | *"Tough weeks happen. Keep showing up."* |
 | 2 | *"{participant} is going through a rough patch."* | *"This week was hard — your attention matters."* |
-| 3 | *"{participant} is in a challenging season."* | *"Difficult stretches are part of the journey."* |
+| 3 | *"{participant} is in a challenging season."* | *"Hard weeks have the most to teach."* |
 | 4 | *"{participant} is having a tough week."* | *"Hard weeks end. You're not alone in this."* |
-| 5 | *"{participant} is struggling right now."* | *"Noticing it is the first step."* |
+| 5 | *"{participant} is struggling right now."* | *"You've been in this — that already counts."* |
 | 6 | *"{participant} is navigating some real difficulty."* | *"You're tracking through it — that counts."* |
 | 7 | *"{participant} is up against it this week."* | *"Hard stretches are part of the story too."* |
 | 8 | *"{participant} is finding this week difficult."* | *"Tracking through hard times matters most."* |
@@ -71,7 +71,7 @@ One phrase pair is selected per render (daily rotation by day-of-year index with
 | 6 | *"{participant} is having a mixed week."* | *"Up and down — that's useful data too."* |
 | 7 | *"{participant} is in the middle of it."* | *"Below average weeks happen. You're tracking through it."* |
 | 8 | *"{participant} is persisting through some challenges."* | *"Not every week is a breakthrough."* |
-| 9 | *"{participant} is grinding through the week."* | *"Mixed signals — keep logging to see the pattern."* |
+| 9 | *"{participant} is making it through a harder week."* | *"Mixed signals — keep logging to see the pattern."* |
 | 10 | *"{participant} is working through a tougher stretch."* | *"You're paying attention — that's what matters."* |
 
 #### Tier 3 — Composite 45–59
@@ -84,9 +84,9 @@ One phrase pair is selected per render (daily rotation by day-of-year index with
 | 4 | *"{participant} is having a balanced week."* | *"Steady and consistent — the foundation of good weeks."* |
 | 5 | *"{participant} is in a good groove."* | *"Typical and stable — a reliable baseline."* |
 | 6 | *"{participant} is keeping pace."* | *"Steady week — a great sign of consistency."* |
-| 7 | *"{participant} is having a pretty normal week."* | *"Steady weeks are worth celebrating too."* |
+| 7 | *"{participant} is having a pretty normal week."* | *"Steady weeks build the foundation."* |
 | 8 | *"{participant} is ticking along nicely."* | *"A reliable week. Good baseline data."* |
-| 9 | *"{participant} is in their element."* | *"Typical scores across the board this week."* |
+| 9 | *"{participant} is going about their week."* | *"Typical scores across the board this week."* |
 | 10 | *"{participant} is going at their own pace."* | *"Steady and measured — that's a good week."* |
 
 #### Tier 4 — Composite 60–79
@@ -94,9 +94,9 @@ One phrase pair is selected per render (daily rotation by day-of-year index with
 | # | Hero Phrase | Subtext |
 |---|---|---|
 | 1 | *"{participant} is doing well."* | *"A good week overall. Keep it going."* |
-| 2 | *"{participant} is having a strong week."* | *"Above average across the board."* |
+| 2 | *"{participant} is having a strong week."* | *"A strong week relative to their recent baseline."* |
 | 3 | *"{participant} is on a good run."* | *"Things are clicking this week."* |
-| 4 | *"{participant} is in a great stretch."* | *"A genuinely good week — enjoy it."* |
+| 4 | *"{participant} is in a great stretch."* | *"A good week. Take it one day at a time."* |
 | 5 | *"{participant} is having a really good week."* | *"The data backs it up — things are going well."* |
 | 6 | *"{participant} is shining this week."* | *"Strong week on all fronts."* |
 | 7 | *"{participant} is flourishing."* | *"Well above typical — a week worth noting."* |
@@ -116,7 +116,7 @@ One phrase pair is selected per render (daily rotation by day-of-year index with
 | 6 | *"{participant} is in peak form."* | *"Exceptional data this week."* |
 | 7 | *"{participant} is having a brilliant week."* | *"Outstanding across the board."* |
 | 8 | *"{participant} is soaring this week."* | *"This is what a great week looks like."* |
-| 9 | *"{participant} is on top of the world."* | *"An excellent stretch — savor it."* |
+| 9 | *"{participant} is on top of the world."* | *"One of the best weeks on record. Take it in."* |
 | 10 | *"{participant} is having one of their best weeks."* | *"Top-tier across every dimension."* |
 
 ### Loading State
@@ -127,10 +127,61 @@ While `summaryResource` is loading, keep the existing static phrase (*"is thrivi
 
 ## Implementation Notes
 
-- All logic lives in `frontend/src/app/features/insights/insights-dashboard.component.ts`.
-- Add a `heroPhrase` computed signal that derives the composite score and returns `{ headline: string; subtitle: string }`.
-- The `summaryResource` and `weeklyMetrics` signals are already present — no new API calls required.
-- Energy non-monotonic handling is documented in `docs/backlog/daily-reflection-scoring.md` §1.2 and §5.
+### Data-Driven Phrases
+
+Phrases are stored in Cosmos and fetched on each dashboard load so copy can be updated without app changes.
+
+#### Cosmos container
+
+- **Container:** `heroPhraseTiers`
+- **Partition key:** `/id`
+- **Single document** (id: `"default"`):
+
+```json
+{
+  "id": "default",
+  "tiers": [
+    {
+      "id": "no-data",
+      "condition": "no-data",
+      "phrases": [
+        { "headline": "{participant} is your focus this week.", "subtext": "Start logging to see patterns emerge." }
+      ]
+    },
+    {
+      "id": "tier1",
+      "condition": { "min": 0, "max": 24 },
+      "phrases": [
+        { "headline": "{participant} is having a hard stretch.", "subtext": "Tough weeks happen. Keep showing up." }
+      ]
+    }
+  ]
+}
+```
+
+#### API endpoint
+
+- **Route:** `GET /hero-phrase-tiers`
+- **Auth:** authenticated, no participant scope (global config)
+- **Middleware stack:** `errorMiddleware → requestContextMiddleware → authMiddleware`
+- Returns the full tiers document as-is.
+- Returns `404` if the document does not exist (frontend falls back to hardcoded defaults).
+
+#### Frontend
+
+- Add a `heroPhraseTiersResource` in `insights-dashboard.component.ts` (alongside the existing `summaryResource`).
+- Loaded on each dashboard load — no caching.
+- If the resource errors or returns no data, fall back to the hardcoded phrase arrays defined in the component.
+- `heroPhrase` computed signal reads from `heroPhraseTiersResource` when available, otherwise uses the hardcoded fallback.
+
+### Composite Score
+
+- Composite = `avg(moodScore, focusScore, sleepScore)` — energy excluded (see acceptance criteria).
+- Use `latestScore` values from `summaryResource`. All three `null` → no-data tier.
+
+### Phrase Rotation
+
+- Within a tier, select phrase by `dayOfYear % phrases.length` (same phrase all day, rotates daily).
 
 ---
 
@@ -280,8 +331,9 @@ Three options:
 
 ## Acceptance Criteria
 
+- [ ] Phrase tiers are loaded from `GET /hero-phrase-tiers` on each dashboard load; if the fetch fails or returns no data, the component falls back to hardcoded defaults.
 - [ ] Hero headline and subtitle update based on the composite weekly score when `summaryResource` has a value.
-- [ ] Energy is treated as non-monotonic (distance from Level 50 drives its contribution, not raw score).
+- [ ] Composite is computed from mood, focus, and sleep only — energy is excluded (Option A: avoids structural bias against hyperactive-impulsive children; energy dysregulation is surfaced separately in the metric cards).
 - [ ] All four `latestScore` values being `null` shows the "no data" variant.
 - [ ] While `summaryResource` is loading, the hero shows the default static phrase (no flicker).
 - [ ] Six tiers are used as specified above (no data + 5 score bands).
