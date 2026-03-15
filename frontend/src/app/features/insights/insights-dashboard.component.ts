@@ -7,9 +7,11 @@ import { MedicationLog } from '../../shared/models/medication-log';
 import { Medication, MedicationFrequency } from '../../shared/models/medication';
 import { Participant } from '../../shared/models/participant';
 import { DailyReflectionSummaryResponse, MetricSummary } from '../../shared/models/daily-reflection';
+import { HeroPhraseTier, HeroPhraseTiersDocument } from '../../shared/models/hero-phrase-tiers';
 import { AuthService } from '../../shared/services/auth.service';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { environment } from '../../../environments/environment';
+import { FALLBACK_HERO_PHRASE_TIERS } from './hero-phrase-fallback-tiers';
 
 type ParticipantsResponse = CollectionResponse<Participant>;
 type MedicationsResponse = CollectionResponse<Medication>;
@@ -46,10 +48,9 @@ type WeeklyMetricCard = {
     <div class="page">
       <section class="hero">
         <h1>
-          Hi {{ caregiverName() }}, <span class="violet">{{ participantName() }}</span> is
-          <span class="emerald">thriving</span>.
+          Hi {{ caregiverName() }}, <span class="violet">{{ participantName() }}</span> {{ heroPhrase().suffix }}
         </h1>
-        <p>Weekly summary and today's rhythm.</p>
+        <p>{{ heroPhrase().subtext }}</p>
       </section>
 
       <section class="reflection-entry">
@@ -738,6 +739,10 @@ export class InsightsDashboardComponent {
     };
   });
 
+  readonly heroPhraseTiersResource = httpResource<HeroPhraseTiersDocument>(
+    () => ({ url: `${environment.apiBaseUrl}/hero-phrase-tiers`, method: 'GET' })
+  );
+
   readonly medicationsResource = httpResource<MedicationsResponse>(() => {
     const participantId = this.activeParticipantId();
     if (!participantId) {
@@ -916,6 +921,46 @@ export class InsightsDashboardComponent {
       this.buildMetricCard('sleep', 'Sleep', 'bedtime', summary.sleep),
       this.buildMetricCard('energy', 'Energy', 'bolt', summary.energy)
     ];
+  });
+
+  readonly heroPhrase = computed<{ suffix: string; subtext: string }>(() => {
+    if (this.summaryResource.isLoading()) {
+      return { suffix: 'is thriving.', subtext: "Weekly summary and today's rhythm." };
+    }
+
+    const tiers: HeroPhraseTier[] = this.heroPhraseTiersResource.hasValue()
+      ? this.heroPhraseTiersResource.value()!.tiers
+      : FALLBACK_HERO_PHRASE_TIERS;
+
+    const selectPhrase = (tier: HeroPhraseTier) => {
+      const phrase = tier.phrases[this.dayOfYear(new Date()) % tier.phrases.length];
+      return { suffix: phrase.headline.replace('{participant} ', ''), subtext: phrase.subtext };
+    };
+
+    if (!this.summaryResource.hasValue()) {
+      const tier = tiers.find(t => t.condition === 'no-data') ?? tiers[0];
+      return selectPhrase(tier);
+    }
+
+    const summary = this.summaryResource.value()!;
+    const moodScore = summary.mood.latestScore;
+    const focusScore = summary.focus.latestScore;
+    const sleepScore = summary.sleep.latestScore;
+
+    if (moodScore === null && focusScore === null && sleepScore === null) {
+      const tier = tiers.find(t => t.condition === 'no-data') ?? tiers[0];
+      return selectPhrase(tier);
+    }
+
+    const scores = [moodScore, focusScore, sleepScore].filter((s): s is number => s !== null);
+    const composite = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+
+    const tier = tiers.find(t => {
+      if (typeof t.condition === 'string') return false;
+      return composite >= t.condition.min && composite <= t.condition.max;
+    }) ?? tiers.find(t => t.condition === 'no-data') ?? tiers[0];
+
+    return selectPhrase(tier);
   });
 
   formatFunction(value: string): string {
@@ -1144,5 +1189,10 @@ export class InsightsDashboardComponent {
 
   private firstName(name: string): string {
     return name.trim().split(/\s+/)[0] ?? '';
+  }
+
+  private dayOfYear(date: Date): number {
+    const start = new Date(date.getFullYear(), 0, 1);
+    return Math.round((date.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   }
 }

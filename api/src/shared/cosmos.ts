@@ -10,6 +10,7 @@ export interface ParticipantsCosmosConfig {
   medicationLogsContainerId: string;
   dailyReflectionsContainerId: string;
   eventIndexContainerId: string;
+  heroPhraseTiersContainerId: string;
 }
 
 /**
@@ -28,6 +29,7 @@ export interface CosmosConfig {
   medicationLogsContainerId: string;
   dailyReflectionsContainerId: string;
   eventIndexContainerId: string;
+  heroPhraseTiersContainerId: string;
 }
 
 export interface CosmosContainers {
@@ -40,6 +42,7 @@ export interface CosmosContainers {
   medicationLogs: Container;
   dailyReflections: Container;
   eventIndex: Container;
+  heroPhraseTiers: Container;
 }
 
 let cachedClient: CosmosClient | null = null;
@@ -65,6 +68,7 @@ export async function buildCosmos(
     medicationLogsContainerId: process.env.COSMOS_MEDICATION_LOGS_CONTAINER || 'medicationLogs',
     dailyReflectionsContainerId: process.env.COSMOS_DAILY_REFLECTIONS_CONTAINER || 'dailyReflections',
     eventIndexContainerId: process.env.COSMOS_EVENT_INDEX_CONTAINER || 'eventIndex',
+    heroPhraseTiersContainerId: process.env.COSMOS_HERO_PHRASE_TIERS_CONTAINER || 'heroPhraseTiers',
     ...config
   };
 
@@ -142,6 +146,10 @@ export async function buildCosmos(
       ]
     }
   });
+  const { container: heroPhraseTiersContainer } = await database.containers.createIfNotExists({
+    id: resolved.heroPhraseTiersContainerId,
+    partitionKey: { paths: ['/id'] }
+  });
 
   cachedClient = client;
   cachedContainers = {
@@ -153,7 +161,8 @@ export async function buildCosmos(
     medications: medicationsContainer,
     medicationLogs: medicationLogsContainer,
     dailyReflections: dailyReflectionsContainer,
-    eventIndex: eventIndexContainer
+    eventIndex: eventIndexContainer,
+    heroPhraseTiers: heroPhraseTiersContainer
   };
 
   return {

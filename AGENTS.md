@@ -35,6 +35,7 @@ docs/
 |   `-- participant-association.md
 |-- product-specs/
 |   |-- behavior-tracking-abc.md
+|   |-- dynamic-hero-phrase.md
 |   |-- medication-command-center.md
 |   `-- medication-frequency.md
 |-- runbooks/
