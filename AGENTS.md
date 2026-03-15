@@ -36,6 +36,7 @@ docs/
 |-- product-specs/
 |   |-- behavior-tracking-abc.md
 |   |-- dynamic-hero-phrase.md
+|   |-- daily-reflection-scoring.md
 |   |-- medication-command-center.md
 |   `-- medication-frequency.md
 |-- runbooks/
@@ -51,7 +52,6 @@ docs/
 |   `-- README.md
 `-- backlog/
     |-- README.md
-    |-- daily-reflection-scoring.md
     |-- daily-reflection-historical-entry.md
     |-- dynamic-hero-phrase.md
     |-- frontend-component-modularization-plan.md

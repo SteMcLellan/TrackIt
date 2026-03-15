@@ -3,10 +3,10 @@ export type DailyReflection = {
   participantId: string;
   logLocalDate: string;
   logTzOffsetMinutes: number;
-  moodScore: number;
-  focusScore: number;
-  energyScore: number;
-  sleepScore: number;
+  moodScore: number | null;
+  focusScore: number | null;
+  energyScore: number | null;
+  sleepScore: number | null;
   journalNote?: string;
   createdAtUtc: string;
   updatedAtUtc: string;
@@ -16,10 +16,10 @@ export type DailyReflection = {
 
 export type UpsertDailyReflectionRequest = {
   logTzOffsetMinutes: number;
-  moodScore: number;
-  focusScore: number;
-  energyScore: number;
-  sleepScore: number;
+  moodScore?: number | null;
+  focusScore?: number | null;
+  energyScore?: number | null;
+  sleepScore?: number | null;
   journalNote?: string;
 };
 

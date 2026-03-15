@@ -463,10 +463,10 @@ export class DailyReflectionComponent {
 
   readonly activeParticipantId = this.participantService.activeParticipantId;
   readonly todayLocalDate = signal(this.formatLocalDate(new Date()));
-  readonly moodScore = signal(50);
-  readonly focusScore = signal(50);
-  readonly energyScore = signal(50);
-  readonly sleepScore = signal(50);
+  readonly moodScore = signal<number | null>(50);
+  readonly focusScore = signal<number | null>(50);
+  readonly energyScore = signal<number | null>(50);
+  readonly sleepScore = signal<number | null>(50);
   readonly journalNote = signal('');
   readonly isSaving = signal(false);
   readonly errorMessage = signal<string | null>(null);

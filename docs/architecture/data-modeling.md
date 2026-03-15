@@ -68,11 +68,13 @@ All loggable domain items should include:
 - `updatedAtUtc?`
 
 For daily reflections:
-- `moodScore` (`0..100`)
-- `focusScore` (`0..100`)
-- `energyScore` (`0..100`)
-- `sleepScore` (`0..100`)
+- `moodScore` (`0..100 | null`)
+- `focusScore` (`0..100 | null`)
+- `energyScore` (`0..100 | null`)
+- `sleepScore` (`0..100 | null`)
 - `journalNote?`
+
+Score fields are `number | null`. Partial entries (any non-empty subset of dimensions) are permitted; at least one score must be provided. Null dimensions are excluded from averages and trend calculations — no interpolation for missing values in charts.
 
 ### Time-based additions
 For items where time-of-day matters:

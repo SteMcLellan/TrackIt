@@ -16,10 +16,10 @@ import { participantMiddleware } from '../shared/middleware/participant';
 
 type UpsertDailyReflectionRequest = {
   logTzOffsetMinutes: number;
-  moodScore: number;
-  focusScore: number;
-  energyScore: number;
-  sleepScore: number;
+  moodScore?: number | null;
+  focusScore?: number | null;
+  energyScore?: number | null;
+  sleepScore?: number | null;
   journalNote?: string;
 };
 
@@ -76,6 +76,11 @@ function isScore(value: unknown): value is number {
     value <= 100;
 }
 
+function isOptionalScore(value: unknown): value is number | null | undefined {
+  if (value === null || value === undefined) return true;
+  return isScore(value);
+}
+
 function validateListRequest(startDate: string | null, endDate: string | null): ValidationErrorDetail[] {
   const errors: ValidationErrorDetail[] = [];
   if (!startDate || !isDateOnly(startDate)) {
@@ -123,28 +128,37 @@ function validateUpsertRequest(
     });
   }
 
-  if (!isScore(body.moodScore)) {
+  if (!isOptionalScore(body.moodScore)) {
     errors.push({
       id: 'dailyReflections.moodScore.invalid',
       message: 'moodScore must be an integer between 0 and 100.'
     });
   }
-  if (!isScore(body.focusScore)) {
+  if (!isOptionalScore(body.focusScore)) {
     errors.push({
       id: 'dailyReflections.focusScore.invalid',
       message: 'focusScore must be an integer between 0 and 100.'
     });
   }
-  if (!isScore(body.energyScore)) {
+  if (!isOptionalScore(body.energyScore)) {
     errors.push({
       id: 'dailyReflections.energyScore.invalid',
       message: 'energyScore must be an integer between 0 and 100.'
     });
   }
-  if (!isScore(body.sleepScore)) {
+  if (!isOptionalScore(body.sleepScore)) {
     errors.push({
       id: 'dailyReflections.sleepScore.invalid',
       message: 'sleepScore must be an integer between 0 and 100.'
+    });
+  }
+
+  const hasAnyScore = [body.moodScore, body.focusScore, body.energyScore, body.sleepScore]
+    .some((v) => v !== null && v !== undefined);
+  if (!hasAnyScore) {
+    errors.push({
+      id: 'dailyReflections.scores.allNull',
+      message: 'At least one score dimension must be provided.'
     });
   }
 
@@ -195,7 +209,7 @@ function average(values: number[]): number | null {
 function buildMetricSummary(
   dateRange: string[],
   byDate: Map<string, DailyReflectionDocument>,
-  selector: (item: DailyReflectionDocument) => number
+  selector: (item: DailyReflectionDocument) => number | null
 ): MetricSummary {
   const points = dateRange.map((logLocalDate) => {
     const item = byDate.get(logLocalDate);
@@ -207,7 +221,9 @@ function buildMetricSummary(
 
   const latestItem = [...byDate.values()]
     .sort((a, b) => b.logLocalDate.localeCompare(a.logLocalDate))[0];
-  const values = [...byDate.values()].map(selector);
+  const values = [...byDate.values()]
+    .map(selector)
+    .filter((v): v is number => v !== null);
 
   return {
     points,
@@ -287,10 +303,10 @@ const upsertDailyReflectionBusinessHandler = async (
     participantId,
     logLocalDate,
     logTzOffsetMinutes: parsed.value.logTzOffsetMinutes,
-    moodScore: parsed.value.moodScore,
-    focusScore: parsed.value.focusScore,
-    energyScore: parsed.value.energyScore,
-    sleepScore: parsed.value.sleepScore,
+    moodScore: parsed.value.moodScore ?? null,
+    focusScore: parsed.value.focusScore ?? null,
+    energyScore: parsed.value.energyScore ?? null,
+    sleepScore: parsed.value.sleepScore ?? null,
     journalNote: normalizedNote.length > 0 ? normalizedNote : undefined,
     createdAtUtc: existing?.createdAtUtc ?? now,
     updatedAtUtc: now,

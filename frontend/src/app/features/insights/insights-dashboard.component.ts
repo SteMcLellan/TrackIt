@@ -30,7 +30,10 @@ type WeeklyMetricCard = {
   icon: string;
   scoreLabel: string;
   path: string;
+  rollingAveragePath: string;
+  dataDots: Array<{ x: number; y: number }>;
   swingMarkers: SwingMarker[];
+  referenceLineY: number | null;
 };
 
 /**
@@ -96,9 +99,18 @@ type WeeklyMetricCard = {
                 </div>
                 <p class="metric-value">{{ metric.scoreLabel }}</p>
                 <svg viewBox="0 0 100 40" aria-hidden="true">
+                  @if (metric.referenceLineY !== null) {
+                    <line class="reference-line" x1="0" [attr.y1]="metric.referenceLineY" x2="100" [attr.y2]="metric.referenceLineY" />
+                  }
                   <path [attr.d]="metric.path"></path>
+                  @if (metric.rollingAveragePath) {
+                    <path class="rolling-avg" [attr.d]="metric.rollingAveragePath"></path>
+                  }
+                  @for (dot of metric.dataDots; track $index) {
+                    <circle class="data-dot" [attr.cx]="dot.x" [attr.cy]="dot.y" r="1.8" />
+                  }
                   @for (marker of metric.swingMarkers; track $index) {
-                    <circle class="swing-marker" [attr.cx]="marker.x" [attr.cy]="marker.y" r="2.5" />
+                    <polygon class="swing-marker" [attr.points]="swingDiamondPoints(marker.x, marker.y)" />
                   }
                 </svg>
               </article>
@@ -386,10 +398,28 @@ type WeeklyMetricCard = {
       stroke-linejoin: round;
     }
 
-    .metric-card .swing-marker {
-      fill: white;
+    .metric-card .reference-line {
       stroke: currentColor;
-      stroke-width: 2;
+      stroke-width: 1;
+      stroke-dasharray: 3 2;
+      opacity: 0.35;
+    }
+
+    .metric-card .rolling-avg {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.5;
+      stroke-dasharray: 4 2;
+      opacity: 0.55;
+    }
+
+    .metric-card .data-dot {
+      fill: currentColor;
+    }
+
+    .metric-card .swing-marker {
+      fill: #f97316;
+      stroke: none;
     }
 
     .metric-head {
@@ -1083,17 +1113,20 @@ export class InsightsDashboardComponent {
       icon,
       scoreLabel: this.metricDescriptor(key, summary.latestScore),
       path: this.buildSparklinePath(points),
+      rollingAveragePath: this.buildRollingAveragePath(points),
+      dataDots: this.buildDataDots(points),
       swingMarkers: this.buildSwingMarkers(points),
+      referenceLineY: key === 'energy' ? this.scoreToY(50) : null
     };
   }
 
   private defaultMetricCards(): WeeklyMetricCard[] {
     const flatPath = this.buildSparklinePath([]);
     return [
-      { key: 'mood', label: 'Mood', icon: 'sentiment_satisfied', scoreLabel: 'No Data', path: flatPath, swingMarkers: [] },
-      { key: 'focus', label: 'Focus', icon: 'center_focus_strong', scoreLabel: 'No Data', path: flatPath, swingMarkers: [] },
-      { key: 'sleep', label: 'Sleep', icon: 'bedtime', scoreLabel: 'No Data', path: flatPath, swingMarkers: [] },
-      { key: 'energy', label: 'Energy', icon: 'bolt', scoreLabel: 'No Data', path: flatPath, swingMarkers: [] }
+      { key: 'mood', label: 'Mood', icon: 'sentiment_satisfied', scoreLabel: 'No Data', path: flatPath, rollingAveragePath: '', dataDots: [], swingMarkers: [], referenceLineY: null },
+      { key: 'focus', label: 'Focus', icon: 'center_focus_strong', scoreLabel: 'No Data', path: flatPath, rollingAveragePath: '', dataDots: [], swingMarkers: [], referenceLineY: null },
+      { key: 'sleep', label: 'Sleep', icon: 'bedtime', scoreLabel: 'No Data', path: flatPath, rollingAveragePath: '', dataDots: [], swingMarkers: [], referenceLineY: null },
+      { key: 'energy', label: 'Energy', icon: 'bolt', scoreLabel: 'No Data', path: flatPath, rollingAveragePath: '', dataDots: [], swingMarkers: [], referenceLineY: this.scoreToY(50) }
     ];
   }
 
@@ -1131,19 +1164,77 @@ export class InsightsDashboardComponent {
   }
 
   private buildSparklinePath(points: Array<number | null>): string {
-    const resolved = points.length > 0 ? points : [50, 50, 50, 50];
-    const transformed = resolved.map((value) => value ?? 50);
-    if (transformed.length === 1) {
-      const y = this.scoreToY(transformed[0]);
+    if (points.length === 0) {
+      const y = this.scoreToY(50);
       return `M0,${y} L100,${y}`;
     }
-    return transformed
-      .map((value, index) => {
-        const x = (index / (transformed.length - 1)) * 100;
-        const y = this.scoreToY(value);
-        return `${index === 0 ? 'M' : 'L'}${x},${y}`;
-      })
-      .join(' ');
+    const n = points.length;
+    const parts: string[] = [];
+    let inSegment = false;
+    for (let i = 0; i < n; i++) {
+      const val = points[i];
+      if (val === null) {
+        inSegment = false;
+        continue;
+      }
+      const x = n === 1 ? 50 : Number(((i / (n - 1)) * 100).toFixed(2));
+      const y = this.scoreToY(val);
+      if (!inSegment) {
+        parts.push(`M${x},${y}`);
+        inSegment = true;
+      } else {
+        parts.push(`L${x},${y}`);
+      }
+    }
+    return parts.join(' ') || `M0,${this.scoreToY(50)} L100,${this.scoreToY(50)}`;
+  }
+
+  private buildRollingAveragePath(points: Array<number | null>): string {
+    const n = points.length;
+    if (n === 0) return '';
+    const windowSize = 7;
+    const avgPoints: Array<number | null> = [];
+    for (let i = 0; i < n; i++) {
+      const start = Math.max(0, i - windowSize + 1);
+      const slice = points.slice(start, i + 1).filter((v): v is number => v !== null);
+      avgPoints.push(slice.length > 0 ? slice.reduce((a, b) => a + b, 0) / slice.length : null);
+    }
+    const parts: string[] = [];
+    let inSegment = false;
+    for (let i = 0; i < n; i++) {
+      const val = avgPoints[i];
+      if (val === null) {
+        inSegment = false;
+        continue;
+      }
+      const x = n === 1 ? 50 : Number(((i / (n - 1)) * 100).toFixed(2));
+      const y = Number(this.scoreToY(val).toFixed(2));
+      if (!inSegment) {
+        parts.push(`M${x},${y}`);
+        inSegment = true;
+      } else {
+        parts.push(`L${x},${y}`);
+      }
+    }
+    return parts.join(' ');
+  }
+
+  private buildDataDots(points: Array<number | null>): Array<{ x: number; y: number }> {
+    const n = points.length;
+    return points.reduce<Array<{ x: number; y: number }>>((acc, val, i) => {
+      if (val !== null) {
+        acc.push({
+          x: n === 1 ? 50 : Number(((i / (n - 1)) * 100).toFixed(2)),
+          y: this.scoreToY(val)
+        });
+      }
+      return acc;
+    }, []);
+  }
+
+  swingDiamondPoints(x: number, y: number): string {
+    const s = 3.5;
+    return `${x},${y - s} ${x + s},${y} ${x},${y + s} ${x - s},${y}`;
   }
 
   private scoreToY(score: number): number {

@@ -140,6 +140,91 @@ describe('daily-reflections handlers', () => {
     expect(appendTimelineEventMock).toHaveBeenCalledTimes(1);
   });
 
+  it('upsertDailyReflectionHandler allows partial entry with only some scores', async () => {
+    const containers = createCosmosContainersStub();
+    buildCosmosMock.mockResolvedValue({ containers });
+    readDailyReflectionMock.mockResolvedValue(null);
+    const response = await upsertDailyReflectionHandler(
+      mockHttpRequest({
+        method: 'PUT',
+        params: { participantId: 'participant_1', logLocalDate: '2026-01-01' },
+        body: {
+          logTzOffsetMinutes: 0,
+          moodScore: 70
+        }
+      }),
+      mockInvocationContext()
+    );
+    expect(response.status).toBe(200);
+    const body = response.jsonBody as Record<string, unknown>;
+    expect(body['moodScore']).toBe(70);
+    expect(body['focusScore']).toBeNull();
+    expect(body['energyScore']).toBeNull();
+    expect(body['sleepScore']).toBeNull();
+  });
+
+  it('upsertDailyReflectionHandler rejects when all scores are null', async () => {
+    const containers = createCosmosContainersStub();
+    buildCosmosMock.mockResolvedValue({ containers });
+    const response = await upsertDailyReflectionHandler(
+      mockHttpRequest({
+        method: 'PUT',
+        params: { participantId: 'participant_1', logLocalDate: '2026-01-01' },
+        body: {
+          logTzOffsetMinutes: 0,
+          moodScore: null,
+          focusScore: null,
+          energyScore: null,
+          sleepScore: null
+        }
+      }),
+      mockInvocationContext()
+    );
+    expect(response.status).toBe(400);
+    const errors = ((response.jsonBody as { errors?: Array<{ id: string }> }).errors ?? []);
+    expect(errors.some((e) => e.id === 'dailyReflections.scores.allNull')).toBe(true);
+  });
+
+  it('dailyReflectionsSummaryHandler excludes null scores from average', async () => {
+    const containers = createCosmosContainersStub();
+    (containers.dailyReflections.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      fetchAll: vi.fn().mockResolvedValue({
+        resources: [
+          {
+            id: 'daily_reflection_2026-01-01',
+            participantId: 'participant_1',
+            logLocalDate: '2026-01-01',
+            logTzOffsetMinutes: 0,
+            moodScore: 70,
+            focusScore: null,
+            energyScore: 50,
+            sleepScore: null,
+            createdAtUtc: '2026-01-01T00:00:00.000Z',
+            updatedAtUtc: '2026-01-01T00:00:00.000Z',
+            createdByUserId: 'user-1',
+            updatedByUserId: 'user-1'
+          }
+        ]
+      })
+    });
+    buildCosmosMock.mockResolvedValue({ containers });
+    const response = await dailyReflectionsSummaryHandler(
+      mockHttpRequest({
+        params: { participantId: 'participant_1' },
+        query: { endDate: '2026-01-01', days: '1' }
+      }),
+      mockInvocationContext()
+    );
+    expect(response.status).toBe(200);
+    const body = response.jsonBody as Record<string, unknown>;
+    const mood = body['mood'] as { averageScore: number | null; latestScore: number | null };
+    const focus = body['focus'] as { averageScore: number | null; latestScore: number | null };
+    expect(mood.averageScore).toBe(70);
+    expect(mood.latestScore).toBe(70);
+    expect(focus.averageScore).toBeNull();
+    expect(focus.latestScore).toBeNull();
+  });
+
   it('dailyReflectionsSummaryHandler validates invalid/future endDate', async () => {
     const containers = createCosmosContainersStub();
     buildCosmosMock.mockResolvedValue({ containers });

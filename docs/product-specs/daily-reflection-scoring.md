@@ -12,13 +12,15 @@ Parents capture a daily reflection for each participant across four dimensions: 
 
 Each dimension is stored as an integer **0–100** on the `dailyReflections` document (see `docs/architecture/data-modeling.md`).
 
-| Field         | Type    | Range  |
-|---------------|---------|--------|
-| `moodScore`   | integer | 0–100  |
-| `focusScore`  | integer | 0–100  |
-| `energyScore` | integer | 0–100  |
-| `sleepScore`  | integer | 0–100  |
-| `journalNote` | string? | —      |
+| Field         | Type             | Range  |
+|---------------|------------------|--------|
+| `moodScore`   | integer \| null  | 0–100  |
+| `focusScore`  | integer \| null  | 0–100  |
+| `energyScore` | integer \| null  | 0–100  |
+| `sleepScore`  | integer \| null  | 0–100  |
+| `journalNote` | string?          | —      |
+
+Score fields are nullable; partial entries (any non-empty subset of dimensions) are allowed. Null dimensions are excluded from averages and trend calculations. At least one score dimension must be provided.
 
 ### 1.2 Bucket Mapping
 
@@ -82,10 +84,10 @@ interface DailyReflectionDocument {
   id: string;
   participantId: string;
   logLocalDate: string;          // "2026-02-14"
-  moodScore: number;             // 0–100
-  focusScore: number;            // 0–100
-  energyScore: number;           // 0–100
-  sleepScore: number;            // 0–100
+  moodScore: number | null;      // 0–100, null if not provided
+  focusScore: number | null;     // 0–100, null if not provided
+  energyScore: number | null;    // 0–100, null if not provided
+  sleepScore: number | null;     // 0–100, null if not provided
   journalNote?: string;
   createdAtUtc: string;          // ISO 8601
   updatedAtUtc?: string;         // ISO 8601
@@ -279,20 +281,20 @@ If parents want finer control, offer an optional slider that maps to the 0–100
 - [x] One reflection per participant per `logLocalDate`.
 - [x] Re-opening the same day loads existing values for editing.
 - [x] Save updates `updatedAtUtc`; first save sets `createdAtUtc`.
-- [ ] Partial entries (some dimensions null) are allowed.
+- [x] Partial entries (some dimensions null) are allowed.
 
 ### US-DR-004: Display & Trend
 
 - [x] Dashboard card shows today's reflection as bucket labels (or prompt if missing).
-- [ ] Trend view shows 7-day rolling average as a line with individual day dots.
-- [ ] Missing days appear as gaps, not zeros.
-- [ ] Extreme swings are visually marked on the chart.
-- [ ] Energy chart displays a horizontal reference line at Level (score 50).
+- [x] Trend view shows 7-day rolling average as a line with individual day dots.
+- [x] Missing days appear as gaps, not zeros.
+- [x] Extreme swings are visually marked on the chart.
+- [x] Energy chart displays a horizontal reference line at Level (score 50).
 - [x] Energy chart has no directional color gradient or up/down arrow treatment.
 - [x] Automated insight copy for energy always includes the bucket label alongside any score reference.
 
 ### US-DR-005: Edge Case Handling
 
-- [ ] Null dimensions excluded from averages and trend calculations.
+- [x] Null dimensions excluded from averages and trend calculations.
 - [x] Default selection (Balanced) has tooltip explaining its meaning.
-- [ ] No interpolation for missing days in charts.
+- [x] No interpolation for missing days in charts.
