@@ -54,6 +54,7 @@ docs/
     |-- README.md
     |-- daily-reflection-historical-entry.md
     |-- dynamic-hero-phrase.md
+    |-- timeline-day-browser.md
     |-- frontend-component-modularization-plan.md
     |-- multi-caregiver-mvp.md
     |-- non-google-auth-for-automation-and-agent-access.md
