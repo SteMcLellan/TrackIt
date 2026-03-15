@@ -1427,7 +1427,38 @@
           "y": 0,
           "width": 390,
           "height": 64,
-          "name": "topRef"
+          "name": "topRef",
+          "descendants": {
+            "gqym3": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 16,
+              "y": 22
+            },
+            "RQ00n": {
+              "y": 0
+            },
+            "7dzpU": {
+              "x": 34
+            },
+            "CJ5Oq": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 294,
+              "y": 16
+            },
+            "qJ8Gl": {
+              "x": 8,
+              "y": 8
+            },
+            "gcyPo": {
+              "x": 44
+            },
+            "0fbvi": {
+              "x": 8,
+              "y": 8
+            }
+          }
         },
         {
           "id": "8Epc8",
@@ -1437,7 +1468,50 @@
           "y": 1062,
           "width": 390,
           "height": 86,
-          "name": "bottomRef"
+          "name": "bottomRef",
+          "descendants": {
+            "3PjXC": {
+              "width": "fill_container",
+              "height": "fill_container",
+              "y": 8
+            },
+            "nIb38": {
+              "x": 52,
+              "y": 13.5
+            },
+            "NjMyC": {
+              "x": 43,
+              "y": 43.5
+            },
+            "MNAJL": {
+              "width": "fill_container",
+              "height": "fill_container",
+              "x": 130,
+              "y": 8
+            },
+            "rcv2I": {
+              "x": 52,
+              "y": 13.5
+            },
+            "rpoj7": {
+              "x": 43.5,
+              "y": 43.5
+            },
+            "1MgHy": {
+              "width": "fill_container",
+              "height": "fill_container",
+              "x": 260,
+              "y": 8
+            },
+            "T5RvA": {
+              "x": 52,
+              "y": 13.5
+            },
+            "8Tlby": {
+              "x": 46,
+              "y": 43.5
+            }
+          }
         }
       ]
     },
@@ -1739,7 +1813,38 @@
           "x": 0,
           "y": 0,
           "width": 390,
-          "height": 64
+          "height": 64,
+          "descendants": {
+            "gqym3": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 16,
+              "y": 22
+            },
+            "RQ00n": {
+              "y": 0
+            },
+            "7dzpU": {
+              "x": 34
+            },
+            "CJ5Oq": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 294,
+              "y": 16
+            },
+            "qJ8Gl": {
+              "x": 8,
+              "y": 8
+            },
+            "gcyPo": {
+              "x": 44
+            },
+            "0fbvi": {
+              "x": 8,
+              "y": 8
+            }
+          }
         },
         {
           "type": "frame",
@@ -1772,7 +1877,50 @@
           "x": 0,
           "y": 758,
           "width": 390,
-          "height": 86
+          "height": 86,
+          "descendants": {
+            "3PjXC": {
+              "width": "fill_container",
+              "height": "fill_container",
+              "y": 8
+            },
+            "nIb38": {
+              "x": 52,
+              "y": 13.5
+            },
+            "NjMyC": {
+              "x": 43,
+              "y": 43.5
+            },
+            "MNAJL": {
+              "width": "fill_container",
+              "height": "fill_container",
+              "x": 130,
+              "y": 8
+            },
+            "rcv2I": {
+              "x": 52,
+              "y": 13.5
+            },
+            "rpoj7": {
+              "x": 43.5,
+              "y": 43.5
+            },
+            "1MgHy": {
+              "width": "fill_container",
+              "height": "fill_container",
+              "x": 260,
+              "y": 8
+            },
+            "T5RvA": {
+              "x": 52,
+              "y": 13.5
+            },
+            "8Tlby": {
+              "x": 46,
+              "y": 43.5
+            }
+          }
         }
       ]
     },
@@ -1786,6 +1934,35 @@
       "width": 390,
       "height": 1700,
       "descendants": {
+        "VfVHo/gqym3": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 16,
+          "y": 22
+        },
+        "VfVHo/RQ00n": {
+          "y": 0
+        },
+        "VfVHo/7dzpU": {
+          "x": 34
+        },
+        "VfVHo/CJ5Oq": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 294,
+          "y": 16
+        },
+        "VfVHo/qJ8Gl": {
+          "x": 8,
+          "y": 8
+        },
+        "VfVHo/gcyPo": {
+          "x": 44
+        },
+        "VfVHo/0fbvi": {
+          "x": 8,
+          "y": 8
+        },
         "TYvB8": {
           "type": "frame",
           "id": "aYkWY",
@@ -3149,11 +3326,48 @@
           "width": 390,
           "height": 86
         },
+        "onBkM/3PjXC": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "y": 8
+        },
         "onBkM/nIb38": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 52,
+          "y": 13.5
         },
         "onBkM/NjMyC": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 43,
+          "y": 43.5
+        },
+        "onBkM/MNAJL": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "x": 130,
+          "y": 8
+        },
+        "onBkM/rcv2I": {
+          "x": 52,
+          "y": 13.5
+        },
+        "onBkM/rpoj7": {
+          "x": 43.5,
+          "y": 43.5
+        },
+        "onBkM/1MgHy": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "x": 260,
+          "y": 8
+        },
+        "onBkM/T5RvA": {
+          "x": 52,
+          "y": 13.5
+        },
+        "onBkM/8Tlby": {
+          "x": 46,
+          "y": 43.5
         }
       }
     },
@@ -3167,6 +3381,35 @@
       "width": 390,
       "height": 1880,
       "descendants": {
+        "VfVHo/gqym3": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 16,
+          "y": 22
+        },
+        "VfVHo/RQ00n": {
+          "y": 0
+        },
+        "VfVHo/7dzpU": {
+          "x": 34
+        },
+        "VfVHo/CJ5Oq": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 294,
+          "y": 16
+        },
+        "VfVHo/qJ8Gl": {
+          "x": 8,
+          "y": 8
+        },
+        "VfVHo/gcyPo": {
+          "x": 44
+        },
+        "VfVHo/0fbvi": {
+          "x": 8,
+          "y": 8
+        },
         "TYvB8": {
           "type": "frame",
           "id": "nrHf0",
@@ -3880,11 +4123,48 @@
           "width": 390,
           "height": 86
         },
+        "onBkM/3PjXC": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "y": 8
+        },
         "onBkM/nIb38": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 52,
+          "y": 13.5
         },
         "onBkM/NjMyC": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 43,
+          "y": 43.5
+        },
+        "onBkM/MNAJL": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "x": 130,
+          "y": 8
+        },
+        "onBkM/rcv2I": {
+          "x": 52,
+          "y": 13.5
+        },
+        "onBkM/rpoj7": {
+          "x": 43.5,
+          "y": 43.5
+        },
+        "onBkM/1MgHy": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "x": 260,
+          "y": 8
+        },
+        "onBkM/T5RvA": {
+          "x": 52,
+          "y": 13.5
+        },
+        "onBkM/8Tlby": {
+          "x": 46,
+          "y": 43.5
         }
       }
     },
@@ -3898,6 +4178,35 @@
       "width": 390,
       "height": 2224,
       "descendants": {
+        "VfVHo/gqym3": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 16,
+          "y": 22
+        },
+        "VfVHo/RQ00n": {
+          "y": 0
+        },
+        "VfVHo/7dzpU": {
+          "x": 34
+        },
+        "VfVHo/CJ5Oq": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 294,
+          "y": 16
+        },
+        "VfVHo/qJ8Gl": {
+          "x": 8,
+          "y": 8
+        },
+        "VfVHo/gcyPo": {
+          "x": 44
+        },
+        "VfVHo/0fbvi": {
+          "x": 8,
+          "y": 8
+        },
         "TYvB8": {
           "type": "frame",
           "id": "YKkon",
@@ -4081,7 +4390,8 @@
                                   "fill": "#475569",
                                   "content": "attention at School",
                                   "fontFamily": "Inter",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 },
                                 {
                                   "type": "frame",
@@ -4200,7 +4510,8 @@
                                   "fill": "#475569",
                                   "content": "Methylphenidate 10 mg logged by caregiver.",
                                   "fontFamily": "Inter",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -4288,7 +4599,8 @@
                                   "fill": "#475569",
                                   "content": "Had a great day at school today.",
                                   "fontFamily": "Inter",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 },
                                 {
                                   "type": "frame",
@@ -4518,7 +4830,8 @@
                                   "fill": "#475569",
                                   "content": "New PRN medication regimen saved.",
                                   "fontFamily": "Inter",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -4606,7 +4919,8 @@
                                   "fill": "#475569",
                                   "content": "escape at Playground",
                                   "fontFamily": "Inter",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 },
                                 {
                                   "type": "frame",
@@ -4667,23 +4981,52 @@
           "x": 0,
           "y": 2138
         },
+        "onBkM/3PjXC": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "y": 8
+        },
         "onBkM/nIb38": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 52,
+          "y": 13.5
         },
         "onBkM/NjMyC": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 43,
+          "y": 43.5
+        },
+        "onBkM/MNAJL": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "x": 130,
+          "y": 8
         },
         "onBkM/rcv2I": {
-          "fill": "#8b5cf6"
+          "fill": "#8b5cf6",
+          "x": 52,
+          "y": 13.5
         },
         "onBkM/rpoj7": {
-          "fill": "#8b5cf6"
+          "fill": "#8b5cf6",
+          "x": 43.5,
+          "y": 43.5
+        },
+        "onBkM/1MgHy": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "x": 260,
+          "y": 8
         },
         "onBkM/T5RvA": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 52,
+          "y": 13.5
         },
         "onBkM/8Tlby": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 46,
+          "y": 43.5
         }
       }
     },
@@ -4697,6 +5040,35 @@
       "width": 390,
       "height": 2440,
       "descendants": {
+        "VfVHo/gqym3": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 16,
+          "y": 22
+        },
+        "VfVHo/RQ00n": {
+          "y": 0
+        },
+        "VfVHo/7dzpU": {
+          "x": 34
+        },
+        "VfVHo/CJ5Oq": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 294,
+          "y": 16
+        },
+        "VfVHo/qJ8Gl": {
+          "x": 8,
+          "y": 8
+        },
+        "VfVHo/gcyPo": {
+          "x": 44
+        },
+        "VfVHo/0fbvi": {
+          "x": 8,
+          "y": 8
+        },
         "TYvB8": {
           "type": "frame",
           "id": "xhTfe",
@@ -5055,7 +5427,8 @@
                       "fill": "#94a3b8",
                       "content": "Describe what happened before...",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -5197,7 +5570,8 @@
                       "fill": "#94a3b8",
                       "content": "Describe the behavior...",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -5339,7 +5713,8 @@
                       "fill": "#94a3b8",
                       "content": "What was the outcome?",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -5624,6 +5999,47 @@
           "y": 2354,
           "width": 390,
           "height": 86
+        },
+        "onBkM/3PjXC": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "y": 8
+        },
+        "onBkM/nIb38": {
+          "x": 52,
+          "y": 13.5
+        },
+        "onBkM/NjMyC": {
+          "x": 43,
+          "y": 43.5
+        },
+        "onBkM/MNAJL": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "x": 130,
+          "y": 8
+        },
+        "onBkM/rcv2I": {
+          "x": 52,
+          "y": 13.5
+        },
+        "onBkM/rpoj7": {
+          "x": 43.5,
+          "y": 43.5
+        },
+        "onBkM/1MgHy": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "x": 260,
+          "y": 8
+        },
+        "onBkM/T5RvA": {
+          "x": 52,
+          "y": 13.5
+        },
+        "onBkM/8Tlby": {
+          "x": 46,
+          "y": 43.5
         }
       }
     },
@@ -5637,6 +6053,35 @@
       "width": 390,
       "height": 2620,
       "descendants": {
+        "VfVHo/gqym3": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 16,
+          "y": 22
+        },
+        "VfVHo/RQ00n": {
+          "y": 0
+        },
+        "VfVHo/7dzpU": {
+          "x": 34
+        },
+        "VfVHo/CJ5Oq": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 294,
+          "y": 16
+        },
+        "VfVHo/qJ8Gl": {
+          "x": 8,
+          "y": 8
+        },
+        "VfVHo/gcyPo": {
+          "x": 44
+        },
+        "VfVHo/0fbvi": {
+          "x": 8,
+          "y": 8
+        },
         "TYvB8": {
           "type": "frame",
           "id": "9VF7p",
@@ -6433,25 +6878,775 @@
           "width": 390,
           "height": 86
         },
+        "onBkM/3PjXC": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "y": 8
+        },
         "onBkM/nIb38": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 52,
+          "y": 13.5
         },
         "onBkM/NjMyC": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 43,
+          "y": 43.5
+        },
+        "onBkM/MNAJL": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "x": 130,
+          "y": 8
         },
         "onBkM/rcv2I": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 52,
+          "y": 13.5
         },
         "onBkM/rpoj7": {
-          "fill": "#94a3b8"
+          "fill": "#94a3b8",
+          "x": 43.5,
+          "y": 43.5
+        },
+        "onBkM/1MgHy": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "x": 260,
+          "y": 8
         },
         "onBkM/T5RvA": {
-          "fill": "#8b5cf6"
+          "fill": "#8b5cf6",
+          "x": 52,
+          "y": 13.5
         },
         "onBkM/8Tlby": {
-          "fill": "#8b5cf6"
+          "fill": "#8b5cf6",
+          "x": 46,
+          "y": 43.5
         }
       }
+    },
+    {
+      "type": "frame",
+      "id": "LufGI",
+      "x": 4023,
+      "y": -217,
+      "name": "Invite Accept - Success",
+      "width": 390,
+      "height": 844,
+      "fill": "#fcfcfd",
+      "layout": "vertical",
+      "padding": [
+        24,
+        16
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "G60up",
+          "name": "centerWrap",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "DWEU3",
+              "name": "inviteCard",
+              "width": "fill_container",
+              "fill": "#ffffff",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#e2e8f0"
+              },
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "T48L7",
+                  "name": "successIconWrap",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#dcfce7",
+                  "cornerRadius": 999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "tSMsy",
+                      "name": "successIcon",
+                      "width": 28,
+                      "height": 28,
+                      "iconFontName": "check",
+                      "iconFontFamily": "Material Symbols Rounded",
+                      "weight": 500,
+                      "fill": "#16a34a"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "flfZh",
+                  "name": "title",
+                  "fill": "#1e293b",
+                  "content": "You're in!",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "28Jb5",
+                  "name": "messageGroup",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "yyh1n",
+                      "name": "messageLine1",
+                      "fill": "#334155",
+                      "content": "You now have access to",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "654a2",
+                      "name": "messageLine2",
+                      "fill": "#0f172a",
+                      "content": "Avery Johnson.",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZB7cl",
+                  "name": "actions",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "iMj6I",
+                      "name": "primaryButton",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0c4a6e",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ANvG1",
+                          "name": "primaryButtonText",
+                          "fill": "#ffffff",
+                          "content": "Set as active & go to Home",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JRj6r",
+                      "name": "secondaryButton",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#ffffff",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#0c4a6e"
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "VMfyd",
+                          "name": "secondaryButtonText",
+                          "fill": "#0c4a6e",
+                          "content": "Go to profile",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "qrTiP",
+      "x": 4533,
+      "y": -217,
+      "name": "Invite Accept - Already Connected",
+      "width": 390,
+      "height": 844,
+      "fill": "#fcfcfd",
+      "layout": "vertical",
+      "padding": [
+        24,
+        16
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "pwupk",
+          "name": "centerWrap",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "PAemE",
+              "name": "inviteCard",
+              "width": "fill_container",
+              "fill": "#ffffff",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#e2e8f0"
+              },
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "dpwRh",
+                  "name": "successIconWrap",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#dbeafe",
+                  "cornerRadius": 999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "CLGh4",
+                      "name": "successIcon",
+                      "width": 28,
+                      "height": 28,
+                      "iconFontName": "info",
+                      "iconFontFamily": "Material Symbols Rounded",
+                      "weight": 500,
+                      "fill": "#2563eb"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "tEKKf",
+                  "name": "title",
+                  "fill": "#1e293b",
+                  "content": "Already connected",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "A0Gim",
+                  "name": "messageGroup",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nz1dh",
+                      "name": "messageLine1",
+                      "fill": "#334155",
+                      "content": "You already have access to",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Dc05M",
+                      "name": "messageLine2",
+                      "fill": "#0f172a",
+                      "content": "Avery Johnson.",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "S7cha",
+                  "name": "actions",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "fg2nj",
+                      "name": "primaryButton",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0c4a6e",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "fWKyv",
+                          "name": "primaryButtonText",
+                          "fill": "#ffffff",
+                          "content": "Set as active & go to Home",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "5n2Q3",
+                      "name": "secondaryButton",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#ffffff",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#0c4a6e"
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "c5qHu",
+                          "name": "secondaryButtonText",
+                          "fill": "#0c4a6e",
+                          "content": "Go to profile",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "4uSxJ",
+      "x": 5043,
+      "y": -217,
+      "name": "Invite Accept - Error",
+      "width": 390,
+      "height": 844,
+      "fill": "#fcfcfd",
+      "layout": "vertical",
+      "padding": [
+        24,
+        16
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "6152m",
+          "name": "centerWrap",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "w5ZId",
+              "name": "inviteCard",
+              "width": "fill_container",
+              "fill": "#ffffff",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#e2e8f0"
+              },
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "T0WUb",
+                  "name": "successIconWrap",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#fee2e2",
+                  "cornerRadius": 999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "3CPLW",
+                      "name": "successIcon",
+                      "width": 28,
+                      "height": 28,
+                      "iconFontName": "close",
+                      "iconFontFamily": "Material Symbols Rounded",
+                      "weight": 500,
+                      "fill": "#dc2626"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "HohEt",
+                  "name": "title",
+                  "fill": "#1e293b",
+                  "content": "Invite not valid",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "UmKmB",
+                  "name": "messageGroup",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Lu3Px",
+                      "name": "messageLine1",
+                      "fill": "#b91c1c",
+                      "content": "This invite has expired\nor already been used.",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "jKDjY",
+                      "name": "messageLine2",
+                      "fill": "#64748b",
+                      "content": "Ask the person who shared it\nto generate a new one.",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ntg5C",
+                  "name": "actions",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "vNpSJ",
+                      "name": "primaryButton",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#ffffff",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#0c4a6e"
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "1xuby",
+                          "name": "primaryButtonText",
+                          "fill": "#0c4a6e",
+                          "content": "Go to profile",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dAJdZ",
+                      "name": "secondaryButton",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#ffffff",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#0c4a6e"
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZtaOI",
+                          "name": "secondaryButtonText",
+                          "fill": "#0c4a6e",
+                          "content": "Go to Activity",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ninm2",
+      "x": 5553,
+      "y": -217,
+      "name": "Invite Accept - Loading",
+      "width": 390,
+      "height": 844,
+      "fill": "#fcfcfd",
+      "layout": "vertical",
+      "padding": [
+        24,
+        16
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "Aae6R",
+          "name": "centerWrap",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "tzKCb",
+              "name": "inviteCard",
+              "width": "fill_container",
+              "fill": "#ffffff",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#e2e8f0"
+              },
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "KWkFF",
+                  "name": "successIconWrap",
+                  "enabled": false,
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#dcfce7",
+                  "cornerRadius": 999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "YtIjm",
+                      "name": "successIcon",
+                      "width": 28,
+                      "height": 28,
+                      "iconFontName": "check",
+                      "iconFontFamily": "Material Symbols Rounded",
+                      "weight": 500,
+                      "fill": "#16a34a"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "46CR2",
+                  "name": "title",
+                  "fill": "#1e293b",
+                  "content": "Accepting invite...",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "9tZv6",
+                  "name": "messageGroup",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Q9iUH",
+                      "name": "messageLine1",
+                      "fill": "#334155",
+                      "content": "Please wait while we",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "NDptl",
+                      "name": "messageLine2",
+                      "fill": "#64748b",
+                      "content": "process your invite.",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "3ad6O",
+                  "name": "actions",
+                  "enabled": false,
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "gdAUn",
+                      "name": "primaryButton",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0c4a6e",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "RxMwF",
+                          "name": "primaryButtonText",
+                          "fill": "#ffffff",
+                          "content": "Set as active & go to Home",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hz1f3",
+                      "name": "secondaryButton",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#ffffff",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#0c4a6e"
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ohF7e",
+                          "name": "secondaryButtonText",
+                          "fill": "#0c4a6e",
+                          "content": "Go to profile",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "LPPrX",
+      "type": "ref",
+      "ref": "a5GWt",
+      "x": 5983,
+      "y": -217
+    },
+    {
+      "id": "Hg4Su",
+      "type": "ref",
+      "ref": "2n3nJ",
+      "x": 6413,
+      "y": -217
+    },
+    {
+      "id": "67wxr",
+      "type": "ref",
+      "ref": "V2Kid",
+      "x": 6843,
+      "y": -217
     }
   ]
 }
