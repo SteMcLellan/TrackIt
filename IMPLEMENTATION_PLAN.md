@@ -16,26 +16,11 @@ Last updated: 2026-03-21
 - [x] **Priority 7** — Feature: Viewer Role UI Differentiation (docs/backlog/multi-caregiver-mvp.md item 3). Profile page hides Edit button and medication Add/Edit/Archive controls for viewers; shows "Only managers can add or edit medications." note. TypeScript build verified clean.
 - [x] **Priority 8** — Bug: Top Bar Touch Targets (top-bar-touch-targets.md). `.icon-button` changed from `width/height: 2.25rem` (36px) to `min-width/min-height: 2.75rem` (44px). Docs updated.
 - [x] **Priority 2** — Architecture: Shell Viewport Normalization (shell-viewport-normalization.md). `ShellComponent` `:host` and `.shell` changed from `min-height: 100dvh` to `height: 100dvh; overflow: hidden`. `<main>` now has `overflow-y: auto`. All five affected screens verified — none set fixed heights on `:host`. Docs updated.
+- [x] **Priority 3** — Bug: Daily Reflection Layout Clipping (daily-reflection-layout.md). `:host` set to `height: 100%`; `.page` made flex column (`height: 100%; display: flex; flex-direction: column`); `.cards` given `flex: 1; min-height: 0; overflow-y: auto` so cards scroll while action bar stays visible below. TypeScript build verified clean.
 
 ---
 
-### Priority 3 — Bug: Daily Reflection Layout Clipping (daily-reflection-layout.md)
-
-**Why third:** Depends on P2 (fixed-height shell with scrollable `<main>`). After P2, the "cards area scrolls" model is in place; this item anchors the action bar.
-
-**Current state (confirmed):** `<section class="action-bar">` sits inside the natural-flow `.page` div (template line 216), after all metric cards. The `.page` div uses `overflow-x: hidden` only — no scroll constraint. No sticky positioning on `.action-bar`. Users must scroll through all four metric cards plus journal note to reach Save/Cancel.
-
-**Required changes in `DailyReflectionComponent`:**
-- Move `<section class="action-bar">` outside the scrollable `.cards` region.
-- Make action bar either `position: sticky; bottom: 0` within the page, or restructure so it renders below a scroll-constrained cards container and above the fixed bottom nav clearance.
-- The `.cards` div should scroll; the `action-bar` should always be visible at the bottom of the viewport (above the bottom nav padding).
-
-**Doc updates on completion:**
-- `docs/backlog/ui-feedback-general.md` — mark issue 2 resolved
-
----
-
-### Priority 4 — UX: Profile Caregiver Action Hierarchy (profile-caregiver-action-hierarchy.md)
+### Priority 3 — UX: Profile Caregiver Action Hierarchy (profile-caregiver-action-hierarchy.md)
 
 **Current state (confirmed):** The Caregiver Access card has:
 - "Regenerate" as `regen-inline` button inline in the card header
@@ -59,7 +44,7 @@ Last updated: 2026-03-21
 
 ---
 
-### Priority 5 — Feature: Medications Dashboard Workflow (medications-dashboard-workflow.md)
+### Priority 4 — Feature: Medications Dashboard Workflow (medications-dashboard-workflow.md)
 
 **Current state (confirmed, `@stitch-status: implementing`):**
 - Scheduled and As-Needed sections exist ✅
@@ -80,7 +65,7 @@ Last updated: 2026-03-21
 
 ---
 
-### Priority 6 — UX: Behavioral Moment Create Form Density (behavioral-moment-create-form.md)
+### Priority 5 — UX: Behavioral Moment Create Form Density (behavioral-moment-create-form.md)
 
 **Current state (confirmed, `@stitch-status: converted`):**
 - A/B/C semantic color coding in place ✅

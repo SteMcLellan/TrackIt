@@ -32,11 +32,12 @@ The current frame set has a strong visual direction and generally uses the Track
 - ~~This makes the bottom nav behave like part of the page content rather than a fixed navigation element.~~
 - Fixed: `ShellComponent` `:host` and `.shell` changed from `min-height: 100dvh` to `height: 100dvh; overflow: hidden`. `<main>` now has `overflow-y: auto` as the scroll container.
 
-### 2. Daily Reflection clipping defect
+### 2. Daily Reflection clipping defect — **Resolved**
 
-- `Daily Reflection` has an actual layout problem, not just a design preference issue.
-- The internal cards area is taller than its parent content frame, and the action area containing `Save Reflection` / `Cancel` is clipped out of the content container.
-- This violates the mobile layout guidance to avoid clipped or off-screen interactive elements in [docs/architecture/frontend-interaction-principles.md](C:/Users/mclel/repos/TrackIt/docs/architecture/frontend-interaction-principles.md).
+- ~~`Daily Reflection` has an actual layout problem, not just a design preference issue.~~
+- ~~The internal cards area is taller than its parent content frame, and the action area containing `Save Reflection` / `Cancel` is clipped out of the content container.~~
+- ~~This violates the mobile layout guidance to avoid clipped or off-screen interactive elements in [docs/architecture/frontend-interaction-principles.md](C:/Users/mclel/repos/TrackIt/docs/architecture/frontend-interaction-principles.md).~~
+- Fixed: `:host` set to `height: 100%`; `.page` made flex column (`height: 100%; display: flex; flex-direction: column`); `.cards` given `flex: 1; min-height: 0; overflow-y: auto` so cards scroll while action bar stays visible below.
 
 ### 3. Top bar tap target sizing — **Resolved**
 
@@ -101,7 +102,7 @@ The current frame set has a strong visual direction and generally uses the Track
 ## Recommended Follow-up
 
 1. Normalize all major screens to the canonical shell and viewport height.
-2. Fix `Daily Reflection` clipping before any visual polish work.
+2. ~~Fix `Daily Reflection` clipping before any visual polish work.~~ ✓ Resolved.
 3. ~~Increase top bar touch targets to `44x44`.~~ ✓ Resolved.
 4. Rework `Medications Dashboard` to better match the dedicated logging workflow in the medication command center spec.
 5. Compress `Behavioral Moment Create` and strengthen emphasis on the actual incident-entry fields.
