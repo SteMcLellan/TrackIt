@@ -45,11 +45,11 @@ Affected frames:
 - The internal cards area is taller than its parent content frame, and the action area containing `Save Reflection` / `Cancel` is clipped out of the content container.
 - This violates the mobile layout guidance to avoid clipped or off-screen interactive elements in [docs/architecture/frontend-interaction-principles.md](C:/Users/mclel/repos/TrackIt/docs/architecture/frontend-interaction-principles.md).
 
-### 3. Top bar tap target sizing
+### 3. Top bar tap target sizing — **Resolved**
 
-- The top bar action buttons are `36x36`.
-- Repo guidance requires touch targets to be at least `44x44`.
-- The current controls look clean but are small for reliable mobile use.
+- ~~The top bar action buttons are `36x36`.~~
+- ~~Repo guidance requires touch targets to be at least `44x44`.~~
+- Fixed: `.icon-button` changed from `width/height: 2.25rem` (36px) to `min-width/min-height: 2.75rem` (44px).
 
 ### 4. Medications screen lacks enough action emphasis
 
@@ -109,6 +109,6 @@ Affected frames:
 
 1. Normalize all major screens to the canonical shell and viewport height.
 2. Fix `Daily Reflection` clipping before any visual polish work.
-3. Increase top bar touch targets to `44x44`.
+3. ~~Increase top bar touch targets to `44x44`.~~ ✓ Resolved.
 4. Rework `Medications Dashboard` to better match the dedicated logging workflow in the medication command center spec.
 5. Compress `Behavioral Moment Create` and strengthen emphasis on the actual incident-entry fields.

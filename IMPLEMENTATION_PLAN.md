@@ -14,3 +14,113 @@ Last updated: 2026-03-21
 - [x] **Priority 5** — Missing Routes: Incident List, Detail, and New (behavior-incidents-2.md)
 - [x] **Priority 6** — Documentation: Align Product Spec with API Contract (behavior-incidents-2.md)
 - [x] **Priority 7** — Feature: Viewer Role UI Differentiation (docs/backlog/multi-caregiver-mvp.md item 3). Profile page hides Edit button and medication Add/Edit/Archive controls for viewers; shows "Only managers can add or edit medications." note. TypeScript build verified clean.
+- [x] **Priority 8** — Bug: Top Bar Touch Targets (top-bar-touch-targets.md). `.icon-button` changed from `width/height: 2.25rem` (36px) to `min-width/min-height: 2.75rem` (44px). Docs updated.
+
+---
+
+## Remaining Work
+
+### Priority 2 — Architecture: Shell Viewport Normalization (shell-viewport-normalization.md)
+
+**Why second:** Prerequisite for the Daily Reflection layout fix (P3). The shell must become a fixed-height container before child components can rely on `<main>` as the scroll region.
+
+**Current state (confirmed):**
+- Bottom nav is `position: fixed` ✅
+- Top bar is `position: sticky` ✅
+- `<main>` has `padding-bottom: calc(5rem + env(safe-area-inset-bottom))` ✅
+- Page components use `height: auto` and flow naturally ✅
+- `shell.component.ts` `:host` and `.shell` still use `min-height: 100vh / 100dvh` (expands with content) ❌
+
+**Remaining:**
+- `ShellComponent` `:host` and `.shell`: change `min-height: 100dvh` → `height: 100dvh; overflow: hidden` so the shell is viewport-bounded.
+- `<main>`: add `overflow-y: auto` to make it the scroll container (already has `flex: 1; min-height: 0`).
+- Verify all five affected screens (Daily Reflection, Medications Dashboard, Timeline, Behavioral Moment Create, Profile Dashboard) still render correctly — none set fixed heights on `:host`.
+
+**Doc updates on completion:**
+- `docs/architecture/page-shell.md` — remove "Migration from Current Implementation" section (migration is complete; section is stale)
+- `docs/backlog/ui-feedback-general.md` — mark issue 1 resolved
+
+---
+
+### Priority 3 — Bug: Daily Reflection Layout Clipping (daily-reflection-layout.md)
+
+**Why third:** Depends on P2 (fixed-height shell with scrollable `<main>`). After P2, the "cards area scrolls" model is in place; this item anchors the action bar.
+
+**Current state (confirmed):** `<section class="action-bar">` sits inside the natural-flow `.page` div (template line 216), after all metric cards. The `.page` div uses `overflow-x: hidden` only — no scroll constraint. No sticky positioning on `.action-bar`. Users must scroll through all four metric cards plus journal note to reach Save/Cancel.
+
+**Required changes in `DailyReflectionComponent`:**
+- Move `<section class="action-bar">` outside the scrollable `.cards` region.
+- Make action bar either `position: sticky; bottom: 0` within the page, or restructure so it renders below a scroll-constrained cards container and above the fixed bottom nav clearance.
+- The `.cards` div should scroll; the `action-bar` should always be visible at the bottom of the viewport (above the bottom nav padding).
+
+**Doc updates on completion:**
+- `docs/backlog/ui-feedback-general.md` — mark issue 2 resolved
+
+---
+
+### Priority 4 — UX: Profile Caregiver Action Hierarchy (profile-caregiver-action-hierarchy.md)
+
+**Current state (confirmed):** The Caregiver Access card has:
+- "Regenerate" as `regen-inline` button inline in the card header
+- Copy and Share both as `pill ghost-violet` buttons (equal visual weight, lines 128–129)
+- No visually dominant primary action
+
+**Required changes in `ProfileDashboardComponent`:**
+- Designate one action as the primary CTA (e.g., "Copy Invite Link" as a filled pill button).
+- De-emphasize Copy/Share so they don't compete equally — group or reduce visual weight.
+- Move "Regenerate" out of the card header into a subordinate position (small text link or ghost button below the primary action).
+- The invite link text and expiry label remain, but displayed as secondary info.
+- Member list stays accessible (already below the actions).
+
+**Acceptance criteria:**
+- First-time user can identify the primary action without reading all content.
+- Card validates at 375px/390px without overflow/clipping.
+
+**Doc updates on completion:**
+- `docs/backlog/multi-caregiver-mvp.md` — record hierarchy decisions
+- `docs/backlog/ui-feedback-general.md` — mark issue 6 resolved
+
+---
+
+### Priority 5 — Feature: Medications Dashboard Workflow (medications-dashboard-workflow.md)
+
+**Current state (confirmed, `@stitch-status: implementing`):**
+- Scheduled and As-Needed sections exist ✅
+- Swipe-to-log (mark taken/not-taken) is implemented ✅
+- Summary card (adherence ring, "N remaining" / "All on track") is implemented ✅
+- `asNeededBaseRows()` computed signal exists (line 1082) and is rendered ✅
+- BUT: Summary card is the **first** section in the template (line 73), making it the dominant element — spec requires it to be subordinate to the action sections ❌
+
+**Required changes in `MedicationsDashboardComponent`:**
+- Reorder template: Scheduled → As-Needed → Summary card (summary moved to bottom, visually de-emphasized).
+- Verify the As-Needed section shows: allowed interval + time since last dose. Confirm `asNeededBaseRows()` exposes the necessary data against the spec.
+- Confirm interval medication cards show "last logged" and "next due" labels clearly (the interval-meta line exists but needs verification against spec).
+- Screen must validate at 375px/390px without overflow.
+
+**Doc updates on completion:**
+- `docs/product-specs/medication-command-center.md` — record layout/interaction decisions
+- `docs/backlog/ui-feedback-general.md` — mark issue 4 resolved
+
+---
+
+### Priority 6 — UX: Behavioral Moment Create Form Density (behavioral-moment-create-form.md)
+
+**Current state (confirmed, `@stitch-status: converted`):**
+- A/B/C semantic color coding in place ✅
+- In each ABC section, `<app-chip-selector>` appears **before** `<textarea>` (template lines 103–152 confirm order: chip → textarea for all three sections) ❌
+- Function card is first in form; with hero + function grid, the first text field (antecedent textarea) is not visible on 390×844 without scrolling ❌
+
+**Required changes in `BehavioralMomentCreateComponent`:**
+- Within each ABC section: move the textarea **above** the chip-selector, or make the chip-selector visually subordinate (smaller, collapsed by default, or labelled "quick tags" below the text area).
+- Reduce vertical space of the function grid if possible so the antecedent text field is visible on first screen load at 390×844.
+- The primary Save action should be reachable by scrolling approximately one screen length.
+- Preserve A/B/C semantic color coding.
+
+**Acceptance criteria (from spec):**
+- On 390×844, first text field visible without scrolling.
+- Save action reachable by scrolling ~one screen.
+- Screen validates at 375px/390px without overflow/clipping.
+
+**Doc updates on completion:**
+- `docs/product-specs/behavior-tracking-abc.md` — record layout/field ordering decisions
+- `docs/backlog/ui-feedback-general.md` — mark issue 5 resolved

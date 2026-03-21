@@ -109,8 +109,8 @@ import { Router } from '@angular/router';
     }
 
     .icon-button {
-      width: 2.25rem;
-      height: 2.25rem;
+      min-width: 2.75rem;
+      min-height: 2.75rem;
       display: inline-flex;
       align-items: center;
       justify-content: center;

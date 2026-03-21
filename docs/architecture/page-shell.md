@@ -77,8 +77,8 @@ Key implementation notes:
 
 **Design tokens (from `DESIGN.md`):**
 - Container: `sticky top-0 z-30 flex items-center justify-between bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-3`
-- Notifications button: `size-9 rounded-full bg-white border border-slate-100 text-slate-400`, icon: `notifications` (Material Symbols Outlined)
-- Account button: `size-9 rounded-full bg-soft-violet text-energetic-violet`, icon: `account_circle`
+- Notifications button: `min-w-11 min-h-11 rounded-full bg-white border border-slate-100 text-slate-400`, icon: `notifications` (Material Symbols Outlined)
+- Account button: `min-w-11 min-h-11 rounded-full bg-soft-violet text-energetic-violet`, icon: `account_circle`
 
 **Inputs/Outputs:**
 - No inputs required at launch — the bar is static branding + fixed navigation
