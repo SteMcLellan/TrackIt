@@ -57,13 +57,25 @@ type WeeklyMetricCard = {
       </section>
 
       <section class="reflection-entry">
-        <a class="reflection-button" routerLink="/daily-reflection">
-          <span class="left">
-            <span class="title">Daily Reflection</span>
-            <span class="subtitle">Capture today's rhythm in under a minute.</span>
-          </span>
-          <span class="material-symbols-outlined chevron">arrow_forward_ios</span>
-        </a>
+        @if (summaryResource.isLoading()) {
+          <div class="reflection-button-skeleton skeleton"></div>
+        } @else if (todayReflectionLogged()) {
+          <a class="reflection-button reflection-logged" routerLink="/daily-reflection">
+            <span class="left">
+              <span class="title">Today's Reflection</span>
+              <span class="subtitle logged-labels">{{ todayReflectionLabels() }}</span>
+            </span>
+            <span class="material-symbols-outlined chevron logged-chevron">arrow_forward_ios</span>
+          </a>
+        } @else {
+          <a class="reflection-button" routerLink="/daily-reflection">
+            <span class="left">
+              <span class="title">How is {{ participantName() }} doing today?</span>
+              <span class="subtitle">Log today's reflection</span>
+            </span>
+            <span class="material-symbols-outlined chevron">arrow_forward_ios</span>
+          </a>
+        }
       </section>
 
       <section class="section">
@@ -313,6 +325,29 @@ type WeeklyMetricCard = {
       color: var(--color-signal-blue, #137fec);
       font-size: 1rem;
       flex-shrink: 0;
+    }
+
+    .reflection-button-skeleton {
+      height: 64px;
+      border-radius: 0.625rem;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    .reflection-button.reflection-logged {
+      background: #ecfdf5;
+      border-color: rgba(16, 185, 129, 0.32);
+    }
+
+    .reflection-button.reflection-logged .title {
+      color: #065f46;
+    }
+
+    .logged-labels {
+      color: #059669;
+    }
+
+    .logged-chevron {
+      color: #10b981;
     }
 
     .section {
@@ -940,6 +975,37 @@ export class InsightsDashboardComponent {
   readonly latestIncident = computed(() => {
     const sorted = [...this.incidents()].sort((a, b) => b.occurredAtUtc.localeCompare(a.occurredAtUtc));
     return sorted[0] ?? null;
+  });
+
+  readonly todayReflectionSummary = computed(() => {
+    if (!this.summaryResource.hasValue()) {
+      return { mood: null as number | null, focus: null as number | null, energy: null as number | null, sleep: null as number | null };
+    }
+    const summary = this.summaryResource.value()!;
+    const today = this.todayLocalDate();
+    const findScore = (metric: MetricSummary): number | null =>
+      metric.points.find(p => p.logLocalDate === today)?.score ?? null;
+    return {
+      mood: findScore(summary.mood),
+      focus: findScore(summary.focus),
+      energy: findScore(summary.energy),
+      sleep: findScore(summary.sleep)
+    };
+  });
+
+  readonly todayReflectionLogged = computed(() => {
+    const r = this.todayReflectionSummary();
+    return r.mood !== null || r.focus !== null || r.energy !== null || r.sleep !== null;
+  });
+
+  readonly todayReflectionLabels = computed(() => {
+    const r = this.todayReflectionSummary();
+    const parts: string[] = [];
+    if (r.mood !== null) parts.push(`Mood: ${this.metricDescriptor('mood', r.mood)}`);
+    if (r.focus !== null) parts.push(`Focus: ${this.metricDescriptor('focus', r.focus)}`);
+    if (r.energy !== null) parts.push(`Energy: ${this.metricDescriptor('energy', r.energy)}`);
+    if (r.sleep !== null) parts.push(`Sleep: ${this.metricDescriptor('sleep', r.sleep)}`);
+    return parts.join(' · ');
   });
 
   readonly weeklyMetrics = computed<WeeklyMetricCard[]>(() => {

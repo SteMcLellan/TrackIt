@@ -8,12 +8,7 @@ Last updated: 2026-03-21 (code-verified against specs in docs/specs/)
 
 > **Why first**: Active data is silently not loading on the Insights page. The `incidentsResource` in `InsightsDashboardComponent` sends `fromUtc`/`toUtc` ISO timestamps but the API only accepts `startDate`/`endDate` YYYY-MM-DD local-date strings. This means the 7-day behavioral moments preview always returns empty.
 
-- [x] **Fix `incidentsResource` query params in `InsightsDashboardComponent`**
-  - File: `frontend/src/app/features/insights/insights-dashboard.component.ts`
-  - Replace `fromUtc` / `toUtc` ISO params with `startDate` / `endDate` YYYY-MM-DD local-date params.
-  - `endDate` = `todayLocalDate()`. `startDate` = 7 days prior, derived the same way `todayLocalDate()` is computed (local date, not UTC offset).
-  - Both the `unknown`-participant guard branch and the live branch must be updated.
-  - Note: `BehaviorIncidentService.listIncidents()` already accepts `startDate`/`endDate`; `httpResource` inline params just need to match.
+*(All items complete.)*
 
 ---
 
@@ -21,18 +16,13 @@ Last updated: 2026-03-21 (code-verified against specs in docs/specs/)
 
 > **Why second**: Every new reflection silently commits score `50` for all four dimensions even when the user has not tapped anything. Partial entries are a first-class data-integrity requirement; sending `50` for untouched dimensions corrupts longitudinal trend data.
 
-- [x] **Initialize all four score signals to `null` instead of `50`**
-- [x] **Add save guard: block save when zero dimensions are committed**
-- [x] **Add visual pre-highlight for Balanced bucket when score is null**
-- [x] **Fix loading of existing reflection with null scores** (set calls already pass through null; no coercion to 50 remained)
+*(All items complete.)*
 
 ---
 
 ## Priority 3 — Missing Feature: Medications Summary Card Interval Support (medications-summary-2.md)
 
-- [x] **Update `medicationSummary` computed in `MedicationsDashboardComponent` to include interval medications**
-- [x] **Update `adherenceStatus` computed in `MedicationsDashboardComponent` to factor in interval actionable count**
-- [x] **Update summary card template to display interval-aware copy**
+*(All items complete.)*
 
 ---
 
@@ -40,16 +30,16 @@ Last updated: 2026-03-21 (code-verified against specs in docs/specs/)
 
 > **Why fourth**: The spec calls for a status card showing committed dimension labels when today's reflection has been logged, or a prompt when not. The summary endpoint already returns the 7-day window including today; no extra API call is needed.
 
-- [ ] **Extract today's reflection entry from `summaryResource` data**
+- [x] **Extract today's reflection entry from `summaryResource` data**
   - File: `frontend/src/app/features/insights/insights-dashboard.component.ts`
   - Add a computed `todayReflectionSummary` that reads `summaryResource.value()` and finds the `points` entry where `logLocalDate === todayLocalDate()` for each metric series.
   - Result: `{ mood: number | null, focus: number | null, energy: number | null, sleep: number | null }` — null if no entry or score was null.
   - Add helper `scoreToBucketLabel(score: number | null, dimension: string): string | null` that maps a 0-100 score to a bucket label using the standard 0-19/20-39/40-59/60-79/80-100 mapping from the scoring spec. Returns null when score is null.
 
-- [ ] **Add `todayReflectionLogged` computed**
+- [x] **Add `todayReflectionLogged` computed**
   - Same file. Returns `true` if at least one dimension in `todayReflectionSummary()` is non-null.
 
-- [ ] **Replace the simple "Daily Reflection" CTA section with the status card**
+- [x] **Replace the simple "Daily Reflection" CTA section with the status card**
   - Same file, template section (lines 59–67).
   - Placement: below hero phrase / weekly summary header, above weekly rhythm dimension cards.
   - Logged state: show card with committed (non-null) dimension labels joined with ` · ` (e.g., `"Mood: Steady · Focus: Dialed In"`). Card navigates to `/daily-reflection` on tap.
