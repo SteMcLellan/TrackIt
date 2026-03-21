@@ -58,11 +58,12 @@ The current frame set has a strong visual direction and generally uses the Track
 - The design currently gives substantial space to preset chips and decorative framing while making the actual written incident details feel secondary.
 - That is risky for a flow whose core job is capturing meaningful antecedent, behavior, consequence, place, and time details.
 
-### 6. Profile action hierarchy is crowded
+### 6. Profile action hierarchy is crowded — **Resolved**
 
-- `Profile Dashboard` is one of the cleaner screens overall, but the caregiver invite area is visually dense.
-- Invite link, expiry, copy, share, and member list information compete for attention in a small area.
-- The card would benefit from a more obvious primary action hierarchy.
+- ~~`Profile Dashboard` is one of the cleaner screens overall, but the caregiver invite area is visually dense.~~
+- ~~Invite link, expiry, copy, share, and member list information compete for attention in a small area.~~
+- ~~The card would benefit from a more obvious primary action hierarchy.~~
+- Fixed: "Copy Invite Link" is now the primary CTA (filled violet pill). "Share" is a secondary ghost-violet button. "Regenerate link" is a subordinate text link below. When no invite exists, "Generate Invite Link" is the primary CTA. Regenerate removed from the card header.
 
 ## Frame Notes
 

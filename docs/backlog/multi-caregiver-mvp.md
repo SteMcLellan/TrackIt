@@ -98,6 +98,20 @@ The Web Share payload reads `"Join me in TrackIt."` with no participant name. A 
 
 ---
 
+## 5. Caregiver Invite Action Hierarchy
+
+### Decision (2026-03-21)
+
+The Caregiver Access card uses a single dominant primary CTA to reduce scanning overhead:
+
+- **When an invite exists:** "Copy Invite Link" is the primary filled violet pill button. "Share" is a secondary ghost-violet button alongside it. "Regenerate link" is a de-emphasized text link below.
+- **When no invite exists:** "Generate Invite Link" is the primary filled violet pill button.
+- "Regenerate" is removed from the card header entirely to preserve the header as read-only.
+
+This hierarchy was established to meet the spec in `docs/specs/profile-caregiver-action-hierarchy.md`. Future work on the invite flow (e.g. invite context, item 4 above) should treat "Copy Invite Link" as the primary action and not elevate secondary actions to equal visual weight.
+
+---
+
 ## Out of Scope for MVP
 
 - Push or email notifications for invites — delivery remains manual (copy/share link).

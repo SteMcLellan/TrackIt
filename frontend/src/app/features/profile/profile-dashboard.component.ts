@@ -109,10 +109,6 @@ type MedicationRecord = {
       <section class="card caregiver">
         <div class="card-header">
           <h2>Caregiver Access</h2>
-          <button class="regen-inline" type="button" (click)="regenerateInvite()" [disabled]="inviteBusy() || !canManageInvites()">
-            <span class="material-symbols-outlined">refresh</span>
-            @if (inviteBusy()) { Regenerating... } @else { Regenerate }
-          </button>
         </div>
 
         @if (!canManageInvites()) {
@@ -124,14 +120,20 @@ type MedicationRecord = {
               <span>{{ inviteExpiryLabel() }}</span>
             }
           </div>
+          <button class="pill violet full" type="button" (click)="copyInviteLink()">Copy Invite Link</button>
           <div class="actions">
-            <button class="pill ghost-violet" type="button" (click)="copyInviteLink()">Copy</button>
             <button class="pill ghost-violet" type="button" (click)="shareInviteLink()">Share</button>
+            <button class="regen-link" type="button" (click)="regenerateInvite()" [disabled]="inviteBusy()">
+              @if (inviteBusy()) { Regenerating... } @else { Regenerate link }
+            </button>
           </div>
         } @else if (activeInviteResource.isLoading()) {
           <p class="muted">Checking for active invite...</p>
         } @else {
-          <p class="muted">No active invite. Generate one to share access.</p>
+          <p class="muted">No active invite. Tap below to create one.</p>
+          <button class="pill violet full" type="button" (click)="regenerateInvite()" [disabled]="inviteBusy()">
+            @if (inviteBusy()) { Generating... } @else { Generate Invite Link }
+          </button>
         }
 
         @if (inviteMessage()) {
@@ -364,25 +366,18 @@ type MedicationRecord = {
       font-size: 1rem;
       line-height: 1;
     }
-    .regen-inline {
-      min-height: 44px;
+    .regen-link {
       border: 0;
       background: transparent;
-      color: #8b5cf6;
-      font-size: 0.76rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.2rem;
+      color: #94a3b8;
+      font-size: 0.72rem;
+      font-weight: 600;
       cursor: pointer;
       padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
-    .regen-inline .material-symbols-outlined {
-      font-size: 1rem;
-      line-height: 1;
-    }
+    .regen-link:disabled { opacity: 0.6; cursor: not-allowed; }
     .invite-box {
       border: 1px dashed rgba(139, 92, 246, 0.4);
       border-radius: 0.75rem;

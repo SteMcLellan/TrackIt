@@ -17,30 +17,7 @@ Last updated: 2026-03-21
 - [x] **Priority 8** — Bug: Top Bar Touch Targets (top-bar-touch-targets.md). `.icon-button` changed from `width/height: 2.25rem` (36px) to `min-width/min-height: 2.75rem` (44px). Docs updated.
 - [x] **Priority 2** — Architecture: Shell Viewport Normalization (shell-viewport-normalization.md). `ShellComponent` `:host` and `.shell` changed from `min-height: 100dvh` to `height: 100dvh; overflow: hidden`. `<main>` now has `overflow-y: auto`. All five affected screens verified — none set fixed heights on `:host`. Docs updated.
 - [x] **Priority 3** — Bug: Daily Reflection Layout Clipping (daily-reflection-layout.md). `:host` set to `height: 100%`; `.page` made flex column (`height: 100%; display: flex; flex-direction: column`); `.cards` given `flex: 1; min-height: 0; overflow-y: auto` so cards scroll while action bar stays visible below. TypeScript build verified clean.
-
----
-
-### Priority 3 — UX: Profile Caregiver Action Hierarchy (profile-caregiver-action-hierarchy.md)
-
-**Current state (confirmed):** The Caregiver Access card has:
-- "Regenerate" as `regen-inline` button inline in the card header
-- Copy and Share both as `pill ghost-violet` buttons (equal visual weight, lines 128–129)
-- No visually dominant primary action
-
-**Required changes in `ProfileDashboardComponent`:**
-- Designate one action as the primary CTA (e.g., "Copy Invite Link" as a filled pill button).
-- De-emphasize Copy/Share so they don't compete equally — group or reduce visual weight.
-- Move "Regenerate" out of the card header into a subordinate position (small text link or ghost button below the primary action).
-- The invite link text and expiry label remain, but displayed as secondary info.
-- Member list stays accessible (already below the actions).
-
-**Acceptance criteria:**
-- First-time user can identify the primary action without reading all content.
-- Card validates at 375px/390px without overflow/clipping.
-
-**Doc updates on completion:**
-- `docs/backlog/multi-caregiver-mvp.md` — record hierarchy decisions
-- `docs/backlog/ui-feedback-general.md` — mark issue 6 resolved
+- [x] **Priority 3** — UX: Profile Caregiver Action Hierarchy (profile-caregiver-action-hierarchy.md). "Copy Invite Link" is now the primary filled violet pill CTA. "Share" is a secondary ghost-violet button. "Regenerate link" is a de-emphasized text link below primary actions. "Generate Invite Link" is the primary CTA when no invite exists. Regenerate removed from card header. TypeScript build verified clean.
 
 ---
 
