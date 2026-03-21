@@ -33,7 +33,7 @@ type AcceptStatus = 'loading' | 'success' | 'already-linked' | 'error';
             <p>You now have access to <strong>{{ participantName() }}</strong>.</p>
             <div class="actions">
               <button class="button" type="button" (click)="setActiveAndGo()">
-                Set as active & go to Home
+                Set as active & go to Insights
               </button>
               <a class="button secondary" routerLink="/profile">
                 Go to profile
@@ -54,7 +54,7 @@ type AcceptStatus = 'loading' | 'success' | 'already-linked' | 'error';
             <p>You already have access to <strong>{{ participantName() }}</strong>.</p>
             <div class="actions">
               <button class="button" type="button" (click)="setActiveAndGo()">
-                Set as active & go to Home
+                Set as active & go to Insights
               </button>
               <a class="button secondary" routerLink="/profile">
                 Go to profile
@@ -78,8 +78,8 @@ type AcceptStatus = 'loading' | 'success' | 'already-linked' | 'error';
               <a class="button secondary" routerLink="/profile">
                 Go to profile
               </a>
-              <a class="button secondary" routerLink="/home">
-                Go to Activity
+              <a class="button secondary" routerLink="/insights">
+                Go to Insights
               </a>
             </div>
           </div>
@@ -236,6 +236,6 @@ export class InviteAcceptComponent implements OnInit {
     if (participantId) {
       this.participantService.setActiveParticipant(participantId);
     }
-    this.router.navigate(['/home']);
+    this.router.navigate(['/insights']);
   }
 }

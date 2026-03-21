@@ -1,10 +1,61 @@
 # TrackIt Implementation Plan
 
-Last updated: 2026-03-21 (full verification pass — all specs confirmed implemented)
+Last updated: 2026-03-21 (full codebase audit: frontend, API, tools, and all 13 specs cross-referenced; one new bug spec added)
+
+---
+
+## Pending
+
+### Priority 1 — Architecture: Clerk Direct Token Verification (clerk-auth-3.md)
+
+Replace the custom HS256 app-JWT layer with direct Clerk session token verification. This is the
+only spec not yet implemented.
+
+**What must change (API):**
+- `api/src/shared/authorize.ts` — rewrite to read `Authorization: Bearer <clerk-token>` and verify
+  it using `verifyToken()` from `@clerk/backend` (already imported in `auth.ts`). Return a
+  `ResolvedClerkClaims` type instead of `AppJwtPayload`.
+- `api/src/shared/admin.ts` — read `publicMetadata.roles` from the Clerk session token payload
+  instead of the app JWT `roles` claim.
+- `api/src/shared/auth.ts` — remove `signAppJwt()` and the `jwtSecret`/`jwtExpirySeconds`/
+  `audience` fields from `AuthConfig`/`buildConfig()`. Keep `verifyClerkSessionToken()` and
+  `resolveClerkIdentity()`.
+- `api/src/functions/auth-login.ts` — delete (no longer needed).
+- `api/src/functions/auth-refresh.ts` — delete (no longer needed).
+- All endpoint files that import `AppJwtPayload` for the `user` context — update to the new
+  claims type.
+
+**What must also change (Tools):**
+- `tools/backfill-participant-data.ps1` — update auth from `x-trackit-app-token` header to
+  `Authorization: Bearer <token>` once the API no longer accepts the old header.
+- `tools/migrate-event-index.ps1` — same auth header update.
+
+**What must change (Frontend):**
+- `frontend/src/app/shared/services/auth.service.ts` — remove `exchangeClerkSession()`, JWT
+  expiry timer, localStorage persistence, and `AppUser.token`. Auth state should be derived
+  directly from Clerk session (user is authenticated iff Clerk session exists).
+- `frontend/src/app/shared/interceptors/auth.interceptor.ts` — change from setting
+  `x-trackit-app-token` to setting `Authorization: Bearer <clerk-session-token>` by calling
+  `ClerkService.getSessionToken()` (async; interceptor must handle the promise).
+- `frontend/src/app/shared/interceptors/auth-expired.interceptor.ts` — simplify: on `401`,
+  call `AuthService.logout()` and redirect to `/login` with `returnUrl`.
+- Remove the `AppUser` interface `token` field; downstream code that reads `appUser().token`
+  should be removed or replaced.
+
+**Acceptance criteria (from spec):**
+- No calls to `/api/auth/login` or `/api/auth/refresh` in the sign-in or session lifecycle.
+- No `trackit.appUser` key in `localStorage` after sign-in.
+- Protected API calls succeed with a Clerk session token in `Authorization: Bearer`.
+- Clerk token rotation (~60 s) causes no visible disruption.
+- A user with `publicMetadata.roles` including `"admin"` (embedded via Clerk JWT template) can
+  reach the admin endpoint; a user without it receives `403`.
+- TypeScript build passes for both frontend and API with no errors.
 
 ---
 
 ## Completed
+
+- [x] **Priority 2** — Bug: Invite Accept Post-Acceptance Redirect (invite-accept-redirect.md). `InviteAcceptComponent` `setActiveAndGo()` changed from `router.navigate(['/home'])` to `router.navigate(['/insights'])`. Error-state `routerLink` also changed from `/home` to `/insights`. Button labels updated to "go to Insights". TypeScript build verified clean.
 
 - [x] **clerk-auth-1.md** — Clerk frontend login: `ClerkService` + `LoginComponent` with Clerk widget implemented. Confirmed by git commit `feat(login): use clerk`.
 - [x] **Priority 1** — Bug: Behavior Incident Filter Contract (behavior-incidents-2.md)
