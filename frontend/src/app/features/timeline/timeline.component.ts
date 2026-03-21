@@ -101,7 +101,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
                 @for (event of section.items; track event.id) {
                   <article
                     class="entry"
-                    [class.entry-tappable]="event.sourceType === 'daily_reflection' || event.sourceType === 'medication_log'"
+                    [class.entry-tappable]="event.sourceType === 'daily_reflection' || event.sourceType === 'medication_log' || event.sourceType === 'incident'"
                     role="article"
                     (click)="onCardTap(event)"
                   >
@@ -845,6 +845,8 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
       this.router.navigate(['/daily-reflection'], { queryParams: { date: event.logLocalDate } });
     } else if (event.sourceType === 'medication_log') {
       this.router.navigate(['/medications'], { queryParams: { date: event.logLocalDate } });
+    } else if (event.sourceType === 'incident') {
+      this.router.navigate(['/incidents', event.sourceId]);
     }
   }
 
