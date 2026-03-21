@@ -769,11 +769,12 @@ export class ProfileDashboardComponent {
     if (!link) {
       return;
     }
+    const name = this.participant()?.displayName?.trim() || 'your child';
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'TrackIt caregiver invite',
-          text: 'Join me in TrackIt.',
+          title: `TrackIt — ${name}'s caregiver invite`,
+          text: `Join me in tracking ${name} on TrackIt.`,
           url: link
         });
         this.setInviteMessage('Invite shared.');
