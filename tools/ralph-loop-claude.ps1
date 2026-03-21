@@ -37,7 +37,8 @@ if (-not (Test-Path -LiteralPath $promptPath)) {
   throw "Prompt file not found: $promptPath"
 }
 
-$branch = (git branch --show-current 2>$null)?.Trim()
+$branchRaw = git branch --show-current 2>$null
+$branch = if ($null -ne $branchRaw) { $branchRaw.Trim() } else { '' }
 if ([string]::IsNullOrWhiteSpace($branch)) { $branch = '<detached>' }
 
 Write-Host '========================================'
@@ -62,7 +63,8 @@ while ($true) {
   $iteration++
   Write-Host "`n======================== LOOP $iteration ========================`n"
 
-  Get-Content -LiteralPath $promptPath -Raw | claude -p --dangerously-skip-permissions
+  $promptContent = Get-Content -LiteralPath $promptPath -Raw -Encoding UTF8
+  claude -p $promptContent --dangerously-skip-permissions
   $lastExitCode = $LASTEXITCODE
 
   if ($lastExitCode -ne 0) {
