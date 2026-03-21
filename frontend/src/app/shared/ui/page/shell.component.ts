@@ -33,14 +33,16 @@ import { ClerkService } from '../../services/clerk.service';
   styles: [`
     :host {
       display: block;
-      min-height: 100vh;
-      min-height: 100dvh;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
       background: var(--color-ghost-white-canvas, #fcfcfd);
     }
 
     .shell {
-      min-height: 100vh;
-      min-height: 100dvh;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       background: var(--color-ghost-white-canvas, #fcfcfd);
@@ -75,6 +77,7 @@ import { ClerkService } from '../../services/clerk.service';
     main {
       flex: 1;
       min-height: 0;
+      overflow-y: auto;
       padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
       background: var(--color-ghost-white-canvas, #fcfcfd);
     }

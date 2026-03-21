@@ -166,21 +166,6 @@ Page components rendered inside the shell's `<router-outlet>` must follow these 
 
 ---
 
-## Migration from Current Implementation
-
-The current `AppComponent` acts as a global shell with conditional visibility logic. The new approach replaces it with:
-
-1. `AppComponent` becomes a bare root with only `<router-outlet>`
-2. `ShellComponent` is a new component taking over the layout responsibility
-3. `PageHeaderComponent` is replaced by `TopBarComponent` (new design, right-side icons added)
-4. `BottomNavComponent` is rewritten with the new 3-tab Stitch IA, Material Symbols icons, and updated styling
-5. `BottomSheetComponent` receives style-only updates (border-radius, token alignment)
-6. `TopSheetMenuComponent` is retired — the "More" menu pattern is not in the Stitch designs
-
-The `AppComponent` `menuOpen` signal and `TopSheetMenuComponent` can be removed once the new shell is in place and all routes have been migrated.
-
----
-
 ## Files Summary
 
 ```

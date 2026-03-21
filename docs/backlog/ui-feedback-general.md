@@ -26,18 +26,11 @@ The current frame set has a strong visual direction and generally uses the Track
 
 ## Issues
 
-### 1. Shell and viewport consistency
+### 1. Shell and viewport consistency — **Resolved**
 
-- The reusable `Shell Component` is viewport-sized at `390x844`, but multiple screen frames expand to full content height instead of preserving a viewport-sized shell with a scrollable content region.
-- This makes the bottom nav behave like part of the page content rather than a fixed navigation element.
-- This conflicts with the page shell contract in [docs/architecture/page-shell.md](C:/Users/mclel/repos/TrackIt/docs/architecture/page-shell.md).
-
-Affected frames:
-- `Daily Reflection`
-- `Medications Dashboard`
-- `Timeline`
-- `Behavioral Moment Create`
-- `Profile Dashboard`
+- ~~The reusable `Shell Component` is viewport-sized at `390x844`, but multiple screen frames expand to full content height instead of preserving a viewport-sized shell with a scrollable content region.~~
+- ~~This makes the bottom nav behave like part of the page content rather than a fixed navigation element.~~
+- Fixed: `ShellComponent` `:host` and `.shell` changed from `min-height: 100dvh` to `height: 100dvh; overflow: hidden`. `<main>` now has `overflow-y: auto` as the scroll container.
 
 ### 2. Daily Reflection clipping defect
 

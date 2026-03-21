@@ -15,30 +15,7 @@ Last updated: 2026-03-21
 - [x] **Priority 6** — Documentation: Align Product Spec with API Contract (behavior-incidents-2.md)
 - [x] **Priority 7** — Feature: Viewer Role UI Differentiation (docs/backlog/multi-caregiver-mvp.md item 3). Profile page hides Edit button and medication Add/Edit/Archive controls for viewers; shows "Only managers can add or edit medications." note. TypeScript build verified clean.
 - [x] **Priority 8** — Bug: Top Bar Touch Targets (top-bar-touch-targets.md). `.icon-button` changed from `width/height: 2.25rem` (36px) to `min-width/min-height: 2.75rem` (44px). Docs updated.
-
----
-
-## Remaining Work
-
-### Priority 2 — Architecture: Shell Viewport Normalization (shell-viewport-normalization.md)
-
-**Why second:** Prerequisite for the Daily Reflection layout fix (P3). The shell must become a fixed-height container before child components can rely on `<main>` as the scroll region.
-
-**Current state (confirmed):**
-- Bottom nav is `position: fixed` ✅
-- Top bar is `position: sticky` ✅
-- `<main>` has `padding-bottom: calc(5rem + env(safe-area-inset-bottom))` ✅
-- Page components use `height: auto` and flow naturally ✅
-- `shell.component.ts` `:host` and `.shell` still use `min-height: 100vh / 100dvh` (expands with content) ❌
-
-**Remaining:**
-- `ShellComponent` `:host` and `.shell`: change `min-height: 100dvh` → `height: 100dvh; overflow: hidden` so the shell is viewport-bounded.
-- `<main>`: add `overflow-y: auto` to make it the scroll container (already has `flex: 1; min-height: 0`).
-- Verify all five affected screens (Daily Reflection, Medications Dashboard, Timeline, Behavioral Moment Create, Profile Dashboard) still render correctly — none set fixed heights on `:host`.
-
-**Doc updates on completion:**
-- `docs/architecture/page-shell.md` — remove "Migration from Current Implementation" section (migration is complete; section is stale)
-- `docs/backlog/ui-feedback-general.md` — mark issue 1 resolved
+- [x] **Priority 2** — Architecture: Shell Viewport Normalization (shell-viewport-normalization.md). `ShellComponent` `:host` and `.shell` changed from `min-height: 100dvh` to `height: 100dvh; overflow: hidden`. `<main>` now has `overflow-y: auto`. All five affected screens verified — none set fixed heights on `:host`. Docs updated.
 
 ---
 
