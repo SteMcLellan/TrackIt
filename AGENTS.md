@@ -8,6 +8,7 @@ TrackIt operating guide for coding agents.
 2. Update this file in the same change whenever doc paths move.
 3. Put each new doc in exactly one bucket: `architecture`, `specs`, `product-specs`, `runbooks`, `references`, `decisions`, or `backlog`.
 4. Prefer updating canonical docs over creating duplicate guidance.
+5. Do not update the doc map for individual files added to `docs/specs/` — that folder is self-navigable and does not need to be enumerated here.
 
 ## Agent Lookup Order
 
@@ -34,8 +35,7 @@ docs/
 |   |-- frontend-interaction-principles.md
 |   |-- page-shell.md
 |   `-- participant-association.md
-|-- specs/
-|   `-- README.md
+|-- specs/                              # individual specs not enumerated here
 |-- product-specs/
 |   |-- behavior-tracking-abc.md
 |   |-- dynamic-hero-phrase.md
