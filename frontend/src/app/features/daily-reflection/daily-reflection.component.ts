@@ -97,6 +97,7 @@ const SLEEP_BUCKETS: BucketOption[] = [
               <button
                 class="bucket-option"
                 [class.selected]="moodScore() === opt.score"
+                [class.guide]="moodScore() === null && opt.bucket === 3"
                 type="button"
                 (click)="onBucketSelect('mood', opt.score)"
               >
@@ -122,6 +123,7 @@ const SLEEP_BUCKETS: BucketOption[] = [
               <button
                 class="bucket-option"
                 [class.selected]="focusScore() === opt.score"
+                [class.guide]="focusScore() === null && opt.bucket === 3"
                 type="button"
                 (click)="onBucketSelect('focus', opt.score)"
               >
@@ -147,6 +149,7 @@ const SLEEP_BUCKETS: BucketOption[] = [
               <button
                 class="bucket-option"
                 [class.selected]="energyScore() === opt.score"
+                [class.guide]="energyScore() === null && opt.bucket === 3"
                 type="button"
                 (click)="onBucketSelect('energy', opt.score)"
               >
@@ -172,6 +175,7 @@ const SLEEP_BUCKETS: BucketOption[] = [
               <button
                 class="bucket-option"
                 [class.selected]="sleepScore() === opt.score"
+                [class.guide]="sleepScore() === null && opt.bucket === 3"
                 type="button"
                 (click)="onBucketSelect('sleep', opt.score)"
               >
@@ -384,6 +388,12 @@ const SLEEP_BUCKETS: BucketOption[] = [
       border-color: #10b981;
     }
 
+    .bucket-option.guide {
+      border-style: dashed;
+      border-color: #94a3b8;
+      background: #f8fafc;
+    }
+
     .default-hint {
       margin: 0;
       color: #94a3b8;
@@ -481,10 +491,10 @@ export class DailyReflectionComponent {
   readonly logLocalDate = signal(this.resolveLogLocalDate());
   readonly isBackfill = this.logLocalDate() !== this.formatLocalDate(new Date());
   readonly dateContextLabel = computed(() => this.formatDateContextLabel(this.logLocalDate()));
-  readonly moodScore = signal<number | null>(50);
-  readonly focusScore = signal<number | null>(50);
-  readonly energyScore = signal<number | null>(50);
-  readonly sleepScore = signal<number | null>(50);
+  readonly moodScore = signal<number | null>(null);
+  readonly focusScore = signal<number | null>(null);
+  readonly energyScore = signal<number | null>(null);
+  readonly sleepScore = signal<number | null>(null);
   readonly journalNote = signal('');
   readonly isSaving = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -559,6 +569,12 @@ export class DailyReflectionComponent {
     }
 
     this.errorMessage.set(null);
+
+    if (this.moodScore() === null && this.focusScore() === null && this.energyScore() === null && this.sleepScore() === null) {
+      this.errorMessage.set('Select at least one dimension to save');
+      return;
+    }
+
     this.isSaving.set(true);
     const logLocalDate = this.logLocalDate();
 
