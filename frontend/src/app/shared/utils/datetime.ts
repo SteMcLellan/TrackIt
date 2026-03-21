@@ -78,3 +78,41 @@ export function utcToDatetimeLocalInput(utcIsoString: string): string {
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
+
+/**
+ * Formats a Date object as a local date string in YYYY-MM-DD format.
+ * Uses local (wall-clock) date components, not UTC.
+ *
+ * @param date - The Date to format
+ * @returns Local date string in YYYY-MM-DD format
+ * @example
+ * formatLocalDate(new Date('2026-01-20T14:30:00')) // '2026-01-20'
+ */
+export function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Formats an HH:mm time string as a 12-hour display label (e.g., "2:30 PM").
+ *
+ * @param value - Time string in HH:mm format, or undefined
+ * @param fallback - Text to return when value is falsy (default: 'Time n/a')
+ * @returns Human-readable 12-hour time label, or fallback when value is absent or unparseable
+ * @example
+ * formatTimeLabel('14:30') // '2:30 PM'
+ * formatTimeLabel(undefined) // 'Time n/a'
+ * formatTimeLabel('09:05') // '9:05 AM'
+ */
+export function formatTimeLabel(value: string | undefined, fallback = 'Time n/a'): string {
+  if (!value) return fallback;
+  const [hourRaw, minuteRaw] = value.split(':');
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return value;
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${String(minute).padStart(2, '0')} ${period}`;
+}

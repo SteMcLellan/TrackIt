@@ -6,7 +6,7 @@ import { MedicationLog } from '../../shared/models/medication-log';
 import { IntervalSchedule, Medication, MedicationFrequency } from '../../shared/models/medication';
 import { MedicationLogService } from '../../shared/services/medication-log.service';
 import { ParticipantService } from '../../shared/services/participant.service';
-import { computeTzOffsetMinutes } from '../../shared/utils/datetime';
+import { computeTzOffsetMinutes, formatLocalDate, formatTimeLabel } from '../../shared/utils/datetime';
 import { medicationDaypartFromDate, medicationDaypartFromLocalTime } from '../../shared/utils/medication-daypart';
 import { environment } from '../../../environments/environment';
 
@@ -1596,10 +1596,10 @@ export class MedicationsDashboardComponent {
   }
 
   private formatTakenTime(log: MedicationLog): string | undefined {
-    if (log.logLocalTime) return this.formatTimeLabel(log.logLocalTime);
+    if (log.logLocalTime) return formatTimeLabel(log.logLocalTime);
     if (log.takenAtUtc) {
       const derived = this.localTimeFromUtc(log.takenAtUtc, log.logTzOffsetMinutes);
-      if (derived) return this.formatTimeLabel(derived);
+      if (derived) return formatTimeLabel(derived);
     }
     const utcMillis = this.logSortTimeMs(log);
     if (!Number.isFinite(utcMillis) || utcMillis <= 0) return undefined;
@@ -1607,7 +1607,7 @@ export class MedicationsDashboardComponent {
     const localInstant = new Date(localMillis);
     const hh = String(localInstant.getUTCHours()).padStart(2, '0');
     const mm = String(localInstant.getUTCMinutes()).padStart(2, '0');
-    return this.formatTimeLabel(`${hh}:${mm}`);
+    return formatTimeLabel(`${hh}:${mm}`);
   }
 
   private resolveEditableTimeValue(row: RoutineMedicationRow): string | null {
@@ -1674,7 +1674,7 @@ export class MedicationsDashboardComponent {
   }
 
   private resolveDateParam(): { date: string; isBackfill: boolean; isOutOfWindow: boolean } {
-    const today = this.formatLocalDate(new Date());
+    const today = formatLocalDate(new Date());
     const param = this.route.snapshot.queryParamMap.get('date');
     if (!param || !/^\d{4}-\d{2}-\d{2}$/.test(param)) {
       return { date: today, isBackfill: false, isOutOfWindow: false };
@@ -1685,30 +1685,13 @@ export class MedicationsDashboardComponent {
     }
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 29);
-    const cutoff = this.formatLocalDate(cutoffDate);
+    const cutoff = formatLocalDate(cutoffDate);
     if (param < cutoff) {
       return { date: today, isBackfill: true, isOutOfWindow: true };
     }
     return { date: param, isBackfill: param !== today, isOutOfWindow: false };
   }
 
-  private formatLocalDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  private formatTimeLabel(value?: string): string {
-    if (!value) return 'Time n/a';
-    const [hourRaw, minuteRaw] = value.split(':');
-    const hour = Number(hourRaw);
-    const minute = Number(minuteRaw);
-    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return value;
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour % 12 || 12;
-    return `${hour12}:${String(minute).padStart(2, '0')} ${period}`;
-  }
 }
 
 

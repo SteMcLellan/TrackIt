@@ -6,6 +6,7 @@ import { DailyReflection } from '../../shared/models/daily-reflection';
 import { DailyReflectionService } from '../../shared/services/daily-reflection.service';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { environment } from '../../../environments/environment';
+import { formatLocalDate } from '../../shared/utils/datetime';
 
 type DailyReflectionsResponse = CollectionResponse<DailyReflection>;
 type ScoreField = 'mood' | 'focus' | 'energy' | 'sleep';
@@ -499,7 +500,7 @@ export class DailyReflectionComponent {
 
   readonly activeParticipantId = this.participantService.activeParticipantId;
   readonly logLocalDate = signal(this.resolveLogLocalDate());
-  readonly isBackfill = this.logLocalDate() !== this.formatLocalDate(new Date());
+  readonly isBackfill = this.logLocalDate() !== formatLocalDate(new Date());
   readonly dateContextLabel = computed(() => this.formatDateContextLabel(this.logLocalDate()));
   readonly moodScore = signal<number | null>(null);
   readonly focusScore = signal<number | null>(null);
@@ -615,7 +616,7 @@ export class DailyReflectionComponent {
   }
 
   private resolveLogLocalDate(): string {
-    const today = this.formatLocalDate(new Date());
+    const today = formatLocalDate(new Date());
     const param = this.route.snapshot.queryParamMap.get('date');
     if (!param || !/^\d{4}-\d{2}-\d{2}$/.test(param)) {
       return today;
@@ -625,7 +626,7 @@ export class DailyReflectionComponent {
   }
 
   private formatDateContextLabel(logLocalDate: string): string | null {
-    const today = this.formatLocalDate(new Date());
+    const today = formatLocalDate(new Date());
     if (logLocalDate === today) return null;
     const parsed = new Date(`${logLocalDate}T00:00:00`);
     if (Number.isNaN(parsed.getTime())) return null;
@@ -634,10 +635,4 @@ export class DailyReflectionComponent {
     return `Reflecting on ${weekday}, ${monthDay}`;
   }
 
-  private formatLocalDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
 }

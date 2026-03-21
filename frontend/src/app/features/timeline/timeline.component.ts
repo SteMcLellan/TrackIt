@@ -16,6 +16,7 @@ import { ParticipantService } from '../../shared/services/participant.service';
 import { TimelineService } from '../../shared/services/timeline.service';
 import { TimelineEvent, TimelineSourceType } from '../../shared/models/timeline-event';
 import { ReflectionChip, ReflectionFacet, resolveReflectionChip } from '../../shared/utils/reflection-labels';
+import { formatLocalDate, formatTimeLabel } from '../../shared/utils/datetime';
 
 type TimelineSection = {
   logLocalDate: string;
@@ -635,7 +636,7 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
 
   formatEventTime(event: TimelineEvent): string {
     if (event.logLocalTime) {
-      return this.formatTimeLabel(event.logLocalTime);
+      return formatTimeLabel(event.logLocalTime);
     }
 
     const parsed = new Date(event.eventAtUtc);
@@ -644,11 +645,11 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
     }
     const hh = String(parsed.getHours()).padStart(2, '0');
     const mm = String(parsed.getMinutes()).padStart(2, '0');
-    return this.formatTimeLabel(`${hh}:${mm}`);
+    return formatTimeLabel(`${hh}:${mm}`);
   }
 
   private loadInitialPage(participantId: string, requestVersion: number): void {
-    this.anchorDate = this.todayDateOnly();
+    this.anchorDate = formatLocalDate(new Date());
 
     this.isInitialLoading.set(true);
     this.timeline.listTimeline(participantId, {
@@ -815,28 +816,8 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
     return new Date(value.getFullYear(), value.getMonth(), value.getDate());
   }
 
-  private todayDateOnly(): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
   private formatMonthDay(value: Date): string {
     return value.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  }
-
-  private formatTimeLabel(value: string): string {
-    const [hourRaw, minuteRaw] = value.split(':');
-    const hour = Number(hourRaw);
-    const minute = Number(minuteRaw);
-    if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
-      return value;
-    }
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour % 12 || 12;
-    return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`;
   }
 
   @HostListener('document:click')

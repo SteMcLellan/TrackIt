@@ -11,6 +11,7 @@ import { HeroPhraseTier, HeroPhraseTiersDocument } from '../../shared/models/her
 import { AuthService } from '../../shared/services/auth.service';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { environment } from '../../../environments/environment';
+import { formatLocalDate, formatTimeLabel } from '../../shared/utils/datetime';
 import { FALLBACK_HERO_PHRASE_TIERS } from './hero-phrase-fallback-tiers';
 
 type ParticipantsResponse = CollectionResponse<Participant>;
@@ -778,7 +779,7 @@ export class InsightsDashboardComponent {
 
   readonly caregiverName = computed(() => this.firstName(this.auth.appUser().name) || 'there');
   readonly activeParticipantId = this.participantService.activeParticipantId;
-  readonly todayLocalDate = signal(this.formatLocalDate(new Date()));
+  readonly todayLocalDate = signal(formatLocalDate(new Date()));
   readonly metricSkeleton = [1, 2, 3, 4];
 
   readonly participantsResource = httpResource<ParticipantsResponse>(() => ({
@@ -847,7 +848,7 @@ export class InsightsDashboardComponent {
     const endDate = this.todayLocalDate();
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    const startDate = this.formatLocalDate(sevenDaysAgo);
+    const startDate = formatLocalDate(sevenDaysAgo);
     if (!participantId) {
       return {
         url: `${environment.apiBaseUrl}/participants/unknown/incidents`,
@@ -1067,7 +1068,7 @@ export class InsightsDashboardComponent {
 
   incidentRecencyLabel(incident: BehaviorIncident): string {
     const today = this.todayLocalDate();
-    const time = this.formatTimeLabel(incident.logLocalTime);
+    const time = formatTimeLabel(incident.logLocalTime);
     if (incident.logLocalDate === today) {
       return `Today - ${time}`;
     }
@@ -1322,28 +1323,6 @@ export class InsightsDashboardComponent {
       }
     }
     return markers;
-  }
-
-  private formatLocalDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  private formatTimeLabel(value?: string): string {
-    if (!value) {
-      return 'Time n/a';
-    }
-    const [hourRaw, minuteRaw] = value.split(':');
-    const hour = Number(hourRaw);
-    const minute = Number(minuteRaw);
-    if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
-      return value;
-    }
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour % 12 || 12;
-    return `${hour12}:${String(minute).padStart(2, '0')} ${period}`;
   }
 
   private firstName(name: string): string {
