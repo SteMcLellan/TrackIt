@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
 import { AuthService } from '../../shared/services/auth.service';
-import { GoogleIdentityService } from '../../shared/services/google-identity.service';
+import { ClerkService } from '../../shared/services/clerk.service';
 import { TrackItTrendlineLogoIconComponent } from '../../shared/ui/icons/trackit-trendline-logo-icon.component';
 
 /**
@@ -13,7 +13,7 @@ import { TrackItTrendlineLogoIconComponent } from '../../shared/ui/icons/trackit
  * @stitch-status converted
  * @stitch-last-sync 2026-02-11
  *
- * Sign-in screen that initializes the Google Identity Services button.
+ * Sign-in screen that renders Clerk's hosted sign-in component.
  * Supports returnUrl query parameter for post-login redirect.
  */
 @Component({
@@ -35,8 +35,18 @@ import { TrackItTrendlineLogoIconComponent } from '../../shared/ui/icons/trackit
           </div>
         </header>
 
-        <section class="signin-shell" aria-label="Google sign-in">
-          <div id="g_id_signin"></div>
+        <section class="signin-shell" aria-label="Sign in">
+          @if (error) {
+            <div class="signin-error-card" role="alert" aria-live="polite">
+              <p class="signin-error-title">Sign-in is unavailable</p>
+              <p class="signin-error">{{ error }}</p>
+              <p class="signin-error-hint">Verify the Clerk frontend configuration, then reload this page.</p>
+            </div>
+          } @else if (!showSyncMessage()) {
+            <div id="clerk-sign-in"></div>
+          } @else {
+            <p class="signin-status">Finishing sign-in...</p>
+          }
         </section>
 
         <a class="help-text" href="#">Need help getting started?</a>
@@ -121,11 +131,43 @@ import { TrackItTrendlineLogoIconComponent } from '../../shared/ui/icons/trackit
       justify-content: center;
       margin-bottom: 4rem;
     }
-    #g_id_signin {
+    #clerk-sign-in {
       display: flex;
       justify-content: center;
       width: 100%;
       min-height: 44px;
+    }
+    .signin-error-card {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 1rem;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      display: grid;
+      gap: 0.375rem;
+    }
+    .signin-error-title,
+    .signin-error,
+    .signin-error-hint,
+    .signin-status {
+      margin: 0;
+      text-align: center;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+    .signin-error-title {
+      color: #991b1b;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      font-size: 0.75rem;
+    }
+    .signin-error {
+      color: #b91c1c;
+    }
+    .signin-error-hint,
+    .signin-status {
+      color: #475569;
     }
     .help-text {
       margin: 0;
@@ -142,22 +184,23 @@ import { TrackItTrendlineLogoIconComponent } from '../../shared/ui/icons/trackit
 })
 export class LoginComponent implements OnInit, OnDestroy {
   error?: string;
+
   private readonly auth = inject(AuthService);
-  private readonly googleIdentity = inject(GoogleIdentityService);
+  private readonly clerk = inject(ClerkService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  // Extract returnUrl from query params
   private readonly returnUrl = toSignal(
     this.route.queryParamMap.pipe(map((params) => params.get('returnUrl'))),
     { initialValue: null }
   );
 
+  readonly showSyncMessage = computed(() => this.clerk.isSignedIn() && !this.auth.isAuthenticated());
+
   constructor() {
     effect(() => {
       if (this.auth.isAuthenticated()) {
         const returnUrl = this.returnUrl();
-        // Navigate to returnUrl if present and valid, otherwise default to /insights
         if (returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login')) {
           this.router.navigateByUrl(returnUrl);
         } else {
@@ -167,9 +210,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Redirects authenticated users and renders the Google sign-in button.
-   */
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
       const returnUrl = this.returnUrl();
@@ -180,30 +220,27 @@ export class LoginComponent implements OnInit, OnDestroy {
       }
       return;
     }
-    this.renderButton();
+
+    void this.renderSignIn();
   }
 
-  /**
-   * Removes the GIS script when the component is destroyed.
-   */
   ngOnDestroy(): void {
-    const script = document.getElementById('g_id_onload');
-    if (script) {
-      script.remove();
-    }
+    this.clerk.unmountSignIn('clerk-sign-in');
   }
 
-  /**
-   * Initializes the Google sign-in button once GIS library is ready.
-   */
-  private async renderButton(): Promise<void> {
+  private async renderSignIn(): Promise<void> {
     try {
-      await this.googleIdentity.waitForGoogleIdentity();
-      this.auth.renderGoogleButton('g_id_signin', (err) => (this.error = err));
+      await this.clerk.initialize();
+      this.error = this.clerk.error() ?? undefined;
+
+      if (this.error || this.clerk.isSignedIn()) {
+        return;
+      }
+
+      await this.clerk.mountSignIn('clerk-sign-in', this.returnUrl());
     } catch (err) {
-      console.error('[LoginComponent] Failed to load Google Identity Services:', err);
-      // Error is already displayed via googleError signal
+      console.error('[LoginComponent] Failed to mount Clerk sign-in:', err);
+      this.error = err instanceof Error ? err.message : 'Unable to load sign-in.';
     }
   }
 }
-

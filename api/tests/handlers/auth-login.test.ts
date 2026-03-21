@@ -3,7 +3,7 @@ import { mockHttpRequest } from '../helpers/http';
 
 const buildConfigMock = vi.fn();
 const readJwtHeaderMock = vi.fn();
-const verifyGoogleIdTokenMock = vi.fn();
+const resolveClerkIdentityMock = vi.fn();
 const signAppJwtMock = vi.fn();
 const readUserBySubMock = vi.fn();
 const upsertUserMock = vi.fn();
@@ -14,7 +14,7 @@ vi.mock('../../src/shared/auth', async () => {
     ...(actual as object),
     buildConfig: (...args: unknown[]) => buildConfigMock(...args),
     readJwtHeader: (...args: unknown[]) => readJwtHeaderMock(...args),
-    verifyGoogleIdToken: (...args: unknown[]) => verifyGoogleIdTokenMock(...args),
+    resolveClerkIdentity: (...args: unknown[]) => resolveClerkIdentityMock(...args),
     signAppJwt: (...args: unknown[]) => signAppJwtMock(...args)
   };
 });
@@ -37,10 +37,17 @@ describe('auth-login handler', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    buildConfigMock.mockReturnValue({ jwtSecret: 'x', audience: 'trackit-app', jwtExpirySeconds: 3600, googleClientId: 'g' });
+    buildConfigMock.mockReturnValue({
+      audience: 'trackit-app',
+      clerkAuthorizedParties: ['http://localhost:4200'],
+      clerkJwtKey: '',
+      clerkSecretKey: 'sk_test_123',
+      jwtExpirySeconds: 3600,
+      jwtSecret: 'x'
+    });
     readJwtHeaderMock.mockReturnValue({ alg: 'RS256', kid: 'kid' });
-    verifyGoogleIdTokenMock.mockResolvedValue({
-      sub: 'user-1',
+    resolveClerkIdentityMock.mockResolvedValue({
+      sub: 'user_1',
       email: 'user@example.com',
       name: 'User One',
       picture: 'pic'
@@ -48,7 +55,7 @@ describe('auth-login handler', () => {
     signAppJwtMock.mockReturnValue('app.jwt.token');
     readUserBySubMock.mockResolvedValue({ roles: ['parent'] });
     upsertUserMock.mockResolvedValue({
-      sub: 'user-1',
+      sub: 'user_1',
       email: 'user@example.com',
       name: 'User One',
       picture: 'pic',
@@ -61,22 +68,42 @@ describe('auth-login handler', () => {
     expect(response.status).toBe(401);
   });
 
+  it('returns 500 when Clerk verification is not configured', async () => {
+    buildConfigMock.mockReturnValue({
+      audience: 'trackit-app',
+      clerkAuthorizedParties: [],
+      clerkJwtKey: '',
+      clerkSecretKey: '',
+      jwtExpirySeconds: 3600,
+      jwtSecret: 'x'
+    });
+
+    const response = await authLoginBusinessHandler(
+      requestContext,
+      mockHttpRequest({ method: 'POST', body: { sessionToken: 'token' } })
+    );
+
+    expect(response.status).toBe(500);
+  });
+
   it('returns 401 for HS algorithm header', async () => {
     readJwtHeaderMock.mockReturnValue({ alg: 'HS256', kid: 'kid' });
-    const response = await authLoginBusinessHandler(requestContext, mockHttpRequest({ method: 'POST', body: { idToken: 'token' } }));
+
+    const response = await authLoginBusinessHandler(
+      requestContext,
+      mockHttpRequest({ method: 'POST', body: { sessionToken: 'token' } })
+    );
+
     expect(response.status).toBe(401);
     expect((response.jsonBody as { alg?: string }).alg).toBe('HS256');
   });
 
-  it('returns specific unsupported alg error', async () => {
-    verifyGoogleIdTokenMock.mockRejectedValue(new Error('Unsupported "alg" value for a JSON Web Key Set'));
-    const response = await authLoginBusinessHandler(requestContext, mockHttpRequest({ method: 'POST', body: { idToken: 'token' } }));
-    expect(response.status).toBe(401);
-    expect((response.jsonBody as { message?: string }).message).toContain('Expected a Google ID token');
-  });
-
   it('returns token and persisted user fields on success', async () => {
-    const response = await authLoginBusinessHandler(requestContext, mockHttpRequest({ method: 'POST', body: { idToken: 'token' } }));
+    const response = await authLoginBusinessHandler(
+      requestContext,
+      mockHttpRequest({ method: 'POST', body: { sessionToken: 'token' } })
+    );
+
     expect(response.status).toBe(200);
     const body = response.jsonBody as { token: string; roles: string[] };
     expect(body.token).toBe('app.jwt.token');

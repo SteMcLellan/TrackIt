@@ -1,8 +1,8 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { tap } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { GoogleIdentityService } from './google-identity.service';
+import { ClerkService } from './clerk.service';
 import { ParticipantService } from './participant.service';
 
 interface AppUser {
@@ -15,9 +15,6 @@ interface AppUser {
   token: string;
 }
 
-/**
- * Sentinel user used when no authenticated session exists.
- */
 const signedOutUser: AppUser = {
   sub: '',
   email: 'signed-out@trackit.local',
@@ -32,59 +29,63 @@ const signedOutUser: AppUser = {
 export class AuthService {
   private readonly storageKey = 'trackit.appUser';
   private readonly http = inject(HttpClient);
-  private readonly googleIdentity = inject(GoogleIdentityService);
+  private readonly clerk = inject(ClerkService);
   private readonly participants = inject(ParticipantService);
   private readonly appUserState = signal<AppUser>(signedOutUser);
   private logoutTimerId: number | null = null;
+  private syncInFlightForSessionId: string | null = null;
+
   readonly appUser = this.appUserState.asReadonly();
   readonly isAuthenticated = computed(() => this.isTokenValid(this.appUserState().token));
 
-  /**
-   * Hydrates user state from local storage on startup.
-   */
   constructor() {
-    const stored = this.readStoredUser();
-    this.appUserState.set(stored);
+    this.appUserState.set(this.readStoredUser());
 
     effect(() => {
       this.scheduleTokenExpiry(this.appUserState().token);
     });
+
+    effect(() => {
+      const initialized = this.clerk.initialized();
+      const clerkError = this.clerk.error();
+      const sessionId = this.clerk.sessionId();
+      const clerkUserId = this.clerk.userId();
+      const appUser = this.appUserState();
+
+      if (!initialized || clerkError) {
+        return;
+      }
+
+      if (!sessionId || !clerkUserId) {
+        if (appUser.token) {
+          this.logout();
+        }
+        this.syncInFlightForSessionId = null;
+        return;
+      }
+
+      if (this.isTokenValid(appUser.token) && appUser.sub === clerkUserId) {
+        return;
+      }
+
+      if (this.syncInFlightForSessionId === sessionId) {
+        return;
+      }
+
+      void this.exchangeClerkSession(sessionId);
+    });
   }
 
-  /**
-   * Initializes Google Identity Services and renders the button.
-   * Waits for GIS library to load before initializing.
-   */
-  async renderGoogleButton(containerId: string, onError: (msg: string) => void): Promise<void> {
+  async signOut(): Promise<void> {
     try {
-      await this.googleIdentity.waitForGoogleIdentity();
+      await this.clerk.signOut();
     } catch (err) {
-      onError('Google Identity Services failed to load.');
-      return;
+      console.error('[AuthService] Clerk sign-out failed:', err);
+    } finally {
+      this.logout();
     }
-
-    const google = (window as any).google;
-    google.accounts.id.initialize({
-      client_id: environment.googleClientId,
-      callback: (response: any) => this.exchangeGoogleToken(response.credential, onError),
-      ux_mode: 'popup',
-      auto_select: !this.isMobileDevice()
-    });
-
-    google.accounts.id.renderButton(document.getElementById(containerId), {
-      type: 'standard',
-      theme: 'outline',
-      size: 'large',
-      text: 'signin_with',
-      shape: 'rectangular',
-      width: 280,
-      logo_alignment: 'left'
-    });
   }
 
-  /**
-   * Clears persisted credentials and resets the user state.
-   */
   logout(): void {
     this.appUserState.set(signedOutUser);
     this.participants.clearActiveParticipant();
@@ -92,29 +93,12 @@ export class AuthService {
     this.clearLogoutTimer();
   }
 
-  /**
-   * Exchanges a Google ID token for an app-issued JWT.
-   */
-  private exchangeGoogleToken(idToken: string, onError: (msg: string) => void): void {
-    this.http
-      .post<AppUser>(`${environment.apiBaseUrl}/auth/login`, { idToken })
-      .pipe(
-        tap({
-          next: (user) => this.persistUser(user),
-          error: (err) => onError(err?.error?.message || 'Login failed')
-        })
-      )
-      .subscribe();
-  }
-
-  /**
-   * Loads a persisted user if the token is present and unexpired.
-   */
   private readStoredUser(): AppUser {
     const raw = localStorage.getItem(this.storageKey);
     if (!raw) {
       return signedOutUser;
     }
+
     try {
       const parsed = JSON.parse(raw) as AppUser;
       if (!parsed?.token || !this.isTokenValid(parsed.token)) {
@@ -128,38 +112,32 @@ export class AuthService {
     }
   }
 
-  /**
-   * Persists a validated user and updates the app state.
-   */
   private persistUser(user: AppUser): void {
     if (!user?.token || !this.isTokenValid(user.token)) {
       this.logout();
       return;
     }
+
     this.appUserState.set(user);
     localStorage.setItem(this.storageKey, JSON.stringify(user));
   }
 
-  /**
-   * Checks if a JWT has a valid, unexpired exp claim.
-   */
   private isTokenValid(token: string): boolean {
     const exp = this.readJwtExp(token);
     if (!exp) {
       return false;
     }
+
     return Date.now() < exp * 1000;
   }
 
-  /**
-   * Reads the exp claim from a JWT payload, or returns null if invalid.
-   */
   private readJwtExp(token: string): number | null {
     try {
       const [, payload] = token.split('.');
       if (!payload) {
         return null;
       }
+
       const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
       const decoded = atob(normalized);
       const json = JSON.parse(decoded);
@@ -169,20 +147,19 @@ export class AuthService {
     }
   }
 
-  /**
-   * Schedules a logout when the JWT expires.
-   */
   private scheduleTokenExpiry(token: string): void {
     this.clearLogoutTimer();
     const exp = this.readJwtExp(token);
     if (!exp || typeof window === 'undefined') {
       return;
     }
+
     const msUntilExpiry = exp * 1000 - Date.now();
     if (msUntilExpiry <= 0) {
       this.logout();
       return;
     }
+
     this.logoutTimerId = window.setTimeout(() => this.logout(), msUntilExpiry);
   }
 
@@ -193,12 +170,36 @@ export class AuthService {
     }
   }
 
-  /**
-   * Detects if the user is on a mobile device.
-   * Used to disable auto_select which can interfere with mobile UI.
-   */
-  private isMobileDevice(): boolean {
-    return window.innerWidth < 768 ||
-      /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  private async exchangeClerkSession(sessionId: string): Promise<void> {
+    this.syncInFlightForSessionId = sessionId;
+
+    try {
+      const sessionToken = await this.clerk.getSessionToken();
+      if (!sessionToken) {
+        if (this.clerk.sessionId() === sessionId) {
+          this.logout();
+        }
+        return;
+      }
+
+      const user = await firstValueFrom(
+        this.http.post<AppUser>(`${environment.apiBaseUrl}/auth/login`, { sessionToken })
+      );
+
+      if (this.clerk.sessionId() !== sessionId) {
+        return;
+      }
+
+      this.persistUser(user);
+    } catch (error) {
+      console.error('[AuthService] Failed to exchange Clerk session token:', error);
+      if (this.clerk.sessionId() === sessionId) {
+        this.logout();
+      }
+    } finally {
+      if (this.syncInFlightForSessionId === sessionId) {
+        this.syncInFlightForSessionId = null;
+      }
+    }
   }
 }

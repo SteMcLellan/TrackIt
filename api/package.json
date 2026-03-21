@@ -18,6 +18,7 @@
   "dependencies": {
     "@azure/cosmos": "^4.2.0",
     "@azure/functions": "^4.4.0",
+    "@clerk/backend": "^3.2.2",
     "jose": "^5.2.0",
     "jsonwebtoken": "^9.0.2"
   },

@@ -77,6 +77,11 @@ docs/
 - Development commands: `docs/references/development-commands.md`
 - Environment variables: `docs/references/environment-variables.md`
 
+## Operational Notes
+
+- Clerk auth now depends on frontend `clerkPublishableKey` plus backend Clerk keys documented in `docs/references/environment-variables.md`.
+- In restricted shells where Angular tooling cannot spawn child processes, validate frontend code with `node node_modules/typescript/bin/tsc -p frontend/tsconfig.app.json --noEmit`.
+
 ## Stitch Defaults
 
 - Project: `projects/2002730124455423542`

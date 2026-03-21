@@ -1,5 +1,5 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
-import { buildConfig, readJwtHeader, signAppJwt, verifyGoogleIdToken } from '../shared/auth';
+import { buildConfig, readJwtHeader, resolveClerkIdentity, signAppJwt } from '../shared/auth';
 import { upsertUser } from '../shared/cosmos';
 import { UserDocument } from '../models/user';
 import { readUserBySub } from '../shared/data/users';
@@ -12,9 +12,6 @@ import { composeHttpHandler } from '../shared/http-middleware';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 
-/**
- * Exchanges a Google ID token for an app JWT and upserts the user profile.
- */
 const authLoginBusinessHandler = async (
   requestContext: RequestResourcesContext,
   req: HttpRequest
@@ -24,62 +21,63 @@ const authLoginBusinessHandler = async (
   let bodyToken = '';
   try {
     const body = (await req.json()) as unknown;
-    if (body && typeof body === 'object' && 'idToken' in body && typeof (body as { idToken?: unknown }).idToken === 'string') {
-      bodyToken = (body as { idToken: string }).idToken;
+    if (
+      body
+      && typeof body === 'object'
+      && 'sessionToken' in body
+      && typeof (body as { sessionToken?: unknown }).sessionToken === 'string'
+    ) {
+      bodyToken = (body as { sessionToken: string }).sessionToken;
     }
   } catch {
-    // Ignore invalid/missing JSON body.
+    // Ignore invalid or missing JSON bodies.
   }
 
-  const headerToken = req.headers.get('x-trackit-google-id-token') || '';
+  const headerToken = req.headers.get('x-trackit-clerk-session-token') || '';
   const authHeader = req.headers.get('authorization') || '';
   const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : authHeader;
-  const idToken = bodyToken || headerToken || bearerToken;
-  if (!idToken) {
-    return { status: 401, jsonBody: { message: 'Missing Google ID token' } };
+  const sessionToken = bodyToken || headerToken || bearerToken;
+  if (!sessionToken) {
+    return { status: 401, jsonBody: { message: 'Missing Clerk session token' } };
   }
 
   const config = buildConfig();
+  if (!config.clerkSecretKey && !config.clerkJwtKey) {
+    return {
+      status: 500,
+      jsonBody: { message: 'Clerk session verification is not configured.' }
+    };
+  }
 
-  const header = readJwtHeader(idToken);
+  const header = readJwtHeader(sessionToken);
   if (header?.alg?.startsWith('HS')) {
     return {
       status: 401,
       jsonBody: {
         message:
-          'Expected a Google ID token (e.g. RS256). Received an HMAC token (HS*). This usually means the TrackIt app JWT (or a proxy-generated token) was sent instead of the Google credential.',
+          'Expected a Clerk session token. Received an HMAC token (HS*), which usually means the TrackIt app JWT was sent instead.',
         alg: header.alg,
         kid: header.kid
       }
     };
   }
 
-  let googleClaims: Awaited<ReturnType<typeof verifyGoogleIdToken>>;
+  let identity: Awaited<ReturnType<typeof resolveClerkIdentity>>;
   try {
-    googleClaims = await verifyGoogleIdToken(idToken, config);
+    identity = await resolveClerkIdentity(sessionToken, config);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Invalid Google ID token';
-    if (msg.includes('Unsupported "alg" value for a JSON Web Key Set')) {
-      return {
-        status: 401,
-        jsonBody: {
-          message:
-            'Expected a Google ID token (e.g. RS256). Received a token with an unsupported algorithm for Google JWKS verification. Clear local storage and retry.',
-          alg: header?.alg,
-          kid: header?.kid
-        }
-      };
-    }
-    return { status: 401, jsonBody: { message: 'Invalid Google ID token' } };
+    const message = err instanceof Error ? err.message : 'Invalid Clerk session token';
+    const status = message.includes('required to resolve Clerk user profiles') ? 500 : 401;
+    return { status, jsonBody: { message } };
   }
 
-  const existing = await readUserBySub(containers.users, googleClaims.sub as string);
+  const existing = await readUserBySub(containers.users, identity.sub);
   const roles = existing?.roles && existing.roles.length > 0 ? existing.roles : ['parent'];
   const user: UserDocument = {
-    sub: googleClaims.sub as string,
-    email: googleClaims.email as string,
-    name: (googleClaims.name as string) || '',
-    picture: googleClaims.picture as string,
+    sub: identity.sub,
+    email: identity.email,
+    name: identity.name,
+    picture: identity.picture,
     roles,
     createdAt: '',
     lastLoginAt: ''
@@ -87,14 +85,17 @@ const authLoginBusinessHandler = async (
 
   const stored = await upsertUser(containers, user);
   const persistedRoles = stored.roles && stored.roles.length > 0 ? stored.roles : roles;
-  const token = signAppJwt({
-    sub: stored.sub,
-    email: stored.email,
-    name: stored.name,
-    picture: stored.picture,
-    role: persistedRoles[0],
-    roles: persistedRoles
-  }, config);
+  const token = signAppJwt(
+    {
+      sub: stored.sub,
+      email: stored.email,
+      name: stored.name,
+      picture: stored.picture,
+      role: persistedRoles[0],
+      roles: persistedRoles
+    },
+    config
+  );
 
   return {
     status: 200,
@@ -118,9 +119,6 @@ const authLogin = composeHttpHandler({
   handler: bindBusinessHandler(resolveRequestResourcesContext, authLoginBusinessHandler)
 });
 
-/**
- * Anonymous endpoint for initial sign-in with a Google ID token.
- */
 app.http('auth-login', {
   methods: ['POST'],
   authLevel: 'anonymous',

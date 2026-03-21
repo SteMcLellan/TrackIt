@@ -580,8 +580,8 @@ export class ParticipantSetupComponent {
     this.step.set('form');
   }
 
-  signOut(): void {
-    this.authService.logout();
+  async signOut(): Promise<void> {
+    await this.authService.signOut();
   }
 
   submit(): void {

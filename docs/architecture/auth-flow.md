@@ -3,61 +3,64 @@
 This document describes how authentication works across the Angular frontend and Azure Functions API.
 
 ## Actors and Tokens
-- **Google ID Token**: Issued by Google Identity Services. Used only to call `/api/auth/login` or `/api/auth/refresh`.
+- **Clerk session token**: Issued by Clerk for the signed-in browser session. Used only to call `/api/auth/login` or `/api/auth/refresh`.
 - **App JWT**: Issued by TrackIt API using HMAC (`HS256`). Used for all authenticated API calls.
 
 ## Frontend Flow
-1. **Login view renders** (`LoginComponent`).
-2. If the user is already authenticated, redirect to `/dashboard` and do not render the Google button.
-3. Google Identity Services renders the sign-in button.
-4. On successful Google sign-in, the frontend calls:
-   - `POST /api/auth/login`
-   - Body: `{ "idToken": "<google_id_token>" }`
-5. The API returns an **app JWT**, which is stored in `localStorage` and held in a signal (`AuthService`).
+1. `main.ts` initializes Clerk at application startup.
+2. `LoginComponent` mounts Clerk's hosted sign-in UI when there is no authenticated TrackIt app session.
+3. When Clerk reports an active session, `AuthService` requests a Clerk session token from the browser SDK.
+4. The frontend exchanges that session token with `POST /api/auth/login` using body `{ "sessionToken": "<clerk_session_token>" }`.
+5. The API returns an app JWT plus user profile fields, which are stored in `localStorage` and mirrored in the `AuthService` signal state.
+6. Existing `returnUrl` behavior is preserved by keeping Clerk redirects on `/login` until the TrackIt app session is established.
 
 ## Frontend Auth State
 - `AuthService` keeps a non-null `appUser` signal.
 - `isAuthenticated()` is derived from a valid, unexpired `appUser.token`.
-- `authInterceptor` adds the app JWT to outgoing requests **only** when `isAuthenticated()` is true.
+- When the TrackIt app token expires but the Clerk session still exists, `AuthService` can exchange the Clerk session again.
 
 ## Auth Interceptor Behavior
 The `authInterceptor` automatically adds the app JWT to API requests with these rules:
-- **Only same-origin `/api/*` requests** - External requests are not modified
-- **Skips requests with existing auth** - If `Authorization` or `x-trackit-app-token` headers are already present, they are not modified
-- **Only when authenticated** - Token is only added if `isAuthenticated()` returns true
-- **Custom header** - Sets `x-trackit-app-token: <app_jwt>` (not Authorization header)
+- Only same-origin `/api/*` requests are modified.
+- Requests that already include `Authorization` or `x-trackit-app-token` are left unchanged.
+- The custom header is `x-trackit-app-token: <app_jwt>`.
 
 ## API Flow
 ### `/api/auth/login` (anonymous)
-1. Reads Google ID token from one of three sources (in priority order):
-   - **Request body** (primary): `{ "idToken": "<google_id_token>" }`
-   - Header: `x-trackit-google-id-token: <google_id_token>`
-   - Header: `Authorization: Bearer <google_id_token>` (fallback)
-2. Verifies the Google ID token using Google JWKS.
-3. Detects if an HMAC token (HS256) was sent instead of Google's RS256 token and returns a helpful error.
-4. Upserts the user in Cosmos DB.
-5. Signs and returns an **app JWT** in the response body.
+1. Reads the Clerk session token from one of three sources:
+   - Request body: `{ "sessionToken": "<clerk_session_token>" }`
+   - Header: `x-trackit-clerk-session-token: <clerk_session_token>`
+   - Header: `Authorization: Bearer <clerk_session_token>`
+2. Verifies the Clerk session token with Clerk server credentials.
+3. Detects when the TrackIt app JWT was sent by mistake and returns a targeted error.
+4. Resolves the Clerk user profile, upserts the TrackIt user document, and returns a fresh app JWT.
 
 ### `/api/auth/refresh` (anonymous)
-1. Reads Google ID token (same three sources as login).
-2. Verifies the Google ID token.
-3. Returns a fresh **app JWT**.
+1. Reads the Clerk session token from the same request locations.
+2. Verifies the Clerk session token and resolves the Clerk user profile.
+3. Returns a fresh app JWT for the existing TrackIt user.
 
 ### Protected endpoints (require app JWT)
-1. Read `x-trackit-app-token` header.
-2. Call `authorize()` to verify the app JWT using the configured HMAC secret + audience.
+1. Read `x-trackit-app-token`.
+2. Call `authorize()` to verify the TrackIt app JWT with the configured HMAC secret and audience.
 3. Extract `userId` from the JWT payload for authorization checks.
 
-## Required Environment Variables (API)
-- `GOOGLE_CLIENT_ID` - Google OAuth client ID for verifying Google ID tokens
-- `JWT_SECRET` - HMAC secret for signing app JWTs (default: `local-secret`)
-- `JWT_AUDIENCE` - Audience claim for app JWTs (default: `trackit-app`)
-- `JWT_EXPIRY_SECONDS` - Token expiry time in seconds (default: `3600`)
-- `COSMOS_ENDPOINT` - Azure Cosmos DB endpoint URL
-- `COSMOS_KEY` - Azure Cosmos DB access key
-- `COSMOS_DATABASE` - Database name (default: `trackit`)
-- `COSMOS_USERS_CONTAINER` - Users container name (default: `users`)
+## Required Environment Variables
+### Frontend
+- `clerkPublishableKey` in `frontend/src/environments/environment*.ts`
+
+### API
+- `CLERK_SECRET_KEY`
+- `CLERK_JWT_KEY` (optional, for networkless verification)
+- `CLERK_AUTHORIZED_PARTIES` (optional comma-separated origin allowlist)
+- `JWT_SECRET`
+- `JWT_AUDIENCE`
+- `JWT_EXPIRY_SECONDS`
+- `COSMOS_ENDPOINT`
+- `COSMOS_KEY`
+- `COSMOS_DATABASE`
+- `COSMOS_USERS_CONTAINER`
 
 ## Notes and Gotchas
-- `/api/auth/login` and `/api/auth/refresh` **require a Google ID token**, not the app JWT.
-- The app JWT is **HS256**, while Google ID tokens are **RS256**. Mixing them will fail verification.
+- `/api/auth/login` and `/api/auth/refresh` require a Clerk session token, not the TrackIt app JWT.
+- The TrackIt app JWT is still `HS256`; accidentally sending it to the auth exchange endpoints now yields a Clerk-specific error message.

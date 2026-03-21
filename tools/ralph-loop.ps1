@@ -58,6 +58,36 @@ function Get-PromptPath {
   return Join-Path $ResolvedRepoRoot $fileName
 }
 
+function Write-NewLogContent {
+  param(
+    [Parameter(Mandatory = $true)][string] $LogPath,
+    [Parameter(Mandatory = $true)][ref] $Offset
+  )
+
+  if (-not (Test-Path -LiteralPath $LogPath)) {
+    return
+  }
+
+  $fileStream = [System.IO.File]::Open($LogPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+  try {
+    $null = $fileStream.Seek($Offset.Value, [System.IO.SeekOrigin]::Begin)
+    $remainingBytes = $fileStream.Length - $Offset.Value
+    if ($remainingBytes -le 0) {
+      return
+    }
+
+    $buffer = New-Object byte[] $remainingBytes
+    $bytesRead = $fileStream.Read($buffer, 0, $buffer.Length)
+    if ($bytesRead -gt 0) {
+      $Offset.Value = $fileStream.Position
+      [Console]::Write([System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead))
+    }
+  }
+  finally {
+    $fileStream.Dispose()
+  }
+}
+
 function Invoke-CodexIteration {
   param(
     [Parameter(Mandatory = $true)][string] $PromptPath,
@@ -66,21 +96,34 @@ function Invoke-CodexIteration {
     [Parameter(Mandatory = $true)][string] $LogPath
   )
 
-  $arguments = @(
-    'exec',
-    '-',
-    '--full-auto',
-    '--cd',
-    $ResolvedRepoRoot,
-    '--output-last-message',
-    $OutputLastMessagePath
-  )
+  Set-Content -LiteralPath $LogPath -Value ''
+  $escapedPromptPath = $PromptPath.Replace("'", "''")
+  $escapedRepoRoot = $ResolvedRepoRoot.Replace('"', '\"')
+  $escapedLastMessagePath = $OutputLastMessagePath.Replace('"', '\"')
+  $command = @(
+    "`$ErrorActionPreference = 'Continue'"
+    '[Console]::InputEncoding = [System.Text.Encoding]::UTF8'
+    '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8'
+    "Get-Content -LiteralPath '$escapedPromptPath' -Raw | codex exec - --full-auto --cd ""$escapedRepoRoot"" --output-last-message ""$escapedLastMessagePath"" 2>&1"
+    'exit $LASTEXITCODE'
+  ) -join "`n"
 
-  Get-Content -LiteralPath $PromptPath -Raw |
-    & codex @arguments 2>&1 |
-    Tee-Object -FilePath $LogPath | Out-Host
+  $process = Start-Process `
+    -FilePath powershell.exe `
+    -ArgumentList @('-NoProfile', '-Command', $command) `
+    -NoNewWindow `
+    -PassThru `
+    -RedirectStandardOutput $LogPath
 
-  return $LASTEXITCODE
+  $offset = 0L
+  while (-not $process.HasExited) {
+    Write-NewLogContent -LogPath $LogPath -Offset ([ref]$offset)
+    Start-Sleep -Milliseconds 250
+    $process.Refresh()
+  }
+
+  Write-NewLogContent -LogPath $LogPath -Offset ([ref]$offset)
+  return $process.ExitCode
 }
 
 $codexCommand = Get-Command codex -ErrorAction SilentlyContinue

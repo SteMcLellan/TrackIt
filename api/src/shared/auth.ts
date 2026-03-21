@@ -1,10 +1,5 @@
-import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
+import { createClerkClient, verifyToken } from '@clerk/backend';
 import jwt from 'jsonwebtoken';
-
-/**
- * Remote JWKS for Google ID token validation.
- */
-const GOOGLE_JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
 
 export interface JwtHeader {
   alg?: string;
@@ -12,9 +7,6 @@ export interface JwtHeader {
   typ?: string;
 }
 
-/**
- * Best-effort decode of the JWT header without validating the token.
- */
 export function readJwtHeader(token: string): JwtHeader | null {
   try {
     const [rawHeader] = token.split('.');
@@ -39,9 +31,6 @@ export function readJwtHeader(token: string): JwtHeader | null {
   }
 }
 
-/**
- * Claims stored in the app-issued JWT.
- */
 export interface AppUserClaims {
   sub: string;
   email?: string;
@@ -56,30 +45,68 @@ export interface AppJwtPayload extends AppUserClaims {
   exp: number;
 }
 
-/**
- * Auth configuration loaded from environment variables.
- */
 export interface AuthConfig {
-  googleClientId: string;
+  clerkAuthorizedParties: string[];
+  clerkJwtKey: string;
+  clerkSecretKey: string;
   jwtSecret: string;
   jwtExpirySeconds: number;
   audience: string;
 }
 
-/**
- * Verifies a Google ID token against the Google JWKS and required claims.
- */
-export async function verifyGoogleIdToken(idToken: string, config: AuthConfig): Promise<JWTPayload> {
-  const { payload } = await jwtVerify(idToken, GOOGLE_JWKS, {
-    issuer: ['accounts.google.com', 'https://accounts.google.com'],
-    audience: config.googleClientId
-  });
-  return payload;
+export interface ResolvedClerkIdentity {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
 }
 
-/**
- * Signs a TrackIt app JWT using the configured HMAC secret.
- */
+let cachedClerkClient: ReturnType<typeof createClerkClient> | null = null;
+let cachedClerkSecretKey = '';
+
+export async function verifyClerkSessionToken(sessionToken: string, config: AuthConfig): Promise<{ sub?: string }> {
+  const options: {
+    authorizedParties?: string[];
+    jwtKey?: string;
+    secretKey?: string;
+  } = {};
+
+  if (config.clerkAuthorizedParties.length > 0) {
+    options.authorizedParties = config.clerkAuthorizedParties;
+  }
+
+  if (config.clerkJwtKey) {
+    options.jwtKey = config.clerkJwtKey;
+  }
+
+  if (config.clerkSecretKey) {
+    options.secretKey = config.clerkSecretKey;
+  }
+
+  return verifyToken(sessionToken, options);
+}
+
+export async function resolveClerkIdentity(sessionToken: string, config: AuthConfig): Promise<ResolvedClerkIdentity> {
+  const claims = await verifyClerkSessionToken(sessionToken, config);
+  const sub = typeof claims.sub === 'string' ? claims.sub : '';
+  if (!sub) {
+    throw new Error('Clerk session token is missing a subject.');
+  }
+
+  const clerkUser = await getClerkClient(config).users.getUser(sub);
+  const email = clerkUser.primaryEmailAddress?.emailAddress
+    ?? clerkUser.emailAddresses[0]?.emailAddress
+    ?? `${sub}@users.trackit.local`;
+  const name = clerkUser.fullName ?? clerkUser.firstName ?? email;
+
+  return {
+    sub,
+    email,
+    name,
+    picture: clerkUser.imageUrl || undefined
+  };
+}
+
 export function signAppJwt(claims: AppUserClaims, config: AuthConfig): string {
   const roles = Array.isArray(claims.roles) && claims.roles.length > 0
     ? claims.roles
@@ -100,15 +127,29 @@ export function signAppJwt(claims: AppUserClaims, config: AuthConfig): string {
   );
 }
 
-/**
- * Builds authentication config from environment variables.
- */
 export function buildConfig(): AuthConfig {
   return {
-    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+    clerkAuthorizedParties: (process.env.CLERK_AUTHORIZED_PARTIES || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+    clerkJwtKey: process.env.CLERK_JWT_KEY || '',
+    clerkSecretKey: process.env.CLERK_SECRET_KEY || '',
     jwtSecret: process.env.JWT_SECRET || 'local-secret',
     jwtExpirySeconds: Number(process.env.JWT_EXPIRY_SECONDS || 3600),
     audience: process.env.JWT_AUDIENCE || 'trackit-app'
   };
 }
 
+function getClerkClient(config: AuthConfig): ReturnType<typeof createClerkClient> {
+  if (!config.clerkSecretKey) {
+    throw new Error('CLERK_SECRET_KEY is required to resolve Clerk user profiles.');
+  }
+
+  if (!cachedClerkClient || cachedClerkSecretKey !== config.clerkSecretKey) {
+    cachedClerkClient = createClerkClient({ secretKey: config.clerkSecretKey });
+    cachedClerkSecretKey = config.clerkSecretKey;
+  }
+
+  return cachedClerkClient;
+}

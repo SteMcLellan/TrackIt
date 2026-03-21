@@ -3,6 +3,7 @@ artifacts/
 
 # Node / TS
 node_modules/
+.npm-cache/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -25,6 +26,7 @@ api/functions/
 .next/
 .vite/
 .angular/
+.npm-cache/
 
 # Local env files
 .env

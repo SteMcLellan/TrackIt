@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { TopBarComponent } from './top-bar.component';
 import { ShellBottomNavComponent } from './bottom-nav.component';
+import { ClerkService } from '../../services/clerk.service';
 
 /**
  * @stitch-project projects/2002730124455423542
@@ -16,6 +17,12 @@ import { ShellBottomNavComponent } from './bottom-nav.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="shell">
+      @if (authError()) {
+        <section class="auth-warning" role="alert" aria-live="polite">
+          <p class="auth-warning-title">Authentication setup issue</p>
+          <p class="auth-warning-copy">{{ authError() }}</p>
+        </section>
+      }
       <app-top-bar />
       <main>
         <router-outlet />
@@ -39,6 +46,32 @@ import { ShellBottomNavComponent } from './bottom-nav.component';
       background: var(--color-ghost-white-canvas, #fcfcfd);
     }
 
+    .auth-warning {
+      margin: 0;
+      padding: 0.875rem 1rem;
+      background: #fef2f2;
+      border-bottom: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    .auth-warning-title,
+    .auth-warning-copy {
+      margin: 0;
+    }
+
+    .auth-warning-title {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+    }
+
+    .auth-warning-copy {
+      margin-top: 0.25rem;
+      font-size: 0.875rem;
+      line-height: 1.45;
+    }
+
     main {
       flex: 1;
       min-height: 0;
@@ -47,4 +80,6 @@ import { ShellBottomNavComponent } from './bottom-nav.component';
     }
   `]
 })
-export class ShellComponent {}
+export class ShellComponent {
+  readonly authError = inject(ClerkService).error;
+}

@@ -1,5 +1,5 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
-import { buildConfig, signAppJwt, verifyGoogleIdToken } from '../shared/auth';
+import { buildConfig, resolveClerkIdentity, signAppJwt } from '../shared/auth';
 import { readUserBySub } from '../shared/data/users';
 import {
   bindBusinessHandler,
@@ -10,9 +10,6 @@ import { composeHttpHandler } from '../shared/http-middleware';
 import { errorMiddleware } from '../shared/middleware/error';
 import { requestContextMiddleware } from '../shared/middleware/request-context';
 
-/**
- * Issues a fresh app JWT using a valid Google ID token.
- */
 const authRefreshBusinessHandler = async (
   requestContext: RequestResourcesContext,
   req: HttpRequest
@@ -22,38 +19,64 @@ const authRefreshBusinessHandler = async (
   let bodyToken = '';
   try {
     const body = (await req.json()) as unknown;
-    if (body && typeof body === 'object' && 'idToken' in body && typeof (body as { idToken?: unknown }).idToken === 'string') {
-      bodyToken = (body as { idToken: string }).idToken;
+    if (
+      body
+      && typeof body === 'object'
+      && 'sessionToken' in body
+      && typeof (body as { sessionToken?: unknown }).sessionToken === 'string'
+    ) {
+      bodyToken = (body as { sessionToken: string }).sessionToken;
     }
   } catch {
-    // Ignore invalid/missing JSON body.
+    // Ignore invalid or missing JSON bodies.
   }
 
-  const headerToken = req.headers.get('x-trackit-google-id-token') || '';
+  const headerToken = req.headers.get('x-trackit-clerk-session-token') || '';
   const authHeader = req.headers.get('authorization') || '';
   const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : authHeader;
-  const idToken = bodyToken || headerToken || bearerToken;
-  if (!idToken) {
-    return { status: 401, jsonBody: { message: 'Missing Google ID token' } };
+  const sessionToken = bodyToken || headerToken || bearerToken;
+  if (!sessionToken) {
+    return { status: 401, jsonBody: { message: 'Missing Clerk session token' } };
   }
 
   const config = buildConfig();
-  const claims = await verifyGoogleIdToken(idToken, config);
-  const user = await readUserBySub(containers.users, claims.sub as string);
+  if (!config.clerkSecretKey && !config.clerkJwtKey) {
+    return {
+      status: 500,
+      jsonBody: { message: 'Clerk session verification is not configured.' }
+    };
+  }
+
+  let identity: Awaited<ReturnType<typeof resolveClerkIdentity>>;
+  try {
+    identity = await resolveClerkIdentity(sessionToken, config);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Invalid Clerk session token';
+    const status = message.includes('required to resolve Clerk user profiles') ? 500 : 401;
+    return { status, jsonBody: { message } };
+  }
+  const user = await readUserBySub(containers.users, identity.sub);
   const roles = user?.roles && user.roles.length > 0 ? user.roles : ['parent'];
   const token = signAppJwt(
     {
-      sub: claims.sub as string,
-      email: claims.email as string,
-      name: claims.name as string,
-      picture: claims.picture as string,
+      sub: identity.sub,
+      email: identity.email,
+      name: identity.name,
+      picture: identity.picture,
       role: roles[0],
       roles
     },
     config
   );
 
-  return { status: 200, jsonBody: { token, role: roles[0], roles } };
+  return {
+    status: 200,
+    jsonBody: {
+      token,
+      role: roles[0],
+      roles
+    }
+  };
 };
 
 const authRefresh = composeHttpHandler({
@@ -64,9 +87,6 @@ const authRefresh = composeHttpHandler({
   handler: bindBusinessHandler(resolveRequestResourcesContext, authRefreshBusinessHandler)
 });
 
-/**
- * Anonymous endpoint for refreshing app access tokens.
- */
 app.http('auth-refresh', {
   methods: ['POST'],
   authLevel: 'anonymous',

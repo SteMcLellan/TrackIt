@@ -5,7 +5,7 @@ This reference documents frontend and backend environment variables used by Trac
 ## Frontend (`frontend/src/environments/environment.ts`)
 
 - `apiBaseUrl`: API base URL (example: `http://localhost:7071/api`)
-- `googleClientId`: Google OAuth client ID
+- `clerkPublishableKey`: Clerk publishable key for the browser SDK
 
 ## Backend (`api/local.settings.json` for local development)
 
@@ -19,7 +19,9 @@ This reference documents frontend and backend environment variables used by Trac
 - `JWT_SECRET`
 - `JWT_AUDIENCE`
 - `JWT_EXPIRY_SECONDS`
-- `GOOGLE_CLIENT_ID`
+- `CLERK_SECRET_KEY`
+- `CLERK_JWT_KEY`
+- `CLERK_AUTHORIZED_PARTIES`
 - `TIMELINE_PROJECTION_MODE`
 - `TIMELINE_QUERY_ENABLED`
 
@@ -27,4 +29,6 @@ This reference documents frontend and backend environment variables used by Trac
 
 - Keep secrets out of committed files.
 - Keep variable names consistent between local and deployed environments.
+- `CLERK_JWT_KEY` is optional but useful for networkless session-token verification on the API.
+- `CLERK_AUTHORIZED_PARTIES` should be a comma-separated list of allowed browser origins when you want Clerk `azp` validation on the API.
 - Update this doc when variables are added, removed, or renamed.
