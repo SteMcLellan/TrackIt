@@ -83,6 +83,10 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
                         Log medication
                       </button>
                     }
+                    <button class="day-menu-item" type="button" (click)="logIncident(section.logLocalDate)">
+                      <span class="material-symbols-outlined">priority_high</span>
+                      Log behavior incident
+                    </button>
                   </div>
                 }
               </div>
@@ -838,6 +842,11 @@ export class TimelineComponent implements AfterViewInit, OnDestroy {
   logMedication(date: string): void {
     this.openMenuDate.set(null);
     this.router.navigate(['/medications'], { queryParams: { date } });
+  }
+
+  logIncident(date: string): void {
+    this.openMenuDate.set(null);
+    this.router.navigate(['/incidents/new'], { queryParams: { date } });
   }
 
   onCardTap(event: TimelineEvent): void {

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ChipSelectorComponent } from '../../shared/ui/chip-selector.component';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { BehaviorIncidentService } from '../../shared/services/behavior-incident.service';
@@ -13,7 +13,8 @@ import {
 import {
   computeTzOffsetMinutes,
   extractLocalDate,
-  extractLocalTime
+  extractLocalTime,
+  formatLocalDate
 } from '../../shared/utils/datetime';
 
 type FunctionOption = {
@@ -77,6 +78,10 @@ function toLocalInputValue(date: Date): string {
           <h1>Log Behavioral Moment</h1>
           <p class="muted">Identify the patterns behind the behavior.</p>
         </section>
+
+        @if (dateContextLabel) {
+          <div class="date-context-banner">{{ dateContextLabel }}</div>
+        }
 
         <section class="section-card function-card">
           <h2>Function of Behavior</h2>
@@ -220,6 +225,17 @@ function toLocalInputValue(date: Date): string {
 
     .hero {
       margin-bottom: 1rem;
+    }
+
+    .date-context-banner {
+      margin: 0 0 0.75rem;
+      padding: 0.6rem 0.85rem;
+      border-radius: 0.5rem;
+      background: #ecfdf5;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #059669;
+      font-size: 0.8125rem;
+      font-weight: 600;
     }
 
     h1 {
@@ -491,6 +507,7 @@ export class BehavioralMomentCreateComponent {
   private readonly participants = inject(ParticipantService);
   private readonly incidents = inject(BehaviorIncidentService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly activeParticipantId = this.participants.activeParticipantId;
   readonly created = signal(false);
@@ -511,7 +528,9 @@ export class BehavioralMomentCreateComponent {
   readonly behaviorNotes = signal('');
   readonly consequenceNotes = signal('');
   readonly selectedPlace = signal<string | null>(null);
-  readonly occurredAt = signal(toLocalInputValue(new Date()));
+  readonly occurredAt = signal(this.resolveOccurredAt());
+  readonly isBackfill: boolean = this.occurredAt().slice(0, 10) !== formatLocalDate(new Date());
+  readonly dateContextLabel: string | null = this.formatDateContextLabel(this.occurredAt().slice(0, 10));
 
   canSave(): boolean {
     return (
@@ -628,6 +647,30 @@ export class BehavioralMomentCreateComponent {
   logAnother(): void {
     this.reset();
     this.router.navigate(['/incidents/new']);
+  }
+
+  private resolveOccurredAt(): string {
+    const now = new Date();
+    const param = this.route.snapshot.queryParamMap.get('date');
+    if (!param || !/^\d{4}-\d{2}-\d{2}$/.test(param)) {
+      return toLocalInputValue(now);
+    }
+    const parsed = new Date(`${param}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return toLocalInputValue(now);
+    }
+    const pad = (v: number) => String(v).padStart(2, '0');
+    return `${param}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  }
+
+  private formatDateContextLabel(date: string): string | null {
+    const today = formatLocalDate(new Date());
+    if (date === today) return null;
+    const parsed = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return null;
+    const weekday = parsed.toLocaleDateString('en-US', { weekday: 'long' });
+    const monthDay = parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `Logging for ${weekday}, ${monthDay}`;
   }
 
   private buildSummary(chips: string[], notes: string): string {
