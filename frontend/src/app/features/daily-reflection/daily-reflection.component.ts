@@ -233,16 +233,20 @@ const SLEEP_BUCKETS: BucketOption[] = [
       display: block;
       width: 100%;
       max-width: 100%;
+      height: 100%;
     }
 
     .page {
       width: 100%;
       max-width: 28rem;
       margin: 0 auto;
-      padding: 1rem 1rem 2rem;
+      padding: 1rem 1rem 0;
       box-sizing: border-box;
       overflow-x: hidden;
       background: #fcfcfd;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
     }
 
     .page-head {
@@ -279,6 +283,10 @@ const SLEEP_BUCKETS: BucketOption[] = [
     .cards {
       display: grid;
       gap: 0.75rem;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding-bottom: 0.5rem;
     }
 
     .metric-card {
@@ -448,6 +456,8 @@ const SLEEP_BUCKETS: BucketOption[] = [
       margin-top: 1rem;
       display: grid;
       gap: 0.65rem;
+      padding-bottom: 1.5rem;
+      flex-shrink: 0;
     }
 
     .save-button {
