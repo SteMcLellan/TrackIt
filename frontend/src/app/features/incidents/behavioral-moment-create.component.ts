@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ChipSelectorComponent } from '../../shared/ui/chip-selector.component';
 import { ParticipantService } from '../../shared/services/participant.service';
 import { BehaviorIncidentService } from '../../shared/services/behavior-incident.service';
@@ -68,7 +68,7 @@ function toLocalInputValue(date: Date): string {
         </section>
         <section class="section-card">
           <div class="actions">
-            <button class="button" type="button" (click)="reset()">Log another moment</button>
+            <button class="button" type="button" (click)="logAnother()">Log another moment</button>
             <a class="button secondary" routerLink="/insights">Back to insights</a>
           </div>
         </section>
@@ -478,6 +478,7 @@ function toLocalInputValue(date: Date): string {
 export class BehavioralMomentCreateComponent {
   private readonly participants = inject(ParticipantService);
   private readonly incidents = inject(BehaviorIncidentService);
+  private readonly router = inject(Router);
 
   readonly activeParticipantId = this.participants.activeParticipantId;
   readonly created = signal(false);
@@ -610,6 +611,11 @@ export class BehavioralMomentCreateComponent {
     this.occurredAt.set(toLocalInputValue(new Date()));
     this.created.set(false);
     this.error.set(null);
+  }
+
+  logAnother(): void {
+    this.reset();
+    this.router.navigate(['/incidents/new']);
   }
 
   private buildSummary(chips: string[], notes: string): string {
