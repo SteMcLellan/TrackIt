@@ -52,7 +52,7 @@ type MedicationRecord = {
       <section class="card participant">
         <div class="card-header">
           <h2>Participant Details</h2>
-          @if (!participantEditMode() && participant()) {
+          @if (!participantEditMode() && participant() && canEdit()) {
             <button type="button" class="link-btn" (click)="beginParticipantEdit()">Edit</button>
           }
         </div>
@@ -178,11 +178,16 @@ type MedicationRecord = {
       <section class="card meds">
         <div class="card-header">
           <h2>Medications</h2>
-          <button type="button" class="add-inline" (click)="openMedicationSheet()">
-            <span class="material-symbols-outlined">add</span>
-            <span>Add</span>
-          </button>
+          @if (canEdit()) {
+            <button type="button" class="add-inline" (click)="openMedicationSheet()">
+              <span class="material-symbols-outlined">add</span>
+              <span>Add</span>
+            </button>
+          }
         </div>
+        @if (!canEdit()) {
+          <p class="muted">Only managers can add or edit medications.</p>
+        }
 
         @if (medicationsResource.isLoading()) {
           <p class="muted">Loading medications...</p>
@@ -198,13 +203,15 @@ type MedicationRecord = {
                   <p class="med-name">{{ medication.name }}</p>
                   <p class="med-meta">{{ medication.dosageText }} • {{ frequencyLabel(medication) }}</p>
                 </div>
-                <div class="med-actions">
-                  <button class="text-btn" type="button" (click)="openMedicationSheet(medication)">Edit</button>
-                  <button class="text-btn muted" type="button" (click)="archiveMedication(medication.id)"
-                    [disabled]="archiveBusyId() === medication.id">
-                    @if (archiveBusyId() === medication.id) { Archiving... } @else { Archive }
-                  </button>
-                </div>
+                @if (canEdit()) {
+                  <div class="med-actions">
+                    <button class="text-btn" type="button" (click)="openMedicationSheet(medication)">Edit</button>
+                    <button class="text-btn muted" type="button" (click)="archiveMedication(medication.id)"
+                      [disabled]="archiveBusyId() === medication.id">
+                      @if (archiveBusyId() === medication.id) { Archiving... } @else { Archive }
+                    </button>
+                  </div>
+                }
               </article>
             }
           </div>
@@ -543,6 +550,7 @@ export class ProfileDashboardComponent {
   });
 
   readonly canManageInvites = computed(() => this.participant()?.role === 'manager');
+  readonly canEdit = computed(() => this.participant()?.role === 'manager');
 
   readonly members = computed(() =>
     this.membersResource.hasValue() ? this.membersResource.value().items : []

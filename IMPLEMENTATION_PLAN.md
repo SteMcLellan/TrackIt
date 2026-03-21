@@ -1,6 +1,6 @@
 # TrackIt Implementation Plan
 
-Last updated: 2026-03-21 (code-verified against specs in docs/specs/)
+Last updated: 2026-03-21
 
 ---
 
@@ -13,3 +13,4 @@ Last updated: 2026-03-21 (code-verified against specs in docs/specs/)
 - [x] **Priority 4** — Missing Feature: Today's Reflection Card on Insights (insights-today-reflection.md)
 - [x] **Priority 5** — Missing Routes: Incident List, Detail, and New (behavior-incidents-2.md)
 - [x] **Priority 6** — Documentation: Align Product Spec with API Contract (behavior-incidents-2.md)
+- [x] **Priority 7** — Feature: Viewer Role UI Differentiation (docs/backlog/multi-caregiver-mvp.md item 3). Profile page hides Edit button and medication Add/Edit/Archive controls for viewers; shows "Only managers can add or edit medications." note. TypeScript build verified clean.
