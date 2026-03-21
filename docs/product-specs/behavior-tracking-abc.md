@@ -45,7 +45,7 @@ Lists incidents for the participant, newest to oldest.
 
 Query params:
 - `pageSize`, `nextToken`
-- `fromUtc`, `toUtc` (ISO 8601 UTC)
+- `startDate`, `endDate` (YYYY-MM-DD local dates)
 - `function` (single value)
 
 ### `GET /api/participants/{participantId}/incidents/{incidentId}`
