@@ -809,19 +809,21 @@ export class InsightsDashboardComponent {
 
   readonly incidentsResource = httpResource<IncidentsResponse>(() => {
     const participantId = this.activeParticipantId();
-    const toUtc = new Date().toISOString();
-    const fromUtc = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const endDate = this.todayLocalDate();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const startDate = this.formatLocalDate(sevenDaysAgo);
     if (!participantId) {
       return {
         url: `${environment.apiBaseUrl}/participants/unknown/incidents`,
         method: 'GET',
-        params: { pageSize: '1', fromUtc, toUtc }
+        params: { pageSize: '1', startDate, endDate }
       };
     }
     return {
       url: `${environment.apiBaseUrl}/participants/${participantId}/incidents`,
       method: 'GET',
-      params: { pageSize: '20', fromUtc, toUtc }
+      params: { pageSize: '20', startDate, endDate }
     };
   });
 
