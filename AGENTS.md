@@ -53,6 +53,7 @@ docs/
 |   `-- README.md
 `-- backlog/
     |-- README.md
+    |-- clerk-auth-migration.md
     |-- dynamic-hero-phrase.md
     |-- frontend-component-modularization-plan.md
     |-- multi-caregiver-mvp.md
