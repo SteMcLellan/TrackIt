@@ -100,11 +100,6 @@ function toLocalInputValue(date: Date): string {
             <span class="badge">A</span>
             <h3>Antecedent</h3>
           </div>
-          <app-chip-selector
-            [categories]="antecedentCategories"
-            [selected]="antecedentChips()"
-            (selectionChange)="antecedentChips.set($event)"
-          />
           <textarea
             class="notes"
             placeholder="Describe what happened before..."
@@ -112,6 +107,12 @@ function toLocalInputValue(date: Date): string {
             (input)="antecedentNotes.set(asInputTarget($event).value)"
             rows="3"
           ></textarea>
+          <p class="chip-label">Quick tags</p>
+          <app-chip-selector
+            [categories]="antecedentCategories"
+            [selected]="antecedentChips()"
+            (selectionChange)="antecedentChips.set($event)"
+          />
         </section>
 
         <section class="section-card behavior-card">
@@ -119,11 +120,6 @@ function toLocalInputValue(date: Date): string {
             <span class="badge">B</span>
             <h3>Behavior</h3>
           </div>
-          <app-chip-selector
-            [categories]="behaviorCategories"
-            [selected]="behaviorChips()"
-            (selectionChange)="behaviorChips.set($event)"
-          />
           <textarea
             class="notes"
             placeholder="Describe the behavior..."
@@ -131,6 +127,12 @@ function toLocalInputValue(date: Date): string {
             (input)="behaviorNotes.set(asInputTarget($event).value)"
             rows="3"
           ></textarea>
+          <p class="chip-label">Quick tags</p>
+          <app-chip-selector
+            [categories]="behaviorCategories"
+            [selected]="behaviorChips()"
+            (selectionChange)="behaviorChips.set($event)"
+          />
         </section>
 
         <section class="section-card consequence-card">
@@ -138,11 +140,6 @@ function toLocalInputValue(date: Date): string {
             <span class="badge">C</span>
             <h3>Consequence</h3>
           </div>
-          <app-chip-selector
-            [categories]="consequenceCategories"
-            [selected]="consequenceChips()"
-            (selectionChange)="consequenceChips.set($event)"
-          />
           <textarea
             class="notes"
             placeholder="What was the outcome?"
@@ -150,6 +147,12 @@ function toLocalInputValue(date: Date): string {
             (input)="consequenceNotes.set(asInputTarget($event).value)"
             rows="3"
           ></textarea>
+          <p class="chip-label">Quick tags</p>
+          <app-chip-selector
+            [categories]="consequenceCategories"
+            [selected]="consequenceChips()"
+            (selectionChange)="consequenceChips.set($event)"
+          />
         </section>
 
         <section class="section-card place-card">
@@ -320,13 +323,13 @@ function toLocalInputValue(date: Date): string {
       background: #ffffff;
       color: var(--color-midnight-slate, #1e293b);
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       justify-content: center;
       align-items: center;
-      gap: 0.25rem;
+      gap: 0.5rem;
       font-size: 0.75rem;
       font-weight: 600;
-      padding: 0.75rem;
+      padding: 0.5rem 0.75rem;
       cursor: pointer;
     }
 
@@ -376,13 +379,22 @@ function toLocalInputValue(date: Date): string {
     .notes {
       width: 100%;
       box-sizing: border-box;
-      margin-top: 0.75rem;
+      margin-top: 0;
       border-radius: 0.75rem;
       border: 1px solid #e2e8f0;
       min-height: 44px;
       padding: 0.75rem;
       resize: vertical;
       font: inherit;
+    }
+
+    .chip-label {
+      margin: 0.625rem 0 0.25rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
     }
 
     .datetime-grid {

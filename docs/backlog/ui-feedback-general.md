@@ -52,12 +52,13 @@ The current frame set has a strong visual direction and generally uses the Track
 - ~~The current structure does not yet communicate that level of operational depth.~~
 - Resolved: summary card moved to bottom, section order is now Scheduled → As-Needed → Summary. Summary card de-emphasized with gray background, no drop shadow, and 2rem top margin. As-needed card header now shows "Last taken: HH:MM" or "No doses today".
 
-### 5. Behavioral Moment Create is visually coherent but too long
+### 5. Behavioral Moment Create is visually coherent but too long — **Resolved**
 
-- The semantic section colors are effective and the A/B/C grouping is clear.
-- The screen still feels too tall before the primary save action appears.
-- The design currently gives substantial space to preset chips and decorative framing while making the actual written incident details feel secondary.
-- That is risky for a flow whose core job is capturing meaningful antecedent, behavior, consequence, place, and time details.
+- ~~The semantic section colors are effective and the A/B/C grouping is clear.~~
+- ~~The screen still feels too tall before the primary save action appears.~~
+- ~~The design currently gives substantial space to preset chips and decorative framing while making the actual written incident details feel secondary.~~
+- ~~That is risky for a flow whose core job is capturing meaningful antecedent, behavior, consequence, place, and time details.~~
+- Resolved 2026-03-21 — textarea now precedes chip-selector in each ABC section; function buttons compact to row layout.
 
 ### 6. Profile action hierarchy is crowded — **Resolved**
 
@@ -107,4 +108,4 @@ The current frame set has a strong visual direction and generally uses the Track
 2. ~~Fix `Daily Reflection` clipping before any visual polish work.~~ ✓ Resolved.
 3. ~~Increase top bar touch targets to `44x44`.~~ ✓ Resolved.
 4. ~~Rework `Medications Dashboard` to better match the dedicated logging workflow in the medication command center spec.~~ ✓ Resolved.
-5. Compress `Behavioral Moment Create` and strengthen emphasis on the actual incident-entry fields.
+5. ~~Compress `Behavioral Moment Create` and strengthen emphasis on the actual incident-entry fields.~~ ✓ Resolved.

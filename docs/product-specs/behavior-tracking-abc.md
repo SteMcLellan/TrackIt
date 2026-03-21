@@ -72,3 +72,9 @@ RUBI guidance is embedded in the incident form to prompt consistent descriptions
 ## Known Gaps / Future Work
 - Reporting / summary insights (separate feature).
 - Paging UI (API supports nextToken).
+
+## Layout and Field Ordering (implemented 2026-03-21)
+
+In each A/B/C section, the free-text textarea appears first (primary input), followed by a "Quick tags" chip-selector row labeled with a muted "QUICK TAGS" label. This ordering makes text entry the dominant visual element and chip selection visually subordinate.
+
+Function of Behavior buttons use a horizontal (row) layout — icon and label side by side — to minimize vertical space and ensure the antecedent text field is visible on the initial screen load at 390×844.
