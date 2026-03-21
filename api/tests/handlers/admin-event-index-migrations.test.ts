@@ -77,7 +77,7 @@ describe('admin event-index migrations handlers', () => {
   });
 
   it('returns 403 when caller is not admin', async () => {
-    authorizeMock.mockReturnValue({ sub: 'user-1', role: 'parent', roles: ['parent'], iat: 1, exp: 2 });
+    authorizeMock.mockReturnValue({ sub: 'user-1' });
     const response = await adminBackfillTimelineHandler(
       mockHttpRequest({ method: 'POST', body: {} }),
       mockInvocationContext()
@@ -86,7 +86,7 @@ describe('admin event-index migrations handlers', () => {
   });
 
   it('returns validation error for invalid include source', async () => {
-    authorizeMock.mockReturnValue({ sub: 'user-1', role: 'admin', roles: ['admin'], iat: 1, exp: 2 });
+    authorizeMock.mockReturnValue({ sub: 'user-1', metadata: { roles: ['admin'] } });
     const response = await adminBackfillTimelineHandler(
       mockHttpRequest({ method: 'POST', body: { include: ['bad'] } }),
       mockInvocationContext()
@@ -95,7 +95,7 @@ describe('admin event-index migrations handlers', () => {
   });
 
   it('supports backfill dryRun without writing to eventIndex', async () => {
-    authorizeMock.mockReturnValue({ sub: 'user-1', role: 'admin', roles: ['admin'], iat: 1, exp: 2 });
+    authorizeMock.mockReturnValue({ sub: 'user-1', metadata: { roles: ['admin'] } });
     const containers = buildAdminContainers();
     const upsertSpy = containers.eventIndex.items.upsert as unknown as ReturnType<typeof vi.fn>;
     buildCosmosMock.mockResolvedValue({ containers });
@@ -111,7 +111,7 @@ describe('admin event-index migrations handlers', () => {
   });
 
   it('verifies projected events and reports matched', async () => {
-    authorizeMock.mockReturnValue({ sub: 'user-1', role: 'admin', roles: ['admin'], iat: 1, exp: 2 });
+    authorizeMock.mockReturnValue({ sub: 'user-1', metadata: { roles: ['admin'] } });
     const containers = buildAdminContainers();
     (containers.eventIndex.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({

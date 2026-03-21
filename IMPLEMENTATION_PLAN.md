@@ -12,6 +12,9 @@ Last updated: 2026-03-21
 
 ## Completed
 
+- [x] **Bug: Stale API tests from clerk-auth-3 migration** — Deleted `auth-login.test.ts` and `auth-refresh.test.ts` (handlers were removed in clerk-auth-3). Updated `admin-event-index-migrations.test.ts` mock format from `{ roles: ['admin'] }` to `{ metadata: { roles: ['admin'] } }` to match new `ResolvedClerkClaims` shape. All 174 tests now pass. `api-testing.md` baseline updated to 23 files / 174 tests.
+
+
 - [x] **Priority 1** — Architecture: Clerk Direct Token Verification (clerk-auth-3.md). `authorize.ts` rewritten to verify `Authorization: Bearer <clerk-token>` via `verifyClerkSessionToken()`. `ResolvedClerkClaims` type added; `AppJwtPayload`/`AppUserClaims`/`signAppJwt` removed. `admin.ts` checks `metadata.roles`. Middleware updated to `await authorize()`. `auth-login.ts` and `auth-refresh.ts` deleted. Frontend `AuthService` simplified: no localStorage, no JWT timer, `isAuthenticated` derived from `clerk.sessionId()`. `ClerkService` exposes `userName`/`userEmail`/`userPicture` signals. `authInterceptor` sets `Authorization: Bearer` via `clerk.getSessionToken()`. Tools updated to `Authorization: Bearer`. TypeScript builds verified clean for both frontend and API.
 - [x] **Priority 2** — Bug: Invite Accept Post-Acceptance Redirect (invite-accept-redirect.md). `InviteAcceptComponent` `setActiveAndGo()` changed from `router.navigate(['/home'])` to `router.navigate(['/insights'])`. Error-state `routerLink` also changed from `/home` to `/insights`. Button labels updated to "go to Insights". TypeScript build verified clean.
 

@@ -26,10 +26,7 @@ npm --workspace api run test:coverage
 
 ## Route Coverage Tracker
 
-Current baseline: `npm run test:api` passes with `21` test files and `97` tests.
-
-
-
+Current baseline: `npm run test:api` passes with `23` test files and `174` tests.
 
 
 
@@ -64,8 +61,7 @@ Current baseline: `npm run test:api` passes with `21` test files and `97` tests.
 - `daily-reflections-list`: covered
 - `daily-reflections-upsert`: covered
 - `daily-reflections-summary`: covered
-- `auth-login`: covered
-- `auth-refresh`: covered
+- `hero-phrase-tiers`: not covered
 - `admin-timeline-backfill`: covered
 - `admin-timeline-verify`: covered
 - Remaining routes: none
