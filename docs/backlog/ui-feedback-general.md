@@ -45,11 +45,12 @@ The current frame set has a strong visual direction and generally uses the Track
 - ~~Repo guidance requires touch targets to be at least `44x44`.~~
 - Fixed: `.icon-button` changed from `width/height: 2.25rem` (36px) to `min-width/min-height: 2.75rem` (44px).
 
-### 4. Medications screen lacks enough action emphasis
+### 4. Medications screen lacks enough action emphasis — **Resolved**
 
-- The medications screen currently reads more like a sparse summary view than a dedicated action surface.
-- The product spec expects this route to support a swipe-first medication workflow, scheduled and as-needed sections, interval guidance, and time editing.
-- The current structure does not yet communicate that level of operational depth.
+- ~~The medications screen currently reads more like a sparse summary view than a dedicated action surface.~~
+- ~~The product spec expects this route to support a swipe-first medication workflow, scheduled and as-needed sections, interval guidance, and time editing.~~
+- ~~The current structure does not yet communicate that level of operational depth.~~
+- Resolved: summary card moved to bottom, section order is now Scheduled → As-Needed → Summary. Summary card de-emphasized with gray background, no drop shadow, and 2rem top margin. As-needed card header now shows "Last taken: HH:MM" or "No doses today".
 
 ### 5. Behavioral Moment Create is visually coherent but too long
 
@@ -105,5 +106,5 @@ The current frame set has a strong visual direction and generally uses the Track
 1. Normalize all major screens to the canonical shell and viewport height.
 2. ~~Fix `Daily Reflection` clipping before any visual polish work.~~ ✓ Resolved.
 3. ~~Increase top bar touch targets to `44x44`.~~ ✓ Resolved.
-4. Rework `Medications Dashboard` to better match the dedicated logging workflow in the medication command center spec.
+4. ~~Rework `Medications Dashboard` to better match the dedicated logging workflow in the medication command center spec.~~ ✓ Resolved.
 5. Compress `Behavioral Moment Create` and strengthen emphasis on the actual incident-entry fields.

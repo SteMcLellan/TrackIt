@@ -18,27 +18,7 @@ Last updated: 2026-03-21
 - [x] **Priority 2** — Architecture: Shell Viewport Normalization (shell-viewport-normalization.md). `ShellComponent` `:host` and `.shell` changed from `min-height: 100dvh` to `height: 100dvh; overflow: hidden`. `<main>` now has `overflow-y: auto`. All five affected screens verified — none set fixed heights on `:host`. Docs updated.
 - [x] **Priority 3** — Bug: Daily Reflection Layout Clipping (daily-reflection-layout.md). `:host` set to `height: 100%`; `.page` made flex column (`height: 100%; display: flex; flex-direction: column`); `.cards` given `flex: 1; min-height: 0; overflow-y: auto` so cards scroll while action bar stays visible below. TypeScript build verified clean.
 - [x] **Priority 3** — UX: Profile Caregiver Action Hierarchy (profile-caregiver-action-hierarchy.md). "Copy Invite Link" is now the primary filled violet pill CTA. "Share" is a secondary ghost-violet button. "Regenerate link" is a de-emphasized text link below primary actions. "Generate Invite Link" is the primary CTA when no invite exists. Regenerate removed from card header. TypeScript build verified clean.
-
----
-
-### Priority 4 — Feature: Medications Dashboard Workflow (medications-dashboard-workflow.md)
-
-**Current state (confirmed, `@stitch-status: implementing`):**
-- Scheduled and As-Needed sections exist ✅
-- Swipe-to-log (mark taken/not-taken) is implemented ✅
-- Summary card (adherence ring, "N remaining" / "All on track") is implemented ✅
-- `asNeededBaseRows()` computed signal exists (line 1082) and is rendered ✅
-- BUT: Summary card is the **first** section in the template (line 73), making it the dominant element — spec requires it to be subordinate to the action sections ❌
-
-**Required changes in `MedicationsDashboardComponent`:**
-- Reorder template: Scheduled → As-Needed → Summary card (summary moved to bottom, visually de-emphasized).
-- Verify the As-Needed section shows: allowed interval + time since last dose. Confirm `asNeededBaseRows()` exposes the necessary data against the spec.
-- Confirm interval medication cards show "last logged" and "next due" labels clearly (the interval-meta line exists but needs verification against spec).
-- Screen must validate at 375px/390px without overflow.
-
-**Doc updates on completion:**
-- `docs/product-specs/medication-command-center.md` — record layout/interaction decisions
-- `docs/backlog/ui-feedback-general.md` — mark issue 4 resolved
+- [x] **Priority 4** — Feature: Medications Dashboard Workflow (medications-dashboard-workflow.md). Template reordered: Scheduled → As-Needed → Summary card. Summary card moved to bottom with de-emphasized styling (gray background, no drop shadow, 2rem top margin). As-needed card header now shows "Last taken: HH:MM" or "No doses today". Interval medication cards already had Last logged / Next due labels. TypeScript build verified clean.
 
 ---
 

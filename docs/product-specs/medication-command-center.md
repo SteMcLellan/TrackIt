@@ -57,6 +57,7 @@ Medication logging moved to a dedicated `/medications` route, and Insights now s
   - `Scheduled` cards with dose-slot rows.
   - `As Needed` cards with logged-event previews plus overflow count.
 - Show top-level summary card with the same adherence language as Insights.
+- Canonical display order: Scheduled → As Needed → Summary card (de-emphasized contextual supplement). The summary card is intentionally subordinate — it uses a gray background, no drop shadow, and a 2rem top margin to signal that it supplements rather than leads the action sections.
 
 ## Dose and Adherence Semantics
 

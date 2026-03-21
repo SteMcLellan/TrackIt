@@ -69,49 +69,6 @@ type ScheduledMedicationCard = {
         </header>
       }
 
-      <!-- Summary card -->
-      <section class="summary-card">
-        <div class="summary-ring-group">
-          <div class="summary-ring">
-            <svg viewBox="0 0 36 36">
-              <circle class="ring-bg" cx="18" cy="18" r="16" />
-              @if (adherenceStatus() === 'pending') {
-                <circle class="ring-amber" cx="18" cy="18" r="16" stroke-dasharray="100 100" />
-              }
-              <circle class="ring-emerald" cx="18" cy="18" r="16"
-                [attr.stroke-dasharray]="progressDasharray()" />
-            </svg>
-            <span class="material-symbols-outlined ring-icon">pill</span>
-          </div>
-          <div class="summary-copy">
-            <p class="summary-title">{{ isBackfill ? backfillDateShortLabel() + ' Medications' : "Today's Medications" }}</p>
-            @if (medicationSummary().totalExpectedDoses === 0 && medicationSummary().intervalActionableCount === 0) {
-              <p class="summary-fraction">No scheduled doses today</p>
-            } @else if (medicationSummary().totalExpectedDoses === 0) {
-              <p class="summary-fraction">{{ medicationSummary().nearestIntervalDueLabel }}</p>
-            } @else {
-              <p class="summary-fraction">
-                {{ medicationSummary().takenDoses }} of {{ medicationSummary().totalExpectedDoses }} doses taken
-              </p>
-              @if (medicationSummary().nearestIntervalDueLabel) {
-                <p class="summary-fraction">{{ medicationSummary().nearestIntervalDueLabel }}</p>
-              }
-            }
-          </div>
-        </div>
-        <div class="summary-trailing">
-          @if (adherenceStatus() === 'complete') {
-            <span class="summary-chip complete">All on track</span>
-          } @else if (adherenceStatus() === 'pending') {
-            <span class="summary-chip pending">
-              {{ medicationSummary().totalExpectedDoses - medicationSummary().takenDoses + medicationSummary().intervalActionableCount }} remaining
-            </span>
-          } @else {
-            <span class="summary-chip none">None scheduled</span>
-          }
-        </div>
-      </section>
-
       <!-- Scheduled medications -->
       <section class="section">
         <h2 class="section-label">Scheduled</h2>
@@ -250,7 +207,7 @@ type ScheduledMedicationCard = {
                   </div>
                   <div class="med-copy">
                     <p class="med-title">{{ baseRow.medication.name }}</p>
-                    <p class="med-subtitle">{{ baseRow.medication.dosageText }}</p>
+                    <p class="med-subtitle">{{ baseRow.medication.dosageText }} · {{ asNeededLastTakenLabel(baseRow.medication.id) }}</p>
                   </div>
                   <span class="material-symbols-outlined med-chevron">chevron_right</span>
                 </div>
@@ -343,6 +300,49 @@ type ScheduledMedicationCard = {
           </div>
         }
       </section>
+
+      <!-- Summary card (contextual supplement) -->
+      <section class="summary-card">
+        <div class="summary-ring-group">
+          <div class="summary-ring">
+            <svg viewBox="0 0 36 36">
+              <circle class="ring-bg" cx="18" cy="18" r="16" />
+              @if (adherenceStatus() === 'pending') {
+                <circle class="ring-amber" cx="18" cy="18" r="16" stroke-dasharray="100 100" />
+              }
+              <circle class="ring-emerald" cx="18" cy="18" r="16"
+                [attr.stroke-dasharray]="progressDasharray()" />
+            </svg>
+            <span class="material-symbols-outlined ring-icon">pill</span>
+          </div>
+          <div class="summary-copy">
+            <p class="summary-title">{{ isBackfill ? backfillDateShortLabel() + ' Medications' : "Today's Medications" }}</p>
+            @if (medicationSummary().totalExpectedDoses === 0 && medicationSummary().intervalActionableCount === 0) {
+              <p class="summary-fraction">No scheduled doses today</p>
+            } @else if (medicationSummary().totalExpectedDoses === 0) {
+              <p class="summary-fraction">{{ medicationSummary().nearestIntervalDueLabel }}</p>
+            } @else {
+              <p class="summary-fraction">
+                {{ medicationSummary().takenDoses }} of {{ medicationSummary().totalExpectedDoses }} doses taken
+              </p>
+              @if (medicationSummary().nearestIntervalDueLabel) {
+                <p class="summary-fraction">{{ medicationSummary().nearestIntervalDueLabel }}</p>
+              }
+            }
+          </div>
+        </div>
+        <div class="summary-trailing">
+          @if (adherenceStatus() === 'complete') {
+            <span class="summary-chip complete">All on track</span>
+          } @else if (adherenceStatus() === 'pending') {
+            <span class="summary-chip pending">
+              {{ medicationSummary().totalExpectedDoses - medicationSummary().takenDoses + medicationSummary().intervalActionableCount }} remaining
+            </span>
+          } @else {
+            <span class="summary-chip none">None scheduled</span>
+          }
+        </div>
+      </section>
     </div>
   `,
   styles: [`
@@ -427,18 +427,18 @@ type ScheduledMedicationCard = {
       font-weight: 700;
     }
 
-    /* Summary card */
+    /* Summary card — contextual supplement at bottom */
 
     .summary-card {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 0.75rem;
-      padding: 1rem 1.1rem;
+      padding: 0.875rem 1rem;
       border-radius: 0.5rem;
-      background: #fff;
-      border: 1px solid #f1f5f9;
-      box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.05);
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      margin-top: 2rem;
     }
 
     .summary-ring-group {
@@ -1392,6 +1392,13 @@ export class MedicationsDashboardComponent {
   asNeededOverflowCount(medicationId: string): number {
     const total = this.asNeededEventRowsByMedicationId().get(medicationId)?.length ?? 0;
     return Math.max(0, total - this.AS_NEEDED_EVENT_PREVIEW_LIMIT);
+  }
+
+  asNeededLastTakenLabel(medicationId: string): string {
+    const rows = this.asNeededEventRowsByMedicationId().get(medicationId) ?? [];
+    if (rows.length === 0) return 'No doses today';
+    const latest = rows[0];
+    return `Last taken: ${latest.takenTimeLabel ?? 'Earlier today'}`;
   }
 
   asNeededTakenLabel(row: RoutineMedicationRow): string {
