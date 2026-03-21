@@ -1,6 +1,6 @@
 # TrackIt Implementation Plan
 
-Last updated: 2026-03-21
+Last updated: 2026-03-21 (code-verified against specs in docs/specs/)
 
 ---
 
@@ -21,50 +21,18 @@ Last updated: 2026-03-21
 
 > **Why second**: Every new reflection silently commits score `50` for all four dimensions even when the user has not tapped anything. Partial entries are a first-class data-integrity requirement; sending `50` for untouched dimensions corrupts longitudinal trend data.
 
-- [ ] **Initialize all four score signals to `null` instead of `50`**
-  - File: `frontend/src/app/features/daily-reflection/daily-reflection.component.ts`
-  - Change: `signal<number | null>(50)` → `signal<number | null>(null)` for `moodScore`, `focusScore`, `energyScore`, `sleepScore`.
-
-- [ ] **Add save guard: block save when zero dimensions are committed**
-  - Same file, `saveReflection()` method.
-  - Before calling `upsertReflection`, check that at least one score is non-null.
-  - If all four are null, set `errorMessage` to `"Select at least one dimension to save"` and return early.
-  - No new UI elements required; the existing `errorMessage` signal and its `@if` block in the template already render the message.
-
-- [ ] **Add visual pre-highlight for Balanced bucket when score is null**
-  - Same file, bucket-option template sections.
-  - Add a CSS class condition: `[class.guide]="dimensionScore() === null && opt.bucket === 3"` for each dimension.
-  - Add a `.bucket-option.guide` style that shows a subtle highlight (e.g., dashed border or muted background) without triggering the committed `.selected` style.
-  - Tapping a bucket calls `onBucketSelect()` which sets the signal — no change needed there.
-
-- [ ] **Fix loading of existing reflection with null scores**
-  - Same file, `effect()` in constructor that seeds signal values from fetched reflection.
-  - When `reflection.moodScore` is `null`, the signal must remain `null` (no bucket selected), not coerced to `50`.
-  - Verify that the seeded-from-existing guard does not prevent re-loading if the user navigates away and back.
+- [x] **Initialize all four score signals to `null` instead of `50`**
+- [x] **Add save guard: block save when zero dimensions are committed**
+- [x] **Add visual pre-highlight for Balanced bucket when score is null**
+- [x] **Fix loading of existing reflection with null scores** (set calls already pass through null; no coercion to 50 remained)
 
 ---
 
 ## Priority 3 — Missing Feature: Medications Summary Card Interval Support (medications-summary-2.md)
 
-> **Why third**: The `/medications` page summary card explicitly skips `interval-days` medications, so the top-level adherence numbers are incomplete. The Insights summary card already handles interval medications correctly — the `/medications` page needs to match it.
-
-- [ ] **Update `medicationSummary` computed in `MedicationsDashboardComponent` to include interval medications**
-  - File: `frontend/src/app/features/medications/medications-dashboard.component.ts`
-  - The Insights version of this computed (in `insights-dashboard.component.ts`) is the reference. Port its interval-handling logic:
-    - Track `intervalActionableCount` (count of interval meds where `dueState !== 'early'`).
-    - Track `nearestIntervalDeltaDays` and derive `nearestIntervalDueLabel`.
-  - Return shape should include: `{ totalExpectedDoses, takenDoses, intervalActionableCount, nearestIntervalDueLabel }`.
-
-- [ ] **Update `adherenceStatus` computed in `MedicationsDashboardComponent` to factor in interval actionable count**
-  - Same file.
-  - Currently only checks `totalExpectedDoses` / `takenDoses`. Add: return `'pending'` when `intervalActionableCount > 0` even if `totalExpectedDoses === 0`.
-  - Return `'none'` only when both `totalExpectedDoses === 0` AND `intervalActionableCount === 0`.
-
-- [ ] **Update summary card template to display interval-aware copy**
-  - Same file, template section.
-  - "None scheduled" only when both `totalExpectedDoses === 0` AND `intervalActionableCount === 0`.
-  - Show remaining count when any actionable items (scheduled or interval due/overdue) exist.
-  - Show `nearestIntervalDueLabel` when non-null (e.g., "Next interval due today", "Next interval due in N days", "Next interval overdue by N days").
+- [x] **Update `medicationSummary` computed in `MedicationsDashboardComponent` to include interval medications**
+- [x] **Update `adherenceStatus` computed in `MedicationsDashboardComponent` to factor in interval actionable count**
+- [x] **Update summary card template to display interval-aware copy**
 
 ---
 
@@ -82,7 +50,7 @@ Last updated: 2026-03-21
   - Same file. Returns `true` if at least one dimension in `todayReflectionSummary()` is non-null.
 
 - [ ] **Replace the simple "Daily Reflection" CTA section with the status card**
-  - Same file, template section.
+  - Same file, template section (lines 59–67).
   - Placement: below hero phrase / weekly summary header, above weekly rhythm dimension cards.
   - Logged state: show card with committed (non-null) dimension labels joined with ` · ` (e.g., `"Mood: Steady · Focus: Dialed In"`). Card navigates to `/daily-reflection` on tap.
   - Not-logged state: show prompt (`"How is [participantName()] doing today?"`) with "Log today's reflection" CTA navigating to `/daily-reflection`.
@@ -110,9 +78,9 @@ Last updated: 2026-03-21
   - Register in `app.routes.ts` under shell with `ActiveParticipantGuard`.
 
 - [ ] **Add `/incidents/new` route alias**
-  - Add `{ path: 'incidents/new', component: BehavioralMomentCreateComponent }` alongside existing `behavioral-moments/new` (keep both to avoid breaking deep links during transition).
-  - Update `BehavioralMomentCreateComponent` success-state "Log another" link to use `/incidents/new`.
-  - Update the Insights "Log a Moment" CTA from `/behavioral-moments/new` to `/incidents/new`.
+  - Add `{ path: 'incidents/new', component: BehavioralMomentCreateComponent }` alongside existing `behavioral-moments/new` in `app.routes.ts` (keep both to avoid breaking deep links during transition).
+  - Update `BehavioralMomentCreateComponent` success-state "Log another moment" button (currently calls `reset()`) to navigate to `/incidents/new` instead, so the URL reflects the canonical route.
+  - Update the Insights "Log a Moment" CTA (`insights-dashboard.component.ts` line 177, `routerLink="/behavioral-moments/new"`) to use `/incidents/new`.
 
 ---
 
@@ -122,7 +90,7 @@ Last updated: 2026-03-21
 
 - [ ] **Update `docs/product-specs/behavior-tracking-abc.md` list query params**
   - File: `docs/product-specs/behavior-tracking-abc.md`
-  - Replace `fromUtc`, `toUtc` (ISO 8601 UTC) with `startDate`, `endDate` (YYYY-MM-DD local dates) in the API surface section.
+  - Line 48: Replace `fromUtc`, `toUtc` (ISO 8601 UTC) with `startDate`, `endDate` (YYYY-MM-DD local dates) in the API surface section.
 
 ---
 

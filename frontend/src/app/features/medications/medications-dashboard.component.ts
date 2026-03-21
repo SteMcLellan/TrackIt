@@ -85,12 +85,17 @@ type ScheduledMedicationCard = {
           </div>
           <div class="summary-copy">
             <p class="summary-title">{{ isBackfill ? backfillDateShortLabel() + ' Medications' : "Today's Medications" }}</p>
-            @if (medicationSummary().totalExpectedDoses === 0) {
+            @if (medicationSummary().totalExpectedDoses === 0 && medicationSummary().intervalActionableCount === 0) {
               <p class="summary-fraction">No scheduled doses today</p>
+            } @else if (medicationSummary().totalExpectedDoses === 0) {
+              <p class="summary-fraction">{{ medicationSummary().nearestIntervalDueLabel }}</p>
             } @else {
               <p class="summary-fraction">
                 {{ medicationSummary().takenDoses }} of {{ medicationSummary().totalExpectedDoses }} doses taken
               </p>
+              @if (medicationSummary().nearestIntervalDueLabel) {
+                <p class="summary-fraction">{{ medicationSummary().nearestIntervalDueLabel }}</p>
+              }
             }
           </div>
         </div>
@@ -99,7 +104,7 @@ type ScheduledMedicationCard = {
             <span class="summary-chip complete">All on track</span>
           } @else if (adherenceStatus() === 'pending') {
             <span class="summary-chip pending">
-              {{ medicationSummary().totalExpectedDoses - medicationSummary().takenDoses }} remaining
+              {{ medicationSummary().totalExpectedDoses - medicationSummary().takenDoses + medicationSummary().intervalActionableCount }} remaining
             </span>
           } @else {
             <span class="summary-chip none">None scheduled</span>
@@ -1093,29 +1098,56 @@ export class MedicationsDashboardComponent {
   readonly medicationSummary = computed(() => {
     let totalExpectedDoses = 0;
     let takenDoses = 0;
+    let intervalActionableCount = 0;
+    let intervalMedicationCount = 0;
+    let nearestIntervalDeltaDays: number | null = null;
     for (const med of this.routineMedications()) {
       const frequency = this.resolveMedicationFrequency(med);
-      if (!frequency || frequency === 'as-needed' || frequency === 'interval-days') continue;
+      if (!frequency || frequency === 'as-needed') continue;
+      if (frequency === 'interval-days') {
+        intervalMedicationCount += 1;
+        const nextDueLocalDate = this.intervalNextDueLocalDate(med);
+        const intervalDeltaDays = nextDueLocalDate
+          ? this.daysBetweenLocalDates(this.todayLocalDate(), nextDueLocalDate)
+          : 0;
+        if (
+          intervalDeltaDays !== null
+          && (
+            nearestIntervalDeltaDays === null
+            || this.isPreferredIntervalDelta(intervalDeltaDays, nearestIntervalDeltaDays)
+          )
+        ) {
+          nearestIntervalDeltaDays = intervalDeltaDays;
+        }
+        if (this.intervalDueState(med) !== 'early') {
+          intervalActionableCount += 1;
+        }
+        continue;
+      }
       const expected = this.frequencySlotCount(frequency);
       totalExpectedDoses += expected;
       const medLogs = this.todayLogs().filter(log => log.medicationId === med.id && log.status === 'taken');
       takenDoses += Math.min(medLogs.length, expected);
     }
-    return { totalExpectedDoses, takenDoses };
+    const nearestIntervalDueLabel = intervalMedicationCount > 0
+      ? this.intervalLabelFromDeltaDays(nearestIntervalDeltaDays ?? 0)
+      : null;
+    return { totalExpectedDoses, takenDoses, intervalActionableCount, nearestIntervalDueLabel };
   });
 
   readonly progressPercent = computed(() => {
-    const { totalExpectedDoses, takenDoses } = this.medicationSummary();
-    if (totalExpectedDoses === 0) return 100;
+    const { totalExpectedDoses, takenDoses, intervalActionableCount } = this.medicationSummary();
+    if (totalExpectedDoses === 0) return intervalActionableCount > 0 ? 0 : 100;
     return Math.round((takenDoses / totalExpectedDoses) * 100);
   });
 
   readonly progressDasharray = computed(() => `${this.progressPercent()} 100`);
 
   readonly adherenceStatus = computed<'complete' | 'pending' | 'none'>(() => {
-    const { totalExpectedDoses, takenDoses } = this.medicationSummary();
-    if (totalExpectedDoses === 0) return 'none';
-    return takenDoses >= totalExpectedDoses ? 'complete' : 'pending';
+    const { totalExpectedDoses, takenDoses, intervalActionableCount } = this.medicationSummary();
+    if (totalExpectedDoses === 0 && intervalActionableCount === 0) return 'none';
+    if (intervalActionableCount > 0 || takenDoses < totalExpectedDoses) return 'pending';
+    return 'complete';
   });
 
   constructor() {
@@ -1505,6 +1537,32 @@ export class MedicationsDashboardComponent {
     const utcA = Date.UTC(aYear, aMonth - 1, aDay);
     const utcB = Date.UTC(bYear, bMonth - 1, bDay);
     return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
+  }
+
+  private intervalLabelFromDeltaDays(deltaDays: number): string {
+    if (deltaDays === 0) {
+      return 'Next interval due today';
+    }
+    if (deltaDays < 0) {
+      const days = Math.abs(deltaDays);
+      return `Next interval due in ${days} day${days === 1 ? '' : 's'}`;
+    }
+    return `Next interval overdue by ${deltaDays} day${deltaDays === 1 ? '' : 's'}`;
+  }
+
+  private isPreferredIntervalDelta(candidateDelta: number, currentDelta: number): boolean {
+    const candidateDistance = Math.abs(candidateDelta);
+    const currentDistance = Math.abs(currentDelta);
+    if (candidateDistance !== currentDistance) {
+      return candidateDistance < currentDistance;
+    }
+    if (candidateDelta >= 0 && currentDelta < 0) {
+      return true;
+    }
+    if (candidateDelta < 0 && currentDelta >= 0) {
+      return false;
+    }
+    return candidateDelta > currentDelta;
   }
 
   private formatDateLabel(localDate: string): string {
