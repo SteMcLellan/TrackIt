@@ -1,7 +1,7 @@
 # Timeline — Day Browser & Backfill
 
 Status: Implemented
-Last updated: 2026-03-15
+Last updated: 2026-03-20
 
 ## Problem
 
@@ -27,6 +27,7 @@ This cleanly separates "add something new" from "edit something that exists", an
 Event cards render normally. The `+` button sits in the top-right of the day header as a small circular button (28px, white bg, `#e2e8f0` border, gray `+` icon). It is present but understated — the cards are the visual focus. Tapping any card opens it for editing.
 
 ### State 2 — Partially logged day (YESTERDAY)
+
 Same as above. One or more event types are missing but the `+` button is the path to add them, not inline buttons below the card stack. The parent can see what was logged and decide whether to add more.
 
 ### State 3 — Missed day (THURSDAY, MAR 12)
@@ -77,7 +78,6 @@ The daily reflection screen must accept a `logLocalDate` parameter. The screen s
 
 ## Related Docs
 
-- `docs/backlog/daily-reflection-historical-entry.md` — policy options for how far back reflections should be allowed; recommends Option C (unlimited with latency signal)
 - `docs/product-specs/medication-frequency.md` — medication log API window (30 days) and occurrence key rules
 - `docs/product-specs/daily-reflection-scoring.md` — one reflection per participant per `logLocalDate`; re-opening the same date is an edit
 

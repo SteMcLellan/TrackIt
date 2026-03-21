@@ -53,7 +53,6 @@ docs/
 |   `-- README.md
 `-- backlog/
     |-- README.md
-    |-- daily-reflection-historical-entry.md
     |-- dynamic-hero-phrase.md
     |-- frontend-component-modularization-plan.md
     |-- multi-caregiver-mvp.md
