@@ -1,22 +1,22 @@
 import { HttpRequest, InvocationContext } from '@azure/functions';
-import jwt from 'jsonwebtoken';
-import { AppJwtPayload, buildConfig } from './auth';
+import { buildConfig, ResolvedClerkClaims, verifyClerkSessionToken } from './auth';
 
 /**
- * Validates the app JWT from the custom header and returns its payload.
+ * Validates the Clerk session token from the Authorization header and returns its claims.
  */
-export function authorize(context: InvocationContext, req: HttpRequest): AppJwtPayload {
-  const token = req.headers.get('x-trackit-app-token') || '';
+export async function authorize(_context: InvocationContext, req: HttpRequest): Promise<ResolvedClerkClaims> {
+  const authHeader = req.headers.get('authorization') || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : '';
   if (!token) {
-    const error = new Error('Missing app token') as Error & { status: number };
+    const error = new Error('Missing authorization token') as Error & { status: number };
     error.status = 401;
     throw error;
   }
   const config = buildConfig();
   try {
-    return jwt.verify(token, config.jwtSecret, { audience: config.audience }) as AppJwtPayload;
+    return await verifyClerkSessionToken(token, config);
   } catch {
-    const error = new Error('Invalid app token') as Error & { status: number };
+    const error = new Error('Invalid authorization token') as Error & { status: number };
     error.status = 401;
     throw error;
   }

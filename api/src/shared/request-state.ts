@@ -1,11 +1,11 @@
 import { InvocationContext } from '@azure/functions';
 import { CosmosContainers } from './cosmos';
-import { AppJwtPayload } from './auth';
+import { ResolvedClerkClaims } from './auth';
 import { UserParticipantLinkDocument } from '../models/participant';
 
 export type RequestState = {
   containers?: CosmosContainers;
-  user?: AppJwtPayload;
+  user?: ResolvedClerkClaims;
   participant?: {
     id: string;
     link: UserParticipantLinkDocument;

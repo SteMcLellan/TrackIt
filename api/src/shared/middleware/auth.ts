@@ -11,7 +11,7 @@ export const authMiddleware: HttpMiddleware = async (request, context, next) => 
     containers = built.containers;
   }
 
-  const user = state.user ?? authorize(context, request);
+  const user = state.user ?? await authorize(context, request);
   setRequestState(context, { containers, user });
 
   return next(request, context);

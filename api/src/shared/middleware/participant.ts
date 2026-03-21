@@ -13,7 +13,7 @@ export const participantMiddleware: HttpMiddleware = async (request, context, ne
     containers = built.containers;
   }
 
-  const user = state.user ?? authorize(context, request);
+  const user = state.user ?? await authorize(context, request);
   const participantId = request.params.participantId;
   if (!participantId) {
     return buildValidationError([

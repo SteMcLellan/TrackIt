@@ -1,15 +1,16 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { from, switchMap } from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { ClerkService } from '../services/clerk.service';
 import { isSameOriginApiRequest } from './api-request.util';
 
 /**
- * Adds the app JWT to outgoing requests for authenticated users.
+ * Attaches a fresh Clerk session token as Authorization: Bearer on API requests.
  */
-const APP_TOKEN_HEADER = 'x-trackit-app-token';
-
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
+  const clerk = inject(ClerkService);
   if (!auth.isAuthenticated()) {
     return next(req);
   }
@@ -19,18 +20,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.headers.has('Authorization')) {
     return next(req);
   }
-  if (req.headers.has(APP_TOKEN_HEADER)) {
-    return next(req);
-  }
-  const token = auth.appUser().token;
-  if (!token) {
-    return next(req);
-  }
-  return next(
-    req.clone({
-      setHeaders: {
-        [APP_TOKEN_HEADER]: token
+  return from(clerk.getSessionToken()).pipe(
+    switchMap(token => {
+      if (!token) {
+        return next(req);
       }
+      return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }));
     })
   );
 };

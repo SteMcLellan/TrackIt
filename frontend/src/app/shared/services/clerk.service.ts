@@ -8,6 +8,9 @@ interface ClerkState {
   isSignedIn: boolean;
   sessionId: string | null;
   userId: string | null;
+  userName: string | null;
+  userEmail: string | null;
+  userPicture: string | null;
 }
 
 const initialState: ClerkState = {
@@ -15,7 +18,10 @@ const initialState: ClerkState = {
   initialized: false,
   isSignedIn: false,
   sessionId: null,
-  userId: null
+  userId: null,
+  userName: null,
+  userEmail: null,
+  userPicture: null
 };
 
 @Injectable({ providedIn: 'root' })
@@ -29,6 +35,9 @@ export class ClerkService {
   readonly isSignedIn = computed(() => this.state().isSignedIn);
   readonly sessionId = computed(() => this.state().sessionId);
   readonly userId = computed(() => this.state().userId);
+  readonly userName = computed(() => this.state().userName);
+  readonly userEmail = computed(() => this.state().userEmail);
+  readonly userPicture = computed(() => this.state().userPicture);
 
   initialize(): Promise<void> {
     if (!this.initializePromise) {
@@ -106,12 +115,16 @@ export class ClerkService {
   }
 
   private updateStateFromClerk(): void {
+    const user = this.clerk?.user;
     this.state.set({
       error: null,
       initialized: true,
       isSignedIn: !!this.clerk?.isSignedIn,
       sessionId: this.clerk?.session?.id ?? null,
-      userId: this.clerk?.user?.id ?? null
+      userId: user?.id ?? null,
+      userName: user?.fullName ?? user?.firstName ?? null,
+      userEmail: user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses?.[0]?.emailAddress ?? null,
+      userPicture: user?.imageUrl || null
     });
   }
 

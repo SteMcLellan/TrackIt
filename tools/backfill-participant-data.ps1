@@ -46,8 +46,8 @@ $ErrorActionPreference = 'Stop'
 function Build-Headers {
   param([Parameter(Mandatory = $true)][string] $Token)
   return @{
-    'x-trackit-app-token' = $Token
-    'Content-Type'        = 'application/json'
+    'Authorization' = "Bearer $Token"
+    'Content-Type'  = 'application/json'
   }
 }
 

@@ -1,9 +1,9 @@
-import { AppJwtPayload } from './auth';
+import { ResolvedClerkClaims } from './auth';
 import { CosmosContainers } from './cosmos';
 import { UserParticipantLinkDocument } from '../models/participant';
 
 export type AuthContext = {
-  user: AppJwtPayload;
+  user: ResolvedClerkClaims;
   containers: CosmosContainers;
 };
 
