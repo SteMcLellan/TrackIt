@@ -35,6 +35,13 @@ This runbook captures common implementation workflows in TrackIt.
 3. Update `DESIGN.md` if new reusable patterns were introduced.
 4. Run `npm run build:frontend`.
 
+## Run Ralph Loop
+
+1. Add or update requirement specs in `docs/specs/`.
+2. Run `.\tools\ralph-loop.ps1 -Mode plan -MaxIterations 1` to refresh `IMPLEMENTATION_PLAN.md`.
+3. Run `.\tools\ralph-loop.ps1 -Mode build -MaxIterations 1` to execute one planned task.
+4. Put validation and commit behavior in the prompt and review the session logs in `artifacts/ralph-loop/` if a loop iteration fails.
+
 ## Related Docs
 
 - `docs/architecture/api-conventions.md`
