@@ -26,15 +26,16 @@ There is no TrackIt-issued app JWT. The Clerk session token is the sole auth cre
 `authInterceptor` fetches a fresh Clerk session token and attaches it to outbound API requests:
 
 - Only same-origin `/api/*` requests are modified.
-- Requests that already include an `Authorization` header are left unchanged.
-- Header added: `Authorization: Bearer <clerk_session_token>`.
+- Requests that already include an `x-trackit-app-token` header are left unchanged.
+- Header added: `x-trackit-app-token: <clerk_session_token>`.
 - Token is retrieved via `ClerkService.getSessionToken()` on every request; the Clerk SDK handles rotation transparently.
+- `Authorization` is intentionally not used: Azure Static Web Apps intercepts and mangles that header before the request reaches the Azure Functions backend.
 
 ## API Flow
 
 ### Protected endpoints
 
-1. Read the `Authorization: Bearer <token>` header.
+1. Read the `x-trackit-app-token` header.
 2. Call `authorize()`, which calls `verifyClerkSessionToken()` from `@clerk/backend`.
 3. On success, the resolved `ResolvedClerkClaims` (including `sub` and `metadata.roles`) are stored in request state for downstream handlers.
 4. On failure, returns `401`.

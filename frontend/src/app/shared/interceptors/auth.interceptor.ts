@@ -6,7 +6,9 @@ import { ClerkService } from '../services/clerk.service';
 import { isSameOriginApiRequest } from './api-request.util';
 
 /**
- * Attaches a fresh Clerk session token as Authorization: Bearer on API requests.
+ * Attaches a fresh Clerk session token as x-trackit-app-token on API requests.
+ * Authorization header is intentionally avoided: Azure Static Web Apps intercepts
+ * and mangles it before the request reaches the Azure Functions backend.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
@@ -17,7 +19,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!isSameOriginApiRequest(req)) {
     return next(req);
   }
-  if (req.headers.has('Authorization')) {
+  if (req.headers.has('x-trackit-app-token')) {
     return next(req);
   }
   return from(clerk.getSessionToken()).pipe(
@@ -25,7 +27,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (!token) {
         return next(req);
       }
-      return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }));
+      return next(req.clone({ setHeaders: { 'x-trackit-app-token': token } }));
     })
   );
 };
