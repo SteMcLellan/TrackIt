@@ -14,7 +14,7 @@ function buildContext(role: 'manager' | 'viewer' = 'manager') {
       userId: 'user-1',
       participantId: 'participant_1',
       role,
-      createdAt: '2026-01-01T00:00:00.000Z'
+      createdAtUtc: '2026-01-01T00:00:00.000Z'
     }
   };
 }
@@ -37,7 +37,7 @@ describe('participant-detail handlers', () => {
           id: 'participant_1',
           displayName: 'Kid',
           birthDate: '2020-01-15',
-          createdAt: '2026-01-01T00:00:00.000Z',
+          createdAtUtc: '2026-01-01T00:00:00.000Z',
           createdByUserId: 'user-1'
         }
       })
@@ -91,7 +91,7 @@ describe('participant-detail handlers', () => {
           displayName: 'Kid',
           birthDate: '2020-01-15',
           ageYears: 5,
-          createdAt: '2026-01-01T00:00:00.000Z',
+          createdAtUtc: '2026-01-01T00:00:00.000Z',
           createdByUserId: 'user-1'
         }
       })

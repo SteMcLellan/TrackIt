@@ -10,6 +10,14 @@ Last updated: 2026-03-22
 
 # Completed
 
+- [x] **Iteration 4 — Architecture Compliance Round 3** (2026-03-22). Second full drift analysis pass. Found and fixed all remaining issues:
+  - **Spec fix**: `participant-association.md` — updated 3 JSON response examples to use `createdAtUtc` (POST/GET/PATCH responses still showed stale `createdAt`).
+  - **Spec fix**: `data-modeling.md` — updated ASCII container diagram: `users` `createdAt`/`lastLoginAt` → `createdAtUtc`/`lastLoginAtUtc`, `userParticipantLinks` and `participants` `createdAt` → `createdAtUtc`.
+  - **Spec fix**: `page-shell.md` — replaced "no background" guidance with accurate description: ShellComponent intentionally sets `var(--color-ghost-white-canvas)` as canvas base color.
+  - **Code fix**: `api/src/functions/me.ts` — renamed `app.http('me', ...)` → `app.http('me-get', ...)` per `<resource>-<action>` convention.
+  - **Code fix**: `api/src/functions/hero-phrase-tiers.ts` — renamed `app.http('hero-phrase-tiers', ...)` → `app.http('hero-phrase-tiers-list', ...)` per convention.
+  - **Code fix**: Updated `createdAt` → `createdAtUtc` in 20 stale stub objects across 15 test handler files. All 174 API tests pass; both TypeScript builds clean.
+
 - [x] **Iteration 3 — Architecture Compliance Round 2** (2026-03-22). Comprehensive drift analysis of all 7 architecture specs vs codebase. Found and fixed all issues:
   - **Code fix**: Renamed `expiresAt`/`revokedAt`/`consumedAt` → `expiresAtUtc`/`revokedAtUtc`/`consumedAtUtc` in `api/src/models/participant-invite.ts`, `api/src/functions/participant-invites.ts`, `api/tests/handlers/participant-invites.test.ts`, `frontend/src/app/shared/models/participant-invite.ts`, and `frontend/src/app/features/profile/profile-dashboard.component.ts`. All 174 API tests pass; both TypeScript builds clean.
   - **Spec fix**: `participant-association.md` — updated type definitions to use `createdAtUtc`, replaced stale "app JWT" auth language with Clerk session token, replaced stale `/participants/*` route section with accurate `/setup` flow.

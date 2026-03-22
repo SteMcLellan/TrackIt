@@ -33,7 +33,7 @@ const heroPhraseTiers = composeHttpHandler({
 /**
  * Authenticated endpoint for fetching hero phrase tiers.
  */
-app.http('hero-phrase-tiers', {
+app.http('hero-phrase-tiers-list', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: 'hero-phrase-tiers',

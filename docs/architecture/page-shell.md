@@ -62,7 +62,8 @@ ShellComponent
 
 Key implementation notes:
 - `<main>` must have `padding-bottom` large enough to clear the fixed bottom nav plus `env(safe-area-inset-bottom)`. Use a CSS custom property `--bottom-nav-clearance` set by `ShellBottomNavComponent` if dynamic height is needed, or hardcode based on the canonical nav height (approx 80px with safe area).
-- `ShellComponent` itself should have no padding or background — those are the responsibility of individual page components and the top/bottom bars.
+- `ShellComponent` sets `background: var(--color-ghost-white-canvas, #fcfcfd)` as the base canvas color. This prevents flash-of-white during page transitions and provides a consistent background for screens that do not fill 100% height. Page components may override with their own backgrounds for specific sections.
+- `ShellComponent` sets no horizontal padding — that is the responsibility of individual page components.
 
 ---
 

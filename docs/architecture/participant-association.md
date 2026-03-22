@@ -48,7 +48,7 @@ Response:
   "displayName": "Avery",
   "birthDate": "2016-04-12",
   "ageYears": 9,
-  "createdAt": "...",
+  "createdAtUtc": "...",
   "createdByUserId": "user_123"
 }
 ```
@@ -69,7 +69,7 @@ Response:
       "displayName": "Avery",
       "birthDate": "2016-04-12",
       "ageYears": 9,
-      "createdAt": "...",
+      "createdAtUtc": "...",
       "createdByUserId": "user_123",
       "role": "manager"
     }
@@ -96,7 +96,7 @@ Response:
   "displayName": "Avery K",
   "ageYears": 10,
   "birthDate": "2015-04-12",
-  "createdAt": "...",
+  "createdAtUtc": "...",
   "createdByUserId": "user_123",
   "role": "manager"
 }

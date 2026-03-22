@@ -71,7 +71,7 @@ describe('participant-invites handlers', () => {
   it('createParticipantInviteBusinessHandler revokes active invites and creates one', async () => {
     const ctx = buildParticipantContext();
     (ctx.containers.participants.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      read: vi.fn().mockResolvedValue({ resource: { id: 'participant_1', createdAt: 'x', createdByUserId: 'user-1' } })
+      read: vi.fn().mockResolvedValue({ resource: { id: 'participant_1', createdAtUtc: 'x', createdByUserId: 'user-1' } })
     });
     (ctx.containers.participantInvites.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       fetchAll: vi.fn().mockResolvedValue({

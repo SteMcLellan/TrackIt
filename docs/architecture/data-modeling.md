@@ -50,7 +50,7 @@ Cosmos DB Containers & Data Flow:
 
 ┌─────────────────────────────────────────────────────────────┐
 │ users (partition: /id)                                      │
-│ • id, createdAt, lastLoginAt, publicMetadata                │
+│ • id, createdAtUtc, lastLoginAtUtc, publicMetadata                │
 └──────────────────────────────────────────────────────────────┘
          │
          │ manages
@@ -58,14 +58,14 @@ Cosmos DB Containers & Data Flow:
 ┌─────────────────────────────────────────────────────────────┐
 │ userParticipantLinks (partition: /userId)                   │
 │ • id: {userId}:{participantId}                              │
-│ • userId, participantId, role (manager|viewer), createdAt   │
+│ • userId, participantId, role (manager|viewer), createdAtUtc   │
 └──────────────────────────────────────────────────────────────┘
          │
          │ links to
          ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ participants (partition: /id)                               │
-│ • id, displayName, birthDate, ageYears, createdAt           │
+│ • id, displayName, birthDate, ageYears, createdAtUtc           │
 └──────────────────────────────────────────────────────────────┘
          │
     ┌────┴───────┬────────────────┬─────────────────┐

@@ -25,7 +25,7 @@ const me = composeHttpHandler({
 /**
  * Authenticated endpoint for fetching the current user's claims.
  */
-app.http('me', {
+app.http('me-get', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: 'me',

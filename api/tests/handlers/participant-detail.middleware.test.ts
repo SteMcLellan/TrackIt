@@ -37,13 +37,13 @@ describe('participant-detail middleware pipeline', () => {
       userId: 'user-1',
       participantId: 'participant-1',
       role: 'manager',
-      createdAt: '2026-02-01T00:00:00.000Z'
+      createdAtUtc: '2026-02-01T00:00:00.000Z'
     });
     readParticipantMock.mockResolvedValue({
       id: 'participant-1',
       displayName: 'Kid',
       birthDate: '2020-01-15',
-      createdAt: '2026-01-01T00:00:00.000Z',
+      createdAtUtc: '2026-01-01T00:00:00.000Z',
       createdByUserId: 'user-1'
     });
   });

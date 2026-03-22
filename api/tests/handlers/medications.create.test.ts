@@ -29,7 +29,7 @@ describe('createMedicationBusinessHandler', () => {
         userId: 'user-1',
         participantId: 'participant-1',
         role: 'manager',
-        createdAt: '2026-02-01T00:00:00.000Z'
+        createdAtUtc: '2026-02-01T00:00:00.000Z'
       }
     };
   }
