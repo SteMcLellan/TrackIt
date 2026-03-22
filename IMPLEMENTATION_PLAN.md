@@ -1,16 +1,77 @@
 # TrackIt Implementation Plan
 
-Last updated: 2026-03-21
+Last updated: 2026-03-22
 
 ---
 
 ## Pending
 
-*All specs implemented.*
+### Priority 1 — Phase 1b: Merge `behavior-incidents-2.md` into `behavior-tracking-abc.md` (ralph-loop-migration.md)
+
+Add detail to `docs/product-specs/behavior-tracking-abc.md`:
+- The list-view row format: date/time, ABC summary line, function label.
+- Detail view: shows A, B, C, place, function, date/time; Edit and Delete actions; Delete requires confirmation.
+- The "API Surface" section still references "valid app JWT" — update to reflect Clerk token auth.
+- Confirm no `fromUtc`/`toUtc` references anywhere in the file (already correct — but verify and add an explicit note in the spec if needed).
+
+---
+
+### Priority 2 — Phase 1c: Merge `daily-reflection-2.md` into `daily-reflection-scoring.md` (ralph-loop-migration.md)
+
+Update `docs/product-specs/daily-reflection-scoring.md` to document the null score commitment model:
+- New form opens with Balanced visually pre-highlighted as a guide but **no dimension committed**.
+- First tap on a bucket commits that dimension (midpoint stored).
+- Untouched dimensions are sent as `null` to the API (not `50`).
+- Saving with zero committed dimensions shows inline validation: "Select at least one dimension to save."
+- Existing reflections: `null` dimensions show no bucket selected; stored values show correct bucket.
+- PUT body sends `null` for cleared dimensions; untouched dimensions on new form are omitted.
+
+Currently Section 5 says "Default selection is the middle bucket (bucket 3), visually pre-selected" and Acceptance Criteria item US-DR-001 says "Balanced is pre-selected as default" — both are inconsistent with the commitment model and must be corrected.
+
+---
+
+### Priority 3 — Phase 1d: Create `docs/product-specs/insights-dashboard.md` (ralph-loop-migration.md)
+
+Create new file `docs/product-specs/insights-dashboard.md` documenting the Insights page spec:
+- **Today's reflection card** — placement (below hero phrase / weekly summary, above weekly rhythm dimension cards).
+- **Logged state**: committed dimension bucket labels (e.g. "Mood: Steady · Focus: Dialed In · Sleep: Fine"); null dimensions omitted; card tappable → `/daily-reflection` edit mode.
+- **Not-logged state**: participant-name prompt ("How is [name] doing today?") + "Log today's reflection" CTA → `/daily-reflection`.
+- **Data**: uses existing weekly summary window data; no additional API call when today is in that window.
+
+Also update `AGENTS.md` repository doc map to list `insights-dashboard.md` in `docs/product-specs/`.
+
+---
+
+### Priority 4 — Phase 2: Update `PROMPT_plan.md` and `PROMPT_build.md` (ralph-loop-migration.md)
+
+**PROMPT_plan.md:**
+- Replace `docs/specs/*` with `docs/**/*.md` (all occurrences).
+- Replace scope rule: "Treat `docs/specs/*` as the planning scope..." → "Treat `IMPLEMENTATION_PLAN.md` as the planning scope. Use `docs/**/*.md` as the knowledge base. Do NOT generate new plan items from architecture or reference docs unless they describe unimplemented behavior. If a required spec is missing, create it in `docs/product-specs/` and record the follow-up work in @IMPLEMENTATION_PLAN.md using a subagent."
+
+**PROMPT_build.md:**
+- Replace `docs/specs/*` with `docs/**/*.md` (all occurrences).
+- Replace scope rule: "Treat `docs/specs/*` as the implementation scope..." → "Treat `IMPLEMENTATION_PLAN.md` as the implementation scope; use `docs/**/*.md` as reference."
+
+---
+
+### Priority 5 — Phase 3: Update `AGENTS.md`, reference docs, and delete `docs/specs/` (ralph-loop-migration.md)
+
+**AGENTS.md:**
+- Remove `docs/specs/` from Agent Lookup Order (currently step 3); renumber remaining steps.
+- Replace "Do not update the doc map for individual files added to `docs/specs/`..." note with an equivalent note pointing to `docs/product-specs/`.
+- Remove `docs/specs/` entry from Repository Doc Map.
+
+**`docs/references/development-commands.md`:** Replace "Ralph specs live in `docs/specs/`..." with "Ralph uses `docs/**/*.md` as its knowledge base; scope is tracked in `IMPLEMENTATION_PLAN.md`..."
+
+**`docs/runbooks/common-dev-tasks.md`:** In "Run Ralph Loop" section, replace step 1 "Add or update requirement specs in `docs/specs/`." with "Add or update specs in `docs/product-specs/` (feature specs) or `docs/architecture/` (system design)."
+
+**Delete `docs/specs/`:** Delete all remaining files including `ralph-loop-migration.md` itself once all phases above are complete.
 
 ---
 
 ## Completed
+
+- [x] **Phase 1a: Merge `medications-summary-2.md` into `medication-command-center.md`** (ralph-loop-migration.md). Expanded the Medications `/medications` section summary card bullet in `medication-command-center.md` to explicitly state the interval adherence logic: `due`/`overdue` items counted in remaining alongside scheduled pending doses; `early` items excluded; copy semantics ("All on track" / "N remaining" / "None scheduled"); nearest-interval guidance lines. Previously the spec only said "same adherence language as Insights" without stating the rules.
 
 - [x] **Bug: Stale API tests from clerk-auth-3 migration** — Deleted `auth-login.test.ts` and `auth-refresh.test.ts` (handlers were removed in clerk-auth-3). Updated `admin-event-index-migrations.test.ts` mock format from `{ roles: ['admin'] }` to `{ metadata: { roles: ['admin'] } }` to match new `ResolvedClerkClaims` shape. All 174 tests now pass. `api-testing.md` baseline updated to 23 files / 174 tests.
 

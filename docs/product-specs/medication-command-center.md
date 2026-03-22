@@ -56,7 +56,16 @@ Medication logging moved to a dedicated `/medications` route, and Insights now s
 - Group content into:
   - `Scheduled` cards with dose-slot rows.
   - `As Needed` cards with logged-event previews plus overflow count.
-- Show top-level summary card with the same adherence language as Insights.
+- Show top-level summary card with the same adherence language and logic as the Insights compact card:
+  - `All on track` when no scheduled pending doses and no interval `due`/`overdue` items remain.
+  - `N remaining` when any actionable items exist (scheduled pending doses + interval `due`/`overdue` items).
+  - `None scheduled` when no actionable doses exist at all.
+  - Interval medications with `dueState` of `due` or `overdue` are counted in the remaining total alongside scheduled pending doses.
+  - Interval medications with `dueState` of `early` are excluded from the remaining count.
+  - Show nearest-interval guidance line when interval meds exist:
+    - `Next interval due today`
+    - `Next interval due in N days`
+    - `Next interval overdue by N days`
 - Canonical display order: Scheduled → As Needed → Summary card (de-emphasized contextual supplement). The summary card is intentionally subordinate — it uses a gray background, no drop shadow, and a 2rem top margin to signal that it supplements rather than leads the action sections.
 
 ## Dose and Adherence Semantics
