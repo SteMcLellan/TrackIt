@@ -1,4 +1,7 @@
-0a. Study `docs/**/*.md` with parallel subagents to learn the application specifications. 0b. Study @IMPLEMENTATION_PLAN.md. 0c. For reference, the application source code is in `frontend/src/*`, `api/src/*`, and `tools/*`.
+0a. Study `docs/**/*.md` with parallel subagents to learn the application specifications. 
+0b. Study @IMPLEMENTATION_PLAN.md. 
+0c. For reference, the application source code is in `frontend/src/*`, `api/src/*`, and `tools/*`.
+
 1. Implement functionality per the specifications using parallel subagents. Follow @IMPLEMENTATION_PLAN.md and choose exactly one item to address. Before making changes, search the codebase using subagents and confirm the work is not already implemented.
 2. Use parallel subagents for search and reading work. Use a single focused subagent for builds or tests. Use deeper-reasoning subagents when debugging or making architectural decisions. After implementing functionality or resolving problems, run the tests or builds relevant to the unit of code that was improved. If functionality is missing then add it as specified. Keep changes complete, not partial. Treat `IMPLEMENTATION_PLAN.md` as the implementation scope; use `docs/**/*.md` as reference.
 3. When you discover issues, immediately update @IMPLEMENTATION_PLAN.md with your findings using a subagent. When resolved, update the plan and remove or mark the item complete.
