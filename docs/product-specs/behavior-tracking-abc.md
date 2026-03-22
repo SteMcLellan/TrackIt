@@ -29,7 +29,7 @@ export type BehaviorIncidentDocument = {
 ```
 
 ## API Surface
-All endpoints require a valid app JWT and a valid participant association.
+All endpoints require a valid Clerk session token (`Authorization: Bearer <token>`) and a valid participant association.
 
 ### `POST /api/participants/{participantId}/incidents`
 Creates a new incident for the participant.
@@ -45,7 +45,7 @@ Lists incidents for the participant, newest to oldest.
 
 Query params:
 - `pageSize`, `nextToken`
-- `startDate`, `endDate` (YYYY-MM-DD local dates)
+- `startDate`, `endDate` (YYYY-MM-DD local dates) — **not** `fromUtc`/`toUtc`; matches the date-range convention used across all other API endpoints
 - `function` (single value)
 
 ### `GET /api/participants/{participantId}/incidents/{incidentId}`
@@ -61,9 +61,31 @@ Deletes an incident.
 - `/incidents/new` creates an incident for the active participant.
 - `/incidents` lists incidents with filters (time range + function).
 - `/incidents/:id` shows incident details and allows edit/delete.
-- List “Edit” opens detail in edit mode via query param.
 
 RUBI guidance is embedded in the incident form to prompt consistent descriptions.
+
+### List View (`/incidents`)
+
+Filters: date range (last 7 / 30 / 90 days) and function (sensory / tangible / escape / attention).
+
+Each row displays:
+- Date/time of the incident
+- ABC summary line (brief preview of antecedent, behavior, consequence)
+- Function label
+
+Tapping a row navigates to `/incidents/:id`. Incidents are listed newest to oldest.
+
+### Detail View (`/incidents/:id`)
+
+Displays all incident fields:
+- Antecedent, Behavior, Consequence (A/B/C)
+- Place
+- Function of Behavior
+- Date/time
+
+Available actions:
+- **Edit** — opens the same form used for create, pre-filled with current values. Saves and returns to detail view.
+- **Delete** — requires a confirmation step before removing the incident. After deletion, returns to the list.
 
 ## UTC Time Handling
 - All stored timestamps are UTC strings.

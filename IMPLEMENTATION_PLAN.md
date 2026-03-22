@@ -6,17 +6,7 @@ Last updated: 2026-03-22
 
 ## Pending
 
-### Priority 1 — Phase 1b: Merge `behavior-incidents-2.md` into `behavior-tracking-abc.md` (ralph-loop-migration.md)
-
-Add detail to `docs/product-specs/behavior-tracking-abc.md`:
-- The list-view row format: date/time, ABC summary line, function label.
-- Detail view: shows A, B, C, place, function, date/time; Edit and Delete actions; Delete requires confirmation.
-- The "API Surface" section still references "valid app JWT" — update to reflect Clerk token auth.
-- Confirm no `fromUtc`/`toUtc` references anywhere in the file (already correct — but verify and add an explicit note in the spec if needed).
-
----
-
-### Priority 2 — Phase 1c: Merge `daily-reflection-2.md` into `daily-reflection-scoring.md` (ralph-loop-migration.md)
+### Priority 1 — Phase 1c: Merge `daily-reflection-2.md` into `daily-reflection-scoring.md` (ralph-loop-migration.md)
 
 Update `docs/product-specs/daily-reflection-scoring.md` to document the null score commitment model:
 - New form opens with Balanced visually pre-highlighted as a guide but **no dimension committed**.
@@ -30,7 +20,7 @@ Currently Section 5 says "Default selection is the middle bucket (bucket 3), vis
 
 ---
 
-### Priority 3 — Phase 1d: Create `docs/product-specs/insights-dashboard.md` (ralph-loop-migration.md)
+### Priority 2 — Phase 1d: Create `docs/product-specs/insights-dashboard.md` (ralph-loop-migration.md)
 
 Create new file `docs/product-specs/insights-dashboard.md` documenting the Insights page spec:
 - **Today's reflection card** — placement (below hero phrase / weekly summary, above weekly rhythm dimension cards).
@@ -42,7 +32,7 @@ Also update `AGENTS.md` repository doc map to list `insights-dashboard.md` in `d
 
 ---
 
-### Priority 4 — Phase 2: Update `PROMPT_plan.md` and `PROMPT_build.md` (ralph-loop-migration.md)
+### Priority 3 — Phase 2: Update `PROMPT_plan.md` and `PROMPT_build.md` (ralph-loop-migration.md)
 
 **PROMPT_plan.md:**
 - Replace `docs/specs/*` with `docs/**/*.md` (all occurrences).
@@ -54,7 +44,7 @@ Also update `AGENTS.md` repository doc map to list `insights-dashboard.md` in `d
 
 ---
 
-### Priority 5 — Phase 3: Update `AGENTS.md`, reference docs, and delete `docs/specs/` (ralph-loop-migration.md)
+### Priority 4 — Phase 3: Update `AGENTS.md`, reference docs, and delete `docs/specs/` (ralph-loop-migration.md)
 
 **AGENTS.md:**
 - Remove `docs/specs/` from Agent Lookup Order (currently step 3); renumber remaining steps.
@@ -70,6 +60,8 @@ Also update `AGENTS.md` repository doc map to list `insights-dashboard.md` in `d
 ---
 
 ## Completed
+
+- [x] **Phase 1b: Merge `behavior-incidents-2.md` into `behavior-tracking-abc.md`** (ralph-loop-migration.md). Updated `docs/product-specs/behavior-tracking-abc.md`: API Surface auth changed from "valid app JWT" to Clerk session token; list-view row format (date/time, ABC summary line, function label) documented; detail view (A/B/C, place, function, date/time; Edit and Delete with confirmation) documented; `startDate`/`endDate` filter note added (not `fromUtc`/`toUtc`).
 
 - [x] **Phase 1a: Merge `medications-summary-2.md` into `medication-command-center.md`** (ralph-loop-migration.md). Expanded the Medications `/medications` section summary card bullet in `medication-command-center.md` to explicitly state the interval adherence logic: `due`/`overdue` items counted in remaining alongside scheduled pending doses; `early` items excluded; copy semantics ("All on track" / "N remaining" / "None scheduled"); nearest-interval guidance lines. Previously the spec only said "same adherence language as Insights" without stating the rules.
 
