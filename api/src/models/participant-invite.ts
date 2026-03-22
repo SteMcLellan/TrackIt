@@ -3,9 +3,9 @@ export interface ParticipantInviteDocument {
   participantId: string;
   createdAtUtc: string;
   createdByUserId: string;
-  expiresAt: string;
-  revokedAt?: string;
+  expiresAtUtc: string;
+  revokedAtUtc?: string;
   revokedByUserId?: string;
-  consumedAt?: string;
+  consumedAtUtc?: string;
   consumedByUserId?: string;
 }

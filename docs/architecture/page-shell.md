@@ -57,11 +57,11 @@ AppComponent  (root <router-outlet> only)
 ShellComponent
 ├── TopBarComponent
 ├── <main> (router-outlet for page content)
-└── BottomNavComponent
+└── ShellBottomNavComponent
 ```
 
 Key implementation notes:
-- `<main>` must have `padding-bottom` large enough to clear the fixed bottom nav plus `env(safe-area-inset-bottom)`. Use a CSS custom property `--bottom-nav-clearance` set by `BottomNavComponent` if dynamic height is needed, or hardcode based on the canonical nav height (approx 80px with safe area).
+- `<main>` must have `padding-bottom` large enough to clear the fixed bottom nav plus `env(safe-area-inset-bottom)`. Use a CSS custom property `--bottom-nav-clearance` set by `ShellBottomNavComponent` if dynamic height is needed, or hardcode based on the canonical nav height (approx 80px with safe area).
 - `ShellComponent` itself should have no padding or background — those are the responsibility of individual page components and the top/bottom bars.
 
 ---
@@ -89,7 +89,7 @@ Key implementation notes:
 
 ---
 
-### `BottomNavComponent`
+### `ShellBottomNavComponent`
 
 **Path:** `frontend/src/app/shared/ui/page/bottom-nav.component.ts`
 **Responsibility:** Fixed three-tab navigation. Active tab derived from current route.
@@ -122,12 +122,12 @@ Derive active tab from the router as a computed signal — same pattern as the c
 **Path:** `frontend/src/app/shared/ui/page/bottom-sheet.component.ts`
 **Responsibility:** Reusable slide-up overlay for "Add" actions and secondary forms.
 
-An implementation of this component already exists and its core behaviour (backdrop, drag-to-dismiss, escape key, animation) is sound. The following style updates are needed to match the Stitch design system:
+An implementation of this component exists with the following canonical style values:
 
-- Top corner radius: `1.5rem` (currently `1rem`)
-- Backdrop opacity: `rgba(0,0,0,0.4)` (matches current — keep)
-- Close button: top-right position (currently implemented correctly)
-- Max height: `85vh` (keep)
+- Top corner radius: `2.5rem`
+- Backdrop opacity: `rgba(0,0,0,0.5)` with `backdrop-filter: blur(2px)`
+- Close button: top-right position
+- Max height: `85vh`
 
 **Usage pattern** — the "Add Medication" example:
 ```typescript
@@ -147,7 +147,7 @@ Bottom sheet content components (forms) are separate components projected via `n
 |-------|---------|-----------|
 | Page content | 0 | Page components |
 | Top bar | 30 | `TopBarComponent` |
-| Bottom nav | 50 | `BottomNavComponent` |
+| Bottom nav | 50 | `ShellBottomNavComponent` |
 | Bottom sheet backdrop | 999 | `BottomSheetComponent` |
 | Bottom sheet panel | 1000 | `BottomSheetComponent` |
 

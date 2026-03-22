@@ -195,7 +195,7 @@ This keeps API behavior consistent across clients.
   - `POST /api/internal/admin/migrations/event-index/backfill`
 - Verify endpoint:
   - `POST /api/internal/admin/migrations/event-index/verify`
-- Both endpoints require app JWT admin authorization.
+- Both endpoints require Clerk session token with admin role (`metadata.roles` includes `"admin"`).
 - Use deterministic IDs and projection versioning for safe reruns.
 
 ## Day Semantics

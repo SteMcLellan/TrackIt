@@ -23,6 +23,42 @@ This document defines backend endpoint conventions for TrackIt Azure Functions.
   - endpoint-specific validation middleware(s)
 - Do not use wrapper-based handler composition; handlers should declare explicit middleware arrays via `composeHttpHandler(...)`.
 
+### Middleware Chain (participant-scoped example)
+
+```
+HTTP Request
+    │
+    ▼
+┌──────────────────────────┐
+│     errorMiddleware      │  catches all throws; maps .status → HTTP response
+└──────────────┬───────────┘
+               │
+               ▼
+┌──────────────────────────┐
+│ requestContextMiddleware │  builds Cosmos containers; stores in request state
+└──────────────┬───────────┘
+               │
+               ▼
+┌──────────────────────────┐
+│     authMiddleware       │  verifies x-trackit-app-token; stores ResolvedClerkClaims
+└──────────────┬───────────┘
+               │
+               ▼
+┌──────────────────────────┐
+│  participantMiddleware   │  reads participantId from route; verifies link in DB
+└──────────────┬───────────┘
+               │
+               ▼
+┌──────────────────────────┐
+│  [validation middleware] │  (optional) validates request body/params
+└──────────────┬───────────┘
+               │
+               ▼
+┌──────────────────────────┐
+│    business handler      │  receives typed ParticipantContext; returns HttpResponseInit
+└──────────────────────────┘
+```
+
 ## Baseline Middleware Stacks (Guidance)
 - Public endpoints:
   - `errorMiddleware -> requestContextMiddleware -> [validation]`

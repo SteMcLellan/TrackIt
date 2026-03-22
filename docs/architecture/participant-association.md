@@ -17,7 +17,7 @@ export type ParticipantDocument = {
   displayName?: string;
   birthDate?: string; // YYYY-MM-DD
   ageYears?: number | null; // derived from birthDate for responses
-  createdAt: string;
+  createdAtUtc: string;
   createdByUserId: string;
 };
 
@@ -26,12 +26,12 @@ export type UserParticipantLinkDocument = {
   userId: string;
   participantId: string;
   role: 'manager' | 'viewer';
-  createdAt: string;
+  createdAtUtc: string;
 };
 ```
 
 ## API Surface
-All endpoints require a valid app JWT.
+All endpoints require a valid Clerk session token (passed as `x-trackit-app-token` header).
 
 ### `POST /api/participants`
 Creates a participant and a manager link for the current user.
@@ -107,12 +107,33 @@ Validation:
 - At least one field must be provided.
 
 ## Frontend Flow
-- After sign-in, the dashboard route checks `/api/participants`. If none exist, route to `/participants/start`.
-- If exactly one participant is associated to the user, it is auto-selected for the current browser session.
-- `/participants/start` provides the first-participant CTA.
-- `/participants/new` creates a participant.
-- `/participants` lists participants, lets the user select an active participant for the current browser session, and provides links to detail and dashboard.
-- `/participants/:id` shows participant details and tracking history placeholder. Managers can edit metadata inline.
+- After sign-in, `ActiveParticipantGuard` checks `/api/participants`.
+  - If none linked → redirect to `/setup` (participant creation wizard).
+  - If exactly one → auto-select and proceed.
+  - If multiple → present a participant picker (not yet implemented).
+- `/setup` — three-step wizard: welcome → participant form → optional medication → success.
+- Participant detail and edit are embedded in `/profile` (manager role only).
+
+### Invite Acceptance Flow
+
+```mermaid
+sequenceDiagram
+    participant Manager
+    participant API
+    participant Invitee
+
+    Manager->>API: POST /participants/{id}/invites
+    API-->>Manager: { inviteId, expiresAtUtc }
+    Manager->>Manager: share invite link /invite/{participantId}/{inviteId}
+
+    Invitee->>Invitee: open invite link (must sign in first)
+    Invitee->>API: POST /participants/{id}/invites/{inviteId}/accept
+    API->>API: validate invite (not expired/revoked/consumed)
+    API->>API: create UserParticipantLink (role: manager)
+    API->>API: mark invite consumedAtUtc (ETag-guarded)
+    API-->>Invitee: { participantId, alreadyLinked: false }
+    Invitee->>Invitee: navigate to /insights
+```
 
 ## Active Participant State
 Active participant is stored in-memory (signal state) and surfaced via `ParticipantService.activeParticipantId`.

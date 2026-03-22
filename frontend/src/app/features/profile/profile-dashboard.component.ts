@@ -533,10 +533,10 @@ export class ProfileDashboardComponent {
   });
 
   readonly inviteExpiryLabel = computed(() => {
-    if (!this.activeInviteResource.hasValue() || !this.activeInviteResource.value().expiresAt) {
+    if (!this.activeInviteResource.hasValue() || !this.activeInviteResource.value().expiresAtUtc) {
       return null;
     }
-    const value = this.activeInviteResource.value().expiresAt!;
+    const value = this.activeInviteResource.value().expiresAtUtc!;
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
       return null;
@@ -712,7 +712,7 @@ export class ProfileDashboardComponent {
       return;
     }
     this.inviteBusy.set(true);
-    this.http.post<{ participantId: string; inviteId: string; expiresAt: string }>(
+    this.http.post<{ participantId: string; inviteId: string; expiresAtUtc: string }>(
       `${environment.apiBaseUrl}/participants/${participantId}/invites`,
       {}
     ).subscribe({

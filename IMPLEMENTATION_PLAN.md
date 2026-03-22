@@ -8,8 +8,17 @@ Last updated: 2026-03-22
 
 ---
 
-
 # Completed
+
+- [x] **Iteration 3 — Architecture Compliance Round 2** (2026-03-22). Comprehensive drift analysis of all 7 architecture specs vs codebase. Found and fixed all issues:
+  - **Code fix**: Renamed `expiresAt`/`revokedAt`/`consumedAt` → `expiresAtUtc`/`revokedAtUtc`/`consumedAtUtc` in `api/src/models/participant-invite.ts`, `api/src/functions/participant-invites.ts`, `api/tests/handlers/participant-invites.test.ts`, `frontend/src/app/shared/models/participant-invite.ts`, and `frontend/src/app/features/profile/profile-dashboard.component.ts`. All 174 API tests pass; both TypeScript builds clean.
+  - **Spec fix**: `participant-association.md` — updated type definitions to use `createdAtUtc`, replaced stale "app JWT" auth language with Clerk session token, replaced stale `/participants/*` route section with accurate `/setup` flow.
+  - **Spec fix**: `data-modeling.md` — updated "app JWT admin authorization" to Clerk admin token language.
+  - **Spec fix**: `page-shell.md` — updated `BottomNavComponent` → `ShellBottomNavComponent`, corrected bottom sheet corner radius note (1.5rem → 2.5rem) and backdrop opacity (0.4 → 0.5).
+  - **Diagram**: Added Mermaid invite acceptance flow sequence diagram to `participant-association.md`.
+  - **Diagram**: Added ASCII middleware chain diagram to `api-conventions.md`.
+
+
 
 - [x] **Priority 1 — Data Modeling: Timestamp Field Naming Consistency** (Iteration 2, Architecture Compliance). Updated all UTC timestamp fields across 4 domain models and all read/write code paths to use `*AtUtc` suffix per `docs/architecture/data-modeling.md` spec. Modified files: `api/src/models/participant.ts`, `api/src/models/user.ts`, `api/src/models/participant-invite.ts`, `frontend/src/app/shared/models/participant.ts`, `api/src/functions/participants.ts`, `api/src/functions/participant-members.ts`, `api/src/functions/participant-invites.ts`, `api/src/shared/cosmos.ts`. Renamed: `createdAt` → `createdAtUtc`, `lastLoginAt` → `lastLoginAtUtc`. All 174 API tests passing; build verified clean. Naming now consistent across all domain models.
 

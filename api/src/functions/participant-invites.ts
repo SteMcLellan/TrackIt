@@ -15,13 +15,13 @@ import { participantMiddleware } from '../shared/middleware/participant';
 type ParticipantInviteResponse = {
   participantId: string;
   inviteId: string;
-  expiresAt: string;
+  expiresAtUtc: string;
 };
 
 type ActiveParticipantInviteResponse = {
   participantId: string;
   inviteId: string | null;
-  expiresAt: string | null;
+  expiresAtUtc: string | null;
   createdAtUtc: string | null;
 };
 
@@ -61,9 +61,9 @@ const readActiveParticipantInviteBusinessHandler = async (
         {
           query: `SELECT TOP 1 * FROM c
                   WHERE c.participantId = @participantId
-                    AND (NOT IS_DEFINED(c.revokedAt))
-                    AND (NOT IS_DEFINED(c.consumedAt))
-                    AND c.expiresAt >= @now
+                    AND (NOT IS_DEFINED(c.revokedAtUtc))
+                    AND (NOT IS_DEFINED(c.consumedAtUtc))
+                    AND c.expiresAtUtc >= @now
                   ORDER BY c.createdAtUtc DESC`,
           parameters: [
             { name: '@participantId', value: ctx.participantId },
@@ -78,7 +78,7 @@ const readActiveParticipantInviteBusinessHandler = async (
     const response: ActiveParticipantInviteResponse = {
       participantId: ctx.participantId,
       inviteId: invite?.id ?? null,
-      expiresAt: invite?.expiresAt ?? null,
+      expiresAtUtc: invite?.expiresAtUtc ?? null,
       createdAtUtc: invite?.createdAtUtc ?? null
     };
 
@@ -108,13 +108,12 @@ const createParticipantInviteBusinessHandler = async (
 
     const now = new Date();
     const nowIso = now.toISOString();
-    const expiresAt = new Date(now.getTime() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
     const existingInvites = await ctx.containers.participantInvites.items
       .query<ParticipantInviteDocument>(
         {
           query:
-            'SELECT * FROM c WHERE c.participantId = @participantId AND (NOT IS_DEFINED(c.revokedAt)) AND (NOT IS_DEFINED(c.consumedAt))',
+            'SELECT * FROM c WHERE c.participantId = @participantId AND (NOT IS_DEFINED(c.revokedAtUtc)) AND (NOT IS_DEFINED(c.consumedAtUtc))',
           parameters: [{ name: '@participantId', value: ctx.participantId }]
         },
         { partitionKey: ctx.participantId }
@@ -124,18 +123,19 @@ const createParticipantInviteBusinessHandler = async (
     for (const invite of existingInvites.resources ?? []) {
       await ctx.containers.participantInvites.items.upsert({
         ...invite,
-        revokedAt: nowIso,
+        revokedAtUtc: nowIso,
         revokedByUserId: ctx.user.sub
       });
     }
 
     const inviteId = `${INVITE_PREFIX}${randomUUID()}`;
+    const expiresAtUtc = new Date(now.getTime() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const invite: ParticipantInviteDocument = {
       id: inviteId,
       participantId: ctx.participantId,
       createdAtUtc: nowIso,
       createdByUserId: ctx.user.sub,
-      expiresAt
+      expiresAtUtc
     };
 
     await ctx.containers.participantInvites.items.create(invite);
@@ -143,7 +143,7 @@ const createParticipantInviteBusinessHandler = async (
     const response: ParticipantInviteResponse = {
       participantId: ctx.participantId,
       inviteId,
-      expiresAt
+      expiresAtUtc
     };
 
     return { status: 201, jsonBody: response };
@@ -188,13 +188,13 @@ const acceptParticipantInviteBusinessHandler = async (
 
     // Validate invite is usable
     const now = new Date();
-    if (new Date(invite.expiresAt) < now) {
+    if (new Date(invite.expiresAtUtc) < now) {
       return { status: 403, jsonBody: { message: 'Invite has expired.' } };
     }
-    if (invite.revokedAt) {
+    if (invite.revokedAtUtc) {
       return { status: 403, jsonBody: { message: 'Invite has been revoked.' } };
     }
-    if (invite.consumedAt) {
+    if (invite.consumedAtUtc) {
       return { status: 403, jsonBody: { message: 'Invite has already been used.' } };
     }
 
@@ -231,7 +231,7 @@ const acceptParticipantInviteBusinessHandler = async (
       await ctx.containers.participantInvites.item(inviteId, participantId).replace(
         {
           ...invite,
-          consumedAt: nowIso,
+          consumedAtUtc: nowIso,
           consumedByUserId: ctx.user.sub
         },
         { accessCondition: { type: 'IfMatch', condition: invite._etag! } }

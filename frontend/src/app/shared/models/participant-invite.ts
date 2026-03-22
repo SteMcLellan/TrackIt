@@ -1,14 +1,14 @@
 export type ParticipantInviteResponse = {
   participantId: string;
   inviteId: string;
-  expiresAt: string;
+  expiresAtUtc: string;
 };
 
 export type ActiveParticipantInviteResponse = {
   participantId: string;
   inviteId: string | null;
-  expiresAt: string | null;
-  createdAt: string | null;
+  expiresAtUtc: string | null;
+  createdAtUtc: string | null;
 };
 
 export type AcceptInviteResponse = {

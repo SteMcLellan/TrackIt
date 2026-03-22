@@ -18,7 +18,7 @@ function buildParticipantContext(role: 'manager' | 'viewer' = 'manager') {
       userId: 'user-1',
       participantId: 'participant_1',
       role,
-      createdAt: '2026-01-01T00:00:00.000Z'
+      createdAtUtc: '2026-01-01T00:00:00.000Z'
     }
   };
 }
@@ -75,7 +75,7 @@ describe('participant-invites handlers', () => {
     });
     (ctx.containers.participantInvites.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       fetchAll: vi.fn().mockResolvedValue({
-        resources: [{ id: 'invite_old', participantId: 'participant_1', createdAt: 'x', createdByUserId: 'user-1', expiresAt: 'z' }]
+        resources: [{ id: 'invite_old', participantId: 'participant_1', createdAtUtc: 'x', createdByUserId: 'user-1', expiresAtUtc: 'z' }]
       })
     });
     const upsertSpy = ctx.containers.participantInvites.items.upsert as unknown as ReturnType<typeof vi.fn>;
@@ -118,7 +118,7 @@ describe('participant-invites handlers', () => {
     const expiredInvite = {
       id: 'invite_x',
       participantId: 'participant_1',
-      expiresAt: '2000-01-01T00:00:00.000Z'
+      expiresAtUtc: '2000-01-01T00:00:00.000Z'
     };
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({ resource: expiredInvite })
@@ -130,7 +130,7 @@ describe('participant-invites handlers', () => {
     expect(expired.status).toBe(403);
 
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      read: vi.fn().mockResolvedValue({ resource: { ...expiredInvite, expiresAt: '2999-01-01T00:00:00.000Z', revokedAt: 'x' } })
+      read: vi.fn().mockResolvedValue({ resource: { ...expiredInvite, expiresAtUtc: '2999-01-01T00:00:00.000Z', revokedAtUtc: 'x' } })
     });
     const revoked = await acceptParticipantInviteBusinessHandler(
       ctx,
@@ -139,7 +139,7 @@ describe('participant-invites handlers', () => {
     expect(revoked.status).toBe(403);
 
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      read: vi.fn().mockResolvedValue({ resource: { ...expiredInvite, expiresAt: '2999-01-01T00:00:00.000Z', consumedAt: 'x' } })
+      read: vi.fn().mockResolvedValue({ resource: { ...expiredInvite, expiresAtUtc: '2999-01-01T00:00:00.000Z', consumedAtUtc: 'x' } })
     });
     const consumed = await acceptParticipantInviteBusinessHandler(
       ctx,
@@ -152,11 +152,11 @@ describe('participant-invites handlers', () => {
     const ctx = buildAuthContext();
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       read: vi.fn().mockResolvedValue({
-        resource: { id: 'invite_x', participantId: 'participant_1', expiresAt: '2999-01-01T00:00:00.000Z', _etag: 'abc' }
+        resource: { id: 'invite_x', participantId: 'participant_1', expiresAtUtc: '2999-01-01T00:00:00.000Z', _etag: 'abc' }
       })
     });
     (ctx.containers.participants.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      read: vi.fn().mockResolvedValue({ resource: { id: 'participant_1', displayName: 'Kid', createdAt: 'x', createdByUserId: 'u' } })
+      read: vi.fn().mockResolvedValue({ resource: { id: 'participant_1', displayName: 'Kid', createdAtUtc: 'x', createdByUserId: 'u' } })
     });
     (ctx.containers.userParticipantLinks.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       fetchNext: vi.fn().mockResolvedValue({ resources: [{ userId: 'user-1' }] })
@@ -175,14 +175,14 @@ describe('participant-invites handlers', () => {
     (ctx.containers.participantInvites.item as unknown as ReturnType<typeof vi.fn>)
       .mockReturnValueOnce({
         read: vi.fn().mockResolvedValue({
-          resource: { id: 'invite_x', participantId: 'participant_1', expiresAt: '2999-01-01T00:00:00.000Z', _etag: 'abc' }
+          resource: { id: 'invite_x', participantId: 'participant_1', expiresAtUtc: '2999-01-01T00:00:00.000Z', _etag: 'abc' }
         })
       })
       .mockReturnValueOnce({
         replace: replaceSpy
       });
     (ctx.containers.participants.item as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      read: vi.fn().mockResolvedValue({ resource: { id: 'participant_1', displayName: 'Kid', createdAt: 'x', createdByUserId: 'u' } })
+      read: vi.fn().mockResolvedValue({ resource: { id: 'participant_1', displayName: 'Kid', createdAtUtc: 'x', createdByUserId: 'u' } })
     });
     (ctx.containers.userParticipantLinks.items.query as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       fetchNext: vi.fn().mockResolvedValue({ resources: [] })
