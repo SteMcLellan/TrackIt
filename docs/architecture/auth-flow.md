@@ -3,64 +3,72 @@
 This document describes how authentication works across the Angular frontend and Azure Functions API.
 
 ## Actors and Tokens
-- **Clerk session token**: Issued by Clerk for the signed-in browser session. Used only to call `/api/auth/login` or `/api/auth/refresh`.
-- **App JWT**: Issued by TrackIt API using HMAC (`HS256`). Used for all authenticated API calls.
+
+- **Clerk session token**: Issued by Clerk for the signed-in browser session. Used for all authenticated API calls. The Clerk browser SDK manages token rotation automatically (~60 s interval).
+
+There is no TrackIt-issued app JWT. The Clerk session token is the sole auth credential.
 
 ## Frontend Flow
-1. `main.ts` initializes Clerk at application startup.
-2. `LoginComponent` mounts Clerk's hosted sign-in UI when there is no authenticated TrackIt app session.
-3. When Clerk reports an active session, `AuthService` requests a Clerk session token from the browser SDK.
-4. The frontend exchanges that session token with `POST /api/auth/login` using body `{ "sessionToken": "<clerk_session_token>" }`.
-5. The API returns an app JWT plus user profile fields, which are stored in `localStorage` and mirrored in the `AuthService` signal state.
-6. Existing `returnUrl` behavior is preserved by keeping Clerk redirects on `/login` until the TrackIt app session is established.
+
+1. `main.ts` initializes `ClerkService` at application startup via `provideAppInitializer`.
+2. `LoginComponent` mounts Clerk's hosted sign-in UI when there is no active Clerk session.
+3. Once Clerk reports an active session, `AuthService.isAuthenticated()` becomes `true` and the user lands in the app — no secondary API call required.
+4. `returnUrl` behavior is preserved: the auth guard redirects to `/login?returnUrl=...` on 401 and restores the URL after sign-in.
 
 ## Frontend Auth State
-- `AuthService` keeps a non-null `appUser` signal.
-- `isAuthenticated()` is derived from a valid, unexpired `appUser.token`.
-- When the TrackIt app token expires but the Clerk session still exists, `AuthService` can exchange the Clerk session again.
+
+- `AuthService.isAuthenticated()` is a computed signal derived from `ClerkService.sessionId()`.
+- `AuthService.appUser` is a computed signal populated from `ClerkService` signals (`userId`, `userEmail`, `userName`, `userPicture`).
+- No token is stored in `localStorage`. No expiry timer or refresh logic exists in the frontend.
 
 ## Auth Interceptor Behavior
-The `authInterceptor` automatically adds the app JWT to API requests with these rules:
+
+`authInterceptor` fetches a fresh Clerk session token and attaches it to outbound API requests:
+
 - Only same-origin `/api/*` requests are modified.
-- Requests that already include `Authorization` or `x-trackit-app-token` are left unchanged.
-- The custom header is `x-trackit-app-token: <app_jwt>`.
+- Requests that already include an `Authorization` header are left unchanged.
+- Header added: `Authorization: Bearer <clerk_session_token>`.
+- Token is retrieved via `ClerkService.getSessionToken()` on every request; the Clerk SDK handles rotation transparently.
 
 ## API Flow
-### `/api/auth/login` (anonymous)
-1. Reads the Clerk session token from one of three sources:
-   - Request body: `{ "sessionToken": "<clerk_session_token>" }`
-   - Header: `x-trackit-clerk-session-token: <clerk_session_token>`
-   - Header: `Authorization: Bearer <clerk_session_token>`
-2. Verifies the Clerk session token with Clerk server credentials.
-3. Detects when the TrackIt app JWT was sent by mistake and returns a targeted error.
-4. Resolves the Clerk user profile, upserts the TrackIt user document, and returns a fresh app JWT.
 
-### `/api/auth/refresh` (anonymous)
-1. Reads the Clerk session token from the same request locations.
-2. Verifies the Clerk session token and resolves the Clerk user profile.
-3. Returns a fresh app JWT for the existing TrackIt user.
+### Protected endpoints
 
-### Protected endpoints (require app JWT)
-1. Read `x-trackit-app-token`.
-2. Call `authorize()` to verify the TrackIt app JWT with the configured HMAC secret and audience.
-3. Extract `userId` from the JWT payload for authorization checks.
+1. Read the `Authorization: Bearer <token>` header.
+2. Call `authorize()`, which calls `verifyClerkSessionToken()` from `@clerk/backend`.
+3. On success, the resolved `ResolvedClerkClaims` (including `sub` and `metadata.roles`) are stored in request state for downstream handlers.
+4. On failure, returns `401`.
+
+### Admin endpoints
+
+1. Run standard `authorize()` first.
+2. Call `requireAdmin()`, which checks that `metadata.roles` includes `"admin"`.
+3. Returns `403` if the claim is absent.
+
+The `metadata.roles` claim is embedded in the Clerk session token via a Clerk JWT template configured in the Clerk Dashboard. Roles are set on users via `publicMetadata` — also in the Clerk Dashboard.
+
+### Participant-level access control
+
+Manager/viewer access is enforced by the participant middleware via a live DB lookup. This is intentional: participant link revocation must take effect immediately, and the Clerk token rotation window (~60 s) is not acceptable latency for access revocation.
 
 ## Required Environment Variables
+
 ### Frontend
+
 - `clerkPublishableKey` in `frontend/src/environments/environment*.ts`
 
 ### API
+
 - `CLERK_SECRET_KEY`
-- `CLERK_JWT_KEY` (optional, for networkless verification)
-- `CLERK_AUTHORIZED_PARTIES` (optional comma-separated origin allowlist)
-- `JWT_SECRET`
-- `JWT_AUDIENCE`
-- `JWT_EXPIRY_SECONDS`
+- `CLERK_JWT_KEY` (optional — enables networkless token verification)
+- `CLERK_AUTHORIZED_PARTIES` (optional — comma-separated origin allowlist)
 - `COSMOS_ENDPOINT`
 - `COSMOS_KEY`
 - `COSMOS_DATABASE`
 - `COSMOS_USERS_CONTAINER`
 
 ## Notes and Gotchas
-- `/api/auth/login` and `/api/auth/refresh` require a Clerk session token, not the TrackIt app JWT.
-- The TrackIt app JWT is still `HS256`; accidentally sending it to the auth exchange endpoints now yields a Clerk-specific error message.
+
+- There are no `/api/auth/login` or `/api/auth/refresh` endpoints. The auth exchange layer has been removed.
+- Admin role assignment is a Clerk Dashboard operation, not a TrackIt code change.
+- Participant access revocation bypasses the token rotation window because it uses a live DB lookup on every request.
