@@ -6,113 +6,18 @@ Last updated: 2026-03-22
 
 # Pending
 
-## Architecture Specification Compliance (Iteration 1 Analysis)
+## Specification Enhancement Recommendations (Future Work)
 
-### Build Phase Checklist: Data Modeling Timestamp Naming
-
-**Issue**: ParticipantDocument, UserParticipantLinkDocument, and UserDocument use `createdAt` and `lastLoginAt` instead of the specification-required `*AtUtc` suffix for UTC timestamps.
-
-**Specification Reference**: `docs/architecture/data-modeling.md` lines 47-49:
-> Use `*AtUtc` for UTC instants stored as ISO 8601 strings ending with `Z`. Examples: `createdAtUtc`, `updatedAtUtc`, `archivedAtUtc`, `occurredAtUtc`, `eventAtUtc`.
-
-**Violations Identified**:
-- [ ] **api/src/models/participant.ts** (lines 9, 21): Rename `createdAt` → `createdAtUtc`
-- [ ] **api/src/models/user.ts** (lines 12, 13): Rename `createdAt` → `createdAtUtc`, `lastLoginAt` → `lastLoginAtUtc`
-
-**Code Impact Analysis**:
-- [ ] Check all usages of `createdAt` in participant.ts and user.ts across codebase
-- [ ] Update type definitions in api/src/models/
-- [ ] Update all read/write paths in api/src/functions/ that reference these fields
-- [ ] Update frontend types in frontend/src/app/shared/models/ if they mirror backend models
-- [ ] Consider database migration strategy (dual-read during rollout per spec guidance)
-
-**Test Requirements**:
-- [ ] Verify participant creation still stores timestamp correctly as ISO 8601 UTC string
-- [ ] Verify user creation/login still stores timestamp correctly as ISO 8601 UTC string
-- [ ] Existing tests that check these fields still pass with renamed properties
-- [ ] API responses correctly serialize renamed fields
-
-**Acceptance Criteria**:
-- [ ] All UTC timestamp fields in Participant, User, and UserParticipantLink documents use `*AtUtc` suffix
-- [ ] Naming is consistent across all domain models (matches BehaviorIncidentDocument, DailyReflectionDocument, MedicationLogDocument, MedicationDocument)
-- [ ] All read/write paths updated; no stray `createdAt` references to these fields
-- [ ] Tests pass; no 5xx errors from serialization issues
-- [ ] Build passes
-
----
-
-### Specification Enhancement Recommendations
-
-**Diagrams to Add** (to improve spec clarity and readability):
-
-1. **docs/architecture/auth-flow.md** — Add Mermaid sequence diagram:
-   - Frontend login flow (ClerkService → hosted UI → session token)
-   - Request flow (frontend → authInterceptor → x-trackit-app-token header → API authorize())
-   - Token validation (verifyClerkSessionToken → ResolvedClerkClaims → request state)
-   - Return URL handling on 401
-
-2. **docs/architecture/page-shell.md** — Add ASCII layout diagram:
-   ```
-   ╔═══════════════════════════════════════════════════════════╗
-   │ TopBar (sticky, z:30, bg-white/90, border-b)             │
-   ╠═══════════════════════════════════════════════════════════╣
-   │                                                             │
-   │                    Main (overflow-y: auto)                 │
-   │                    [page component outlet]                 │
-   │                                                             │
-   │   [padding-bottom: calc(5rem + safe-area-inset)]         │
-   │                                                             │
-   ╠═══════════════════════════════════════════════════════════╣
-   │ BottomNav (fixed, z:50, bg-white/95, border-t)           │
-   ║ 📊 Insights | 📅 Timeline | ⚙️ Profile                    ║
-   ╚═══════════════════════════════════════════════════════════╝
-
-   BottomSheet (z:1000, max-height: 85vh, top-radius: 1.5rem)
-   appears above this layout
-   ```
-
-3. **docs/architecture/data-modeling.md** — Add container relationship diagram:
-   ```
-   Cosmos DB Containers & Relationships:
-
-   users (partition: /id)
-       ↓
-   userParticipantLinks (partition: /userId)
-       ↓
-   participants (partition: /id)
-       ├→ behaviorIncidents (partition: /participantId)
-       ├→ medications (partition: /participantId)
-       ├→ medicationLogs (partition: /participantId)
-       ├→ dailyReflections (partition: /participantId)
-       └→ eventIndex (partition: /participantId)
-           [projected read model across all domains]
-
-   Timestamp Field Naming Convention:
-   - UTC timestamps: *AtUtc (e.g., createdAtUtc, updatedAtUtc)
-   - Date-only values: *DateUtc or logLocalDate (e.g., logLocalDate: YYYY-MM-DD)
-   - Local time: logLocalTime (HH:mm) + logTzOffsetMinutes (±minutes)
-   ```
-
----
-
-### Compliance Summary
-
-**Overall Status**: MOSTLY COMPLIANT (1 high-severity issue identified)
-
-**Areas Fully Compliant** ✓:
-- Frontend engineering conventions (standalone components, OnPush, signals, inline templates, inject())
-- API conventions (composeHttpHandler, middleware order, parseJsonBody, validation errors, kebab-case)
-- Auth implementation (Clerk token handling, x-trackit-app-token header, computed signal auth state, no legacy endpoints)
-- Page shell (TopBar/BottomNav z-index layering, scroll container, routing structure, bottom nav clearance)
-- Participant association (manager link auto-creation, role tracking, access enforcement via middleware)
-
-**Areas Requiring Action** ⚠️:
-- Data modeling timestamp naming (3 documents use `createdAt` instead of `createdAtUtc`)
+(Future enhancement ideas for specification clarity)
 
 ---
 
 
 # Completed
+
+- [x] **Priority 1 — Data Modeling: Timestamp Field Naming Consistency** (Iteration 2, Architecture Compliance). Updated all UTC timestamp fields across 4 domain models and all read/write code paths to use `*AtUtc` suffix per `docs/architecture/data-modeling.md` spec. Modified files: `api/src/models/participant.ts`, `api/src/models/user.ts`, `api/src/models/participant-invite.ts`, `frontend/src/app/shared/models/participant.ts`, `api/src/functions/participants.ts`, `api/src/functions/participant-members.ts`, `api/src/functions/participant-invites.ts`, `api/src/shared/cosmos.ts`. Renamed: `createdAt` → `createdAtUtc`, `lastLoginAt` → `lastLoginAtUtc`. All 174 API tests passing; build verified clean. Naming now consistent across all domain models.
+
+- [x] **Architecture Specification Compliance Analysis** (Iteration 1). Comprehensive review of all 7 architecture specs against codebase. Identified 1 high-severity issue (timestamp naming consistency). Added Mermaid sequence diagram to `docs/architecture/auth-flow.md` and ASCII container diagram to `docs/architecture/data-modeling.md` to improve spec clarity. Created detailed build-phase checklist in IMPLEMENTATION_PLAN.md.
 
 - [x] **ralph-loop-migration.md** — All phases complete. `docs/product-specs/insights-dashboard.md` created; `medication-command-center.md`, `behavior-tracking-abc.md`, `daily-reflection-scoring.md` updated with merged content; `PROMPT_plan.md`, `PROMPT_build.md`, `AGENTS.md`, `development-commands.md`, `common-dev-tasks.md` updated to use `docs/**/*.md` knowledge base and `IMPLEMENTATION_PLAN.md` scope; `docs/specs/` directory deleted.
 
