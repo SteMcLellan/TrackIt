@@ -43,6 +43,53 @@ This document codifies data modeling conventions for TrackIt, especially time fi
 - For relationship/edge containers, key by the side you enumerate from most often (for example `userParticipantLinks` by `userId`).
 - Re-evaluate key choice before introducing new read patterns that would force frequent cross-partition fan-out.
 
+### Container Relationship Diagram
+
+```
+Cosmos DB Containers & Data Flow:
+
+┌─────────────────────────────────────────────────────────────┐
+│ users (partition: /id)                                      │
+│ • id, createdAt, lastLoginAt, publicMetadata                │
+└──────────────────────────────────────────────────────────────┘
+         │
+         │ manages
+         ↓
+┌─────────────────────────────────────────────────────────────┐
+│ userParticipantLinks (partition: /userId)                   │
+│ • id: {userId}:{participantId}                              │
+│ • userId, participantId, role (manager|viewer), createdAt   │
+└──────────────────────────────────────────────────────────────┘
+         │
+         │ links to
+         ↓
+┌─────────────────────────────────────────────────────────────┐
+│ participants (partition: /id)                               │
+│ • id, displayName, birthDate, ageYears, createdAt           │
+└──────────────────────────────────────────────────────────────┘
+         │
+    ┌────┴───────┬────────────────┬─────────────────┐
+    │            │                │                 │
+    ↓            ↓                ↓                 ↓
+┌─────────┐ ┌─────────┐ ┌──────────────┐ ┌──────────────┐
+│ behavior│ │medication│ │ medication   │ │ daily        │
+│Incidents│ │s         │ │ Logs         │ │Reflections   │
+│(pk:     │ │(pk:      │ │(pk:          │ │(pk:          │
+│partId)  │ │partId)   │ │partId)       │ │partId)       │
+└─────────┘ └─────────┘ └──────────────┘ └──────────────┘
+    │            │            │                │
+    │            │            │                │
+    └────────────┴────────────┴────────────────┘
+            │
+            │ [Timeline Projection]
+            ↓
+┌───────────────────────────────────────────────────────────┐
+│ eventIndex (partition: /participantId)                    │
+│ [Unified timeline of all domain events]                   │
+│ • Query: /participantId + logLocalDate + eventAtUtc       │
+└───────────────────────────────────────────────────────────┘
+```
+
 ## Field Naming Conventions
 ### UTC instants
 - Use `*AtUtc` for UTC instants stored as ISO 8601 strings ending with `Z`.

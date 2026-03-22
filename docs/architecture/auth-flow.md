@@ -31,6 +31,39 @@ There is no TrackIt-issued app JWT. The Clerk session token is the sole auth cre
 - Token is retrieved via `ClerkService.getSessionToken()` on every request; the Clerk SDK handles rotation transparently.
 - `Authorization` is intentionally not used: Azure Static Web Apps intercepts and mangles that header before the request reaches the Azure Functions backend.
 
+### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Clerk SDK
+    participant authInterceptor
+    participant API
+    participant ClerkBackend as Clerk Backend
+
+    Browser->>Clerk SDK: init ClerkService at startup
+    Clerk SDK-->>Browser: sessionId() signal emitted
+    Browser->>Browser: AuthService.isAuthenticated = computed(sessionId())
+
+    alt No Session
+        Browser->>Clerk SDK: show hosted sign-in UI
+        Clerk SDK-->>Browser: (user signs in)
+        Clerk SDK-->>Browser: new sessionId()
+    end
+
+    Browser->>authInterceptor: HTTP request to /api/...
+    authInterceptor->>Clerk SDK: getSessionToken()
+    Clerk SDK-->>authInterceptor: fresh Clerk session token (auto-rotated ~60s)
+    authInterceptor->>authInterceptor: add header: x-trackit-app-token: <token>
+    authInterceptor->>API: HTTP request + x-trackit-app-token header
+
+    API->>API: read x-trackit-app-token header
+    API->>ClerkBackend: verifyClerkSessionToken(token)
+    ClerkBackend-->>API: ResolvedClerkClaims { sub, metadata.roles }
+    API->>API: store ResolvedClerkClaims in request state
+    API-->>Browser: 200 response (or 401 on verification failure)
+```
+
 ## API Flow
 
 ### Protected endpoints
