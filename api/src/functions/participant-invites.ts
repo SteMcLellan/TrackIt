@@ -22,7 +22,7 @@ type ActiveParticipantInviteResponse = {
   participantId: string;
   inviteId: string | null;
   expiresAt: string | null;
-  createdAt: string | null;
+  createdAtUtc: string | null;
 };
 
 type AcceptInviteResponse = {
@@ -64,7 +64,7 @@ const readActiveParticipantInviteBusinessHandler = async (
                     AND (NOT IS_DEFINED(c.revokedAt))
                     AND (NOT IS_DEFINED(c.consumedAt))
                     AND c.expiresAt >= @now
-                  ORDER BY c.createdAt DESC`,
+                  ORDER BY c.createdAtUtc DESC`,
           parameters: [
             { name: '@participantId', value: ctx.participantId },
             { name: '@now', value: nowIso }
@@ -79,7 +79,7 @@ const readActiveParticipantInviteBusinessHandler = async (
       participantId: ctx.participantId,
       inviteId: invite?.id ?? null,
       expiresAt: invite?.expiresAt ?? null,
-      createdAt: invite?.createdAt ?? null
+      createdAtUtc: invite?.createdAtUtc ?? null
     };
 
     return { status: 200, jsonBody: response };
@@ -133,7 +133,7 @@ const createParticipantInviteBusinessHandler = async (
     const invite: ParticipantInviteDocument = {
       id: inviteId,
       participantId: ctx.participantId,
-      createdAt: nowIso,
+      createdAtUtc: nowIso,
       createdByUserId: ctx.user.sub,
       expiresAt
     };
@@ -222,7 +222,7 @@ const acceptParticipantInviteBusinessHandler = async (
       userId: ctx.user.sub,
       participantId,
       role: 'manager',
-      createdAt: nowIso
+      createdAtUtc: nowIso
     };
     await ctx.containers.userParticipantLinks.items.create(linkDoc);
 

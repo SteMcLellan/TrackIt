@@ -147,7 +147,7 @@ const createParticipantBusinessHandler = async (
       displayName: normalizeDisplayName(parsed.value.displayName),
       birthDate,
       ageYears: Math.max(calculateAgeYears(birthDate), 0),
-      createdAt: timestamp,
+      createdAtUtc: timestamp,
       createdByUserId: ctx.user.sub
     };
 
@@ -158,7 +158,7 @@ const createParticipantBusinessHandler = async (
       userId: ctx.user.sub,
       participantId,
       role: 'manager',
-      createdAt: timestamp
+      createdAtUtc: timestamp
     };
     await ctx.containers.userParticipantLinks.items.create(link);
 

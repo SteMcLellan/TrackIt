@@ -6,7 +6,7 @@ export interface ParticipantDocument {
   displayName?: string;
   birthDate?: string; // YYYY-MM-DD
   ageYears?: number | null;
-  createdAt: string;
+  createdAtUtc: string;
   createdByUserId: string;
 }
 
@@ -18,5 +18,5 @@ export interface UserParticipantLinkDocument {
   userId: string;
   participantId: string;
   role: 'manager' | 'viewer';
-  createdAt: string;
+  createdAtUtc: string;
 }

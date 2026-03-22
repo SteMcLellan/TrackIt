@@ -4,6 +4,8 @@ Last updated: 2026-03-22
 
 ---
 
+# Pending
+
 ## Architecture Specification Compliance (Iteration 1 Analysis)
 
 ### Build Phase Checklist: Data Modeling Timestamp Naming
@@ -109,9 +111,8 @@ Last updated: 2026-03-22
 
 ---
 
-## Pending
 
-## Completed
+# Completed
 
 - [x] **ralph-loop-migration.md** — All phases complete. `docs/product-specs/insights-dashboard.md` created; `medication-command-center.md`, `behavior-tracking-abc.md`, `daily-reflection-scoring.md` updated with merged content; `PROMPT_plan.md`, `PROMPT_build.md`, `AGENTS.md`, `development-commands.md`, `common-dev-tasks.md` updated to use `docs/**/*.md` knowledge base and `IMPLEMENTATION_PLAN.md` scope; `docs/specs/` directory deleted.
 

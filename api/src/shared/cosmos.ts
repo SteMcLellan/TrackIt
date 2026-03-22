@@ -176,12 +176,12 @@ export async function buildCosmos(
  */
 export async function upsertUser(containers: Pick<CosmosContainers, 'users'>, user: UserDocument) {
   const timestamp = new Date().toISOString();
-  const existing = user.createdAt;
+  const existing = user.createdAtUtc;
   const doc: UserDocument = {
     ...user,
     id: user.sub,
-    createdAt: existing || timestamp,
-    lastLoginAt: timestamp
+    createdAtUtc: existing || timestamp,
+    lastLoginAtUtc: timestamp
   };
   await containers.users.items.upsert(doc, { preTriggerInclude: [], postTriggerInclude: [] });
   return doc;

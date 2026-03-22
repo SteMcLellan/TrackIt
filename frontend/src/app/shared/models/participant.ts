@@ -5,7 +5,7 @@ export type Participant = {
   displayName?: string;
   birthDate?: string;
   ageYears: number | null;
-  createdAt: string;
+  createdAtUtc: string;
   createdByUserId: string;
   role: ParticipantRole;
 };

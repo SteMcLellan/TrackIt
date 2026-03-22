@@ -9,6 +9,6 @@ export interface UserDocument {
   picture?: string;
   roles?: string[];
   settings?: Record<string, unknown>;
-  createdAt: string;
-  lastLoginAt: string;
+  createdAtUtc: string;
+  lastLoginAtUtc: string;
 }

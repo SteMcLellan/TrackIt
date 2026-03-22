@@ -71,7 +71,7 @@ const listParticipantMembersBusinessHandler = async (
         name: userDoc?.name || userDoc?.email || 'Unknown',
         picture: userDoc?.picture,
         isMe: link.userId === ctx.user.sub,
-        addedAt: link.createdAt
+        addedAt: link.createdAtUtc
       });
     }
 
