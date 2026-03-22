@@ -37,7 +37,7 @@ This runbook captures common implementation workflows in TrackIt.
 
 ## Run Ralph Loop
 
-1. Add or update requirement specs in `docs/specs/`.
+1. Add or update specs in `docs/product-specs/` (feature specs) or `docs/architecture/` (system design).
 2. Run `.\tools\ralph-loop.ps1 -Mode plan -MaxIterations 1` to refresh `IMPLEMENTATION_PLAN.md`.
 3. Run `.\tools\ralph-loop.ps1 -Mode build -MaxIterations 1` to execute one planned task.
 4. Put validation and commit behavior in the prompt and review the session logs in `artifacts/ralph-loop/` if a loop iteration fails.

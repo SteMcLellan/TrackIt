@@ -6,46 +6,9 @@ Last updated: 2026-03-22
 
 ## Pending
 
-### Priority 2 — Phase 1d: Create `docs/product-specs/insights-dashboard.md` (ralph-loop-migration.md)
-
-Create new file `docs/product-specs/insights-dashboard.md` documenting the Insights page spec:
-- **Today's reflection card** — placement (below hero phrase / weekly summary, above weekly rhythm dimension cards).
-- **Logged state**: committed dimension bucket labels (e.g. "Mood: Steady · Focus: Dialed In · Sleep: Fine"); null dimensions omitted; card tappable → `/daily-reflection` edit mode.
-- **Not-logged state**: participant-name prompt ("How is [name] doing today?") + "Log today's reflection" CTA → `/daily-reflection`.
-- **Data**: uses existing weekly summary window data; no additional API call when today is in that window.
-
-Also update `AGENTS.md` repository doc map to list `insights-dashboard.md` in `docs/product-specs/`.
-
----
-
-### Priority 3 — Phase 2: Update `PROMPT_plan.md` and `PROMPT_build.md` (ralph-loop-migration.md)
-
-**PROMPT_plan.md:**
-- Replace `docs/specs/*` with `docs/**/*.md` (all occurrences).
-- Replace scope rule: "Treat `docs/specs/*` as the planning scope..." → "Treat `IMPLEMENTATION_PLAN.md` as the planning scope. Use `docs/**/*.md` as the knowledge base. Do NOT generate new plan items from architecture or reference docs unless they describe unimplemented behavior. If a required spec is missing, create it in `docs/product-specs/` and record the follow-up work in @IMPLEMENTATION_PLAN.md using a subagent."
-
-**PROMPT_build.md:**
-- Replace `docs/specs/*` with `docs/**/*.md` (all occurrences).
-- Replace scope rule: "Treat `docs/specs/*` as the implementation scope..." → "Treat `IMPLEMENTATION_PLAN.md` as the implementation scope; use `docs/**/*.md` as reference."
-
----
-
-### Priority 4 — Phase 3: Update `AGENTS.md`, reference docs, and delete `docs/specs/` (ralph-loop-migration.md)
-
-**AGENTS.md:**
-- Remove `docs/specs/` from Agent Lookup Order (currently step 3); renumber remaining steps.
-- Replace "Do not update the doc map for individual files added to `docs/specs/`..." note with an equivalent note pointing to `docs/product-specs/`.
-- Remove `docs/specs/` entry from Repository Doc Map.
-
-**`docs/references/development-commands.md`:** Replace "Ralph specs live in `docs/specs/`..." with "Ralph uses `docs/**/*.md` as its knowledge base; scope is tracked in `IMPLEMENTATION_PLAN.md`..."
-
-**`docs/runbooks/common-dev-tasks.md`:** In "Run Ralph Loop" section, replace step 1 "Add or update requirement specs in `docs/specs/`." with "Add or update specs in `docs/product-specs/` (feature specs) or `docs/architecture/` (system design)."
-
-**Delete `docs/specs/`:** Delete all remaining files including `ralph-loop-migration.md` itself once all phases above are complete.
-
----
-
 ## Completed
+
+- [x] **ralph-loop-migration.md** — All phases complete. `docs/product-specs/insights-dashboard.md` created; `medication-command-center.md`, `behavior-tracking-abc.md`, `daily-reflection-scoring.md` updated with merged content; `PROMPT_plan.md`, `PROMPT_build.md`, `AGENTS.md`, `development-commands.md`, `common-dev-tasks.md` updated to use `docs/**/*.md` knowledge base and `IMPLEMENTATION_PLAN.md` scope; `docs/specs/` directory deleted.
 
 - [x] **Phase 1c: Merge `daily-reflection-2.md` into `daily-reflection-scoring.md`** (ralph-loop-migration.md). Updated `docs/product-specs/daily-reflection-scoring.md`: Section 5 "Ambiguous Input" replaced "Default selection is the middle bucket (bucket 3), visually pre-selected" with the null score commitment model (Balanced visually suggested but no dimension committed; first tap commits; untouched → `null`; zero-committed save blocked with validation; PUT body sends `null` for cleared dimensions, omits untouched new-form dimensions). US-DR-001 acceptance criteria replaced "Balanced is pre-selected as default" with the full commitment model criteria.
 

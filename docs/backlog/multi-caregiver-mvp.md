@@ -108,7 +108,7 @@ The Caregiver Access card uses a single dominant primary CTA to reduce scanning 
 - **When no invite exists:** "Generate Invite Link" is the primary filled violet pill button.
 - "Regenerate" is removed from the card header entirely to preserve the header as read-only.
 
-This hierarchy was established to meet the spec in `docs/specs/profile-caregiver-action-hierarchy.md`. Future work on the invite flow (e.g. invite context, item 4 above) should treat "Copy Invite Link" as the primary action and not elevate secondary actions to equal visual weight.
+This hierarchy is the canonical decision for the Caregiver Access card. Future work on the invite flow (e.g. invite context, item 4 above) should treat "Copy Invite Link" as the primary action and not elevate secondary actions to equal visual weight.
 
 ---
 

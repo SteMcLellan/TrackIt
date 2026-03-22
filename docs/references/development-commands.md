@@ -23,6 +23,6 @@ npm run test:api
 
 - Use `npm run dev:all` for frontend + API local development.
 - Use `cat dist/frontend/dev-frontend.log` to inspect frontend compile status when dev logging is active.
-- Ralph specs live in `docs/specs/`, and the loop always reads `PROMPT_plan.md` or `PROMPT_build.md` from the repo root based on `-Mode`.
+- Ralph uses `docs/**/*.md` as its knowledge base; scope is tracked in `IMPLEMENTATION_PLAN.md`. The loop always reads `PROMPT_plan.md` or `PROMPT_build.md` from the repo root based on `-Mode`.
 
 See `docs/runbooks/frontend-build-verification.md` for log interpretation details.

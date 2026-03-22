@@ -6,20 +6,19 @@ TrackIt operating guide for coding agents.
 
 1. Treat this file as the docs navigation source of truth.
 2. Update this file in the same change whenever doc paths move.
-3. Put each new doc in exactly one bucket: `architecture`, `specs`, `product-specs`, `runbooks`, `references`, `decisions`, or `backlog`.
+3. Put each new doc in exactly one bucket: `architecture`, `product-specs`, `runbooks`, `references`, `decisions`, or `backlog`.
 4. Prefer updating canonical docs over creating duplicate guidance.
-5. Do not update the doc map for individual files added to `docs/specs/` — that folder is self-navigable and does not need to be enumerated here.
+5. Do not update the doc map for individual files added to `docs/product-specs/` — that folder is self-navigable and does not need to be enumerated here.
 
 ## Agent Lookup Order
 
 1. `AGENTS.md`
 2. `docs/architecture/`
-3. `docs/specs/`
-4. `docs/product-specs/`
-5. `docs/runbooks/`
-6. `docs/references/`
-7. `docs/decisions/`
-8. `docs/backlog/` - exploratory ideas and deferred plans
+3. `docs/product-specs/`
+4. `docs/runbooks/`
+5. `docs/references/`
+6. `docs/decisions/`
+7. `docs/backlog/` - exploratory ideas and deferred plans
 
 ## Repository Doc Map
 
@@ -35,11 +34,11 @@ docs/
 |   |-- frontend-interaction-principles.md
 |   |-- page-shell.md
 |   `-- participant-association.md
-|-- specs/                              # individual specs not enumerated here
 |-- product-specs/
 |   |-- behavior-tracking-abc.md
-|   |-- dynamic-hero-phrase.md
 |   |-- daily-reflection-scoring.md
+|   |-- dynamic-hero-phrase.md
+|   |-- insights-dashboard.md
 |   |-- medication-command-center.md
 |   |-- medication-frequency.md
 |   `-- timeline-day-browser.md
