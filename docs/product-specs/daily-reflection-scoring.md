@@ -188,7 +188,7 @@ Each dimension uses labels that describe *that facet* in plain language rather t
 
 ### Ambiguous Input
 
-- **Parent unsure**: Default selection is the middle bucket (bucket 3), visually pre-selected. Tooltip: *"If you're unsure, pick the middle option — it means a typical day. Adjust if something stood out."*
+- **Score commitment model**: When a new reflection form opens, Balanced is visually pre-highlighted on each dimension as a guide, but **no dimension is committed**. The first tap on any bucket commits that dimension (midpoint stored). Dimensions the parent never taps are sent as `null` to the API — not `50`. Saving with zero committed dimensions shows an inline validation message ("Select at least one dimension to save") and prevents submission. For the PUT request: untouched dimensions on a new form are omitted from the request body; previously stored values being cleared are sent explicitly as `null`.
 - **Between two buckets**: Because we snap to midpoints, the parent picks whichever label resonates more. No half-step or "between" option — simplicity over precision.
 
 ### Outlier Days vs. Trend
@@ -265,8 +265,11 @@ If parents want finer control, offer an optional slider that maps to the 0–100
 ### US-DR-001: Bucket Selection Input
 
 - [x] Parent sees 5 labeled buckets per dimension (Mood, Focus, Energy, Sleep).
-- [x] Tapping a bucket highlights it and stores the midpoint value (10/30/50/70/90).
-- [x] Balanced is pre-selected as default.
+- [x] New form opens with Balanced visually suggested but no dimension committed.
+- [x] Tapping a bucket commits that dimension and stores the midpoint value (10/30/50/70/90).
+- [x] Untouched dimensions are sent as `null` to the API (not `50`).
+- [x] Saving with zero committed dimensions shows an inline validation error ("Select at least one dimension to save").
+- [x] Existing reflections: `null` dimensions show no bucket selected; stored values show the correct bucket.
 - [x] No raw numeric values are visible in the UI.
 - [x] Micro-copy is displayed for each bucket to guide selection.
 

@@ -6,20 +6,6 @@ Last updated: 2026-03-22
 
 ## Pending
 
-### Priority 1 — Phase 1c: Merge `daily-reflection-2.md` into `daily-reflection-scoring.md` (ralph-loop-migration.md)
-
-Update `docs/product-specs/daily-reflection-scoring.md` to document the null score commitment model:
-- New form opens with Balanced visually pre-highlighted as a guide but **no dimension committed**.
-- First tap on a bucket commits that dimension (midpoint stored).
-- Untouched dimensions are sent as `null` to the API (not `50`).
-- Saving with zero committed dimensions shows inline validation: "Select at least one dimension to save."
-- Existing reflections: `null` dimensions show no bucket selected; stored values show correct bucket.
-- PUT body sends `null` for cleared dimensions; untouched dimensions on new form are omitted.
-
-Currently Section 5 says "Default selection is the middle bucket (bucket 3), visually pre-selected" and Acceptance Criteria item US-DR-001 says "Balanced is pre-selected as default" — both are inconsistent with the commitment model and must be corrected.
-
----
-
 ### Priority 2 — Phase 1d: Create `docs/product-specs/insights-dashboard.md` (ralph-loop-migration.md)
 
 Create new file `docs/product-specs/insights-dashboard.md` documenting the Insights page spec:
@@ -60,6 +46,8 @@ Also update `AGENTS.md` repository doc map to list `insights-dashboard.md` in `d
 ---
 
 ## Completed
+
+- [x] **Phase 1c: Merge `daily-reflection-2.md` into `daily-reflection-scoring.md`** (ralph-loop-migration.md). Updated `docs/product-specs/daily-reflection-scoring.md`: Section 5 "Ambiguous Input" replaced "Default selection is the middle bucket (bucket 3), visually pre-selected" with the null score commitment model (Balanced visually suggested but no dimension committed; first tap commits; untouched → `null`; zero-committed save blocked with validation; PUT body sends `null` for cleared dimensions, omits untouched new-form dimensions). US-DR-001 acceptance criteria replaced "Balanced is pre-selected as default" with the full commitment model criteria.
 
 - [x] **Phase 1b: Merge `behavior-incidents-2.md` into `behavior-tracking-abc.md`** (ralph-loop-migration.md). Updated `docs/product-specs/behavior-tracking-abc.md`: API Surface auth changed from "valid app JWT" to Clerk session token; list-view row format (date/time, ABC summary line, function label) documented; detail view (A/B/C, place, function, date/time; Edit and Delete with confirmation) documented; `startDate`/`endDate` filter note added (not `fromUtc`/`toUtc`).
 
