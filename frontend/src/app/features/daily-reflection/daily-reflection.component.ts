@@ -203,20 +203,16 @@ const SLEEP_BUCKETS: BucketOption[] = [
       display: block;
       width: 100%;
       max-width: 100%;
-      height: 100%;
     }
 
     .page {
       width: 100%;
       max-width: 28rem;
       margin: 0 auto;
-      padding: 1rem 1rem 0;
+      padding: 1rem 1rem 9rem;
       box-sizing: border-box;
-      overflow-x: hidden;
+      overflow-x: clip;
       background: var(--color-ghost-white-canvas, #fcfcfd);
-      height: 100%;
-      display: flex;
-      flex-direction: column;
     }
 
     .page-head {
@@ -254,9 +250,6 @@ const SLEEP_BUCKETS: BucketOption[] = [
     .cards {
       display: grid;
       gap: 0.625rem;
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
       padding-bottom: 0.5rem;
     }
 
@@ -417,11 +410,19 @@ const SLEEP_BUCKETS: BucketOption[] = [
     }
 
     .action-bar {
-      margin-top: 0.875rem;
+      position: fixed;
+      bottom: calc(var(--bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px));
+      left: 0;
+      right: 0;
+      max-width: 28rem;
+      margin: 0 auto;
+      padding: 0.75rem 1rem 1rem;
+      box-sizing: border-box;
+      background: var(--color-ghost-white-canvas, #fcfcfd);
+      border-top: 1px solid var(--color-border, #e2e8f0);
       display: grid;
       gap: 0.5rem;
-      padding-bottom: 1.5rem;
-      flex-shrink: 0;
+      z-index: 10;
     }
 
     .save-button {
