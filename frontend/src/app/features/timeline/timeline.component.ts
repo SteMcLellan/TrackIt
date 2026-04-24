@@ -68,7 +68,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       } @else {
         <div class="timeline-feed" role="feed" aria-label="Timeline feed">
           @for (section of sections(); track section.logLocalDate) {
-            <div class="day-label">
+            <div class="day-label" [class.menu-open]="openMenuDate() === section.logLocalDate">
               <div class="day-label-inner"><div class="day-dot"></div><span class="day-label-text">{{ section.label }}</span></div>
               <div class="day-add-wrap">
                 <button
@@ -243,6 +243,10 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       display: flex;
       align-items: center;
       justify-content: space-between;
+    }
+
+    .day-label.menu-open {
+      z-index: 30;
     }
 
     .day-label-inner {
