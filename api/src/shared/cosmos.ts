@@ -171,18 +171,41 @@ export async function buildCosmos(
   };
 }
 
+export type UpsertUserInput = Pick<UserDocument, 'sub'> &
+  Partial<Pick<UserDocument, 'email' | 'name' | 'picture' | 'settings' | 'createdAtUtc'>>;
+
 /**
- * Inserts or updates a user document while managing timestamps.
+ * Inserts or updates a Clerk-backed user projection while managing timestamps.
  */
-export async function upsertUser(containers: Pick<CosmosContainers, 'users'>, user: UserDocument) {
+export async function upsertUser(containers: Pick<CosmosContainers, 'users'>, user: UpsertUserInput) {
   const timestamp = new Date().toISOString();
-  const existing = user.createdAtUtc;
+  const existing = await readExistingUser(containers, user.sub);
   const doc: UserDocument = {
-    ...user,
     id: user.sub,
-    createdAtUtc: existing || timestamp,
+    sub: user.sub,
+    email: user.email,
+    name: user.name,
+    picture: user.picture,
+    settings: existing?.settings ?? user.settings,
+    createdAtUtc: existing?.createdAtUtc ?? user.createdAtUtc ?? timestamp,
     lastLoginAtUtc: timestamp
   };
   await containers.users.items.upsert(doc, { preTriggerInclude: [], postTriggerInclude: [] });
   return doc;
+}
+
+async function readExistingUser(
+  containers: Pick<CosmosContainers, 'users'>,
+  sub: string
+): Promise<UserDocument | null> {
+  try {
+    const { resource } = await containers.users.item(sub, sub).read<UserDocument>();
+    return resource ?? null;
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 404) {
+      return null;
+    }
+
+    throw error;
+  }
 }

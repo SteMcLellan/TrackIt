@@ -50,7 +50,7 @@ Cosmos DB Containers & Data Flow:
 
 ┌─────────────────────────────────────────────────────────────┐
 │ users (partition: /id)                                      │
-│ • id, createdAtUtc, lastLoginAtUtc, publicMetadata                │
+│ • id/sub, email, name, picture, settings, createdAtUtc, lastLoginAtUtc │
 └──────────────────────────────────────────────────────────────┘
          │
          │ manages

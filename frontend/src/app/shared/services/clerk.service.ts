@@ -2,6 +2,15 @@ import { Injectable, computed, signal } from '@angular/core';
 import { Clerk } from '@clerk/clerk-js';
 import { environment } from '../../../environments/environment';
 
+type ClerkLoadOptions = NonNullable<Parameters<Clerk['load']>[0]>;
+type ClerkUIConstructor = NonNullable<NonNullable<ClerkLoadOptions['ui']>['ClerkUI']>;
+
+declare global {
+  interface Window {
+    __internal_ClerkUICtor?: ClerkUIConstructor;
+  }
+}
+
 interface ClerkState {
   error: string | null;
   initialized: boolean;
@@ -99,8 +108,11 @@ export class ClerkService {
     }
 
     try {
+      await this.loadClerkUi(publishableKey);
       const clerk = new Clerk(publishableKey);
-      await clerk.load();
+      await clerk.load({
+        ui: { ClerkUI: window.__internal_ClerkUICtor }
+      });
 
       this.clerk = clerk;
       this.updateStateFromClerk();
@@ -112,6 +124,40 @@ export class ClerkService {
         error
       );
     }
+  }
+
+  private loadClerkUi(publishableKey: string): Promise<void> {
+    if (window.__internal_ClerkUICtor) {
+      return Promise.resolve();
+    }
+
+    const clerkDomain = this.getClerkFrontendApiDomain(publishableKey);
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = `https://${clerkDomain}/npm/@clerk/ui@1/dist/ui.browser.js`;
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      script.onload = () => {
+        if (window.__internal_ClerkUICtor) {
+          resolve();
+          return;
+        }
+
+        reject(new Error('Clerk UI bundle loaded without exposing its constructor.'));
+      };
+      script.onerror = () => reject(new Error('Failed to load @clerk/ui bundle.'));
+      document.head.appendChild(script);
+    });
+  }
+
+  private getClerkFrontendApiDomain(publishableKey: string): string {
+    const encodedDomain = publishableKey.split('_')[2];
+    if (!encodedDomain) {
+      throw new Error('Clerk publishable key is not valid.');
+    }
+
+    return atob(encodedDomain).slice(0, -1);
   }
 
   private updateStateFromClerk(): void {

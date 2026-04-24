@@ -64,8 +64,10 @@ export async function verifyClerkSessionToken(sessionToken: string, config: Auth
 
 export async function resolveClerkIdentity(sessionToken: string, config: AuthConfig): Promise<ResolvedClerkIdentity> {
   const claims = await verifyClerkSessionToken(sessionToken, config);
-  const sub = claims.sub;
+  return resolveClerkIdentityBySub(claims.sub, config);
+}
 
+export async function resolveClerkIdentityBySub(sub: string, config: AuthConfig): Promise<ResolvedClerkIdentity> {
   const clerkUser = await getClerkClient(config).users.getUser(sub);
   const email = clerkUser.primaryEmailAddress?.emailAddress
     ?? clerkUser.emailAddresses[0]?.emailAddress

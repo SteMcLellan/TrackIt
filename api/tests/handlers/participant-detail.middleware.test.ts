@@ -7,6 +7,8 @@ import { createCosmosContainersStub } from '../helpers/cosmos-stubs';
 
 const authorizeMock = vi.fn();
 const buildCosmosMock = vi.fn();
+const resolveClerkIdentityBySubMock = vi.fn();
+const upsertUserMock = vi.fn();
 const readParticipantMock = vi.fn();
 const readParticipantLinkMock = vi.fn();
 
@@ -15,8 +17,17 @@ vi.mock('../../src/shared/authorize', () => ({
 }));
 
 vi.mock('../../src/shared/cosmos', () => ({
-  buildCosmos: (...args: unknown[]) => buildCosmosMock(...args)
+  buildCosmos: (...args: unknown[]) => buildCosmosMock(...args),
+  upsertUser: (...args: unknown[]) => upsertUserMock(...args)
 }));
+
+vi.mock('../../src/shared/auth', async () => {
+  const actual = await vi.importActual('../../src/shared/auth');
+  return {
+    ...(actual as object),
+    resolveClerkIdentityBySub: (...args: unknown[]) => resolveClerkIdentityBySubMock(...args)
+  };
+});
 
 vi.mock('../../src/shared/data/participants', async () => {
   const actual = await vi.importActual('../../src/shared/data/participants');
@@ -32,6 +43,11 @@ describe('participant-detail middleware pipeline', () => {
     vi.clearAllMocks();
     buildCosmosMock.mockResolvedValue({ containers: createCosmosContainersStub() });
     authorizeMock.mockReturnValue({ sub: 'user-1', iat: 1, exp: 2 });
+    resolveClerkIdentityBySubMock.mockResolvedValue({
+      sub: 'user-1',
+      email: 'user-1@example.com',
+      name: 'User One'
+    });
     readParticipantLinkMock.mockResolvedValue({
       id: 'user-1:participant-1',
       userId: 'user-1',

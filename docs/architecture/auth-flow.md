@@ -11,9 +11,11 @@ There is no TrackIt-issued app JWT. The Clerk session token is the sole auth cre
 ## Frontend Flow
 
 1. `main.ts` initializes `ClerkService` at application startup via `provideAppInitializer`.
-2. `LoginComponent` mounts Clerk's hosted sign-in UI when there is no active Clerk session.
-3. Once Clerk reports an active session, `AuthService.isAuthenticated()` becomes `true` and the user lands in the app — no secondary API call required.
-4. `returnUrl` behavior is preserved: the auth guard redirects to `/login?returnUrl=...` on 401 and restores the URL after sign-in.
+2. `ClerkService` loads Clerk's `@clerk/ui` browser bundle before calling `clerk.load({ ui })`; this is required for hosted UI methods such as `mountSignIn`.
+3. `LoginComponent` mounts Clerk's hosted sign-in UI when there is no active Clerk session.
+4. Once Clerk reports an active session, `AuthService.isAuthenticated()` becomes `true` and the user lands in the app — no secondary API call required.
+5. On the first authenticated API call, `authMiddleware` upserts a role-free Cosmos `users` projection from the Clerk profile.
+6. `returnUrl` behavior is preserved: the auth guard redirects to `/login?returnUrl=...` on 401 and restores the URL after sign-in.
 
 ## Frontend Auth State
 
@@ -70,8 +72,9 @@ sequenceDiagram
 
 1. Read the `x-trackit-app-token` header.
 2. Call `authorize()`, which calls `verifyClerkSessionToken()` from `@clerk/backend`.
-3. On success, the resolved `ResolvedClerkClaims` (including `sub` and `metadata.roles`) are stored in request state for downstream handlers.
-4. On failure, returns `401`.
+3. On success, fetch the Clerk user profile and upsert the Cosmos `users` projection for app-local display/bookkeeping.
+4. Store the resolved `ResolvedClerkClaims` (including `sub` and `metadata.roles`) in request state for downstream handlers.
+5. On failure, returns `401`.
 
 ### Admin endpoints
 
@@ -104,5 +107,6 @@ Manager/viewer access is enforced by the participant middleware via a live DB lo
 ## Notes and Gotchas
 
 - There are no `/api/auth/login` or `/api/auth/refresh` endpoints. The auth exchange layer has been removed.
+- Cosmos `users` documents are app-local projections and do not store roles.
 - Admin role assignment is a Clerk Dashboard operation, not a TrackIt code change.
 - Participant access revocation bypasses the token rotation window because it uses a live DB lookup on every request.

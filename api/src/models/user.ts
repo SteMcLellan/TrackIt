@@ -7,7 +7,6 @@ export interface UserDocument {
   email?: string;
   name?: string;
   picture?: string;
-  roles?: string[];
   settings?: Record<string, unknown>;
   createdAtUtc: string;
   lastLoginAtUtc: string;

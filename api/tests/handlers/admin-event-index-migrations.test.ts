@@ -4,6 +4,8 @@ import { mockInvocationContext } from '../helpers/context';
 
 const authorizeMock = vi.fn();
 const buildCosmosMock = vi.fn();
+const resolveClerkIdentityBySubMock = vi.fn();
+const upsertUserMock = vi.fn();
 const projectIncidentToEventIndexMock = vi.fn();
 const projectMedicationLogToEventIndexMock = vi.fn();
 const projectMedicationToEventIndexMock = vi.fn();
@@ -14,8 +16,17 @@ vi.mock('../../src/shared/authorize', () => ({
 }));
 
 vi.mock('../../src/shared/cosmos', () => ({
-  buildCosmos: (...args: unknown[]) => buildCosmosMock(...args)
+  buildCosmos: (...args: unknown[]) => buildCosmosMock(...args),
+  upsertUser: (...args: unknown[]) => upsertUserMock(...args)
 }));
+
+vi.mock('../../src/shared/auth', async () => {
+  const actual = await vi.importActual('../../src/shared/auth');
+  return {
+    ...(actual as object),
+    resolveClerkIdentityBySub: (...args: unknown[]) => resolveClerkIdentityBySubMock(...args)
+  };
+});
 
 vi.mock('../../src/shared/timeline/projectors', () => ({
   projectIncidentToEventIndex: (...args: unknown[]) => projectIncidentToEventIndexMock(...args),
@@ -46,6 +57,11 @@ describe('admin event-index migrations handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     buildCosmosMock.mockResolvedValue({ containers: createCosmosContainersStub() });
+    resolveClerkIdentityBySubMock.mockResolvedValue({
+      sub: 'user-1',
+      email: 'user-1@example.com',
+      name: 'User One'
+    });
     projectIncidentToEventIndexMock.mockReturnValue({
       id: 'evt_incident_1',
       participantId: 'participant_1',

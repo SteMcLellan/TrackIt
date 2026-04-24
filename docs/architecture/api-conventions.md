@@ -40,7 +40,7 @@ HTTP Request
                │
                ▼
 ┌──────────────────────────┐
-│     authMiddleware       │  verifies x-trackit-app-token; stores ResolvedClerkClaims
+│     authMiddleware       │  verifies token; upserts users projection; stores ResolvedClerkClaims
 └──────────────┬───────────┘
                │
                ▼

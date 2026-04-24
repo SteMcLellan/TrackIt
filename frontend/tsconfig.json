@@ -1,8 +1,6 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "baseUrl": "./",
-    "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -21,7 +19,7 @@
     "useDefineForClassFields": false,
     "paths": {
       "@core/*": [
-        "src/app/core/*"
+        "./src/app/core/*"
       ]
     }
   },
