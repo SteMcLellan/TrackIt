@@ -47,6 +47,5 @@ export class AuthService {
 
   logout(): void {
     this.participants.clearActiveParticipant();
-    localStorage.removeItem('trackit.appUser');
   }
 }
