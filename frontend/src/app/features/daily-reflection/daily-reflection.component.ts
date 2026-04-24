@@ -86,116 +86,84 @@ const SLEEP_BUCKETS: BucketOption[] = [
       }
 
       <div class="cards">
-        <section class="metric-card mood">
-          <div class="metric-header">
-            <div class="metric-icon">
-              <span class="material-symbols-outlined">sentiment_satisfied</span>
-            </div>
+
+        <section class="metric-row mood">
+          <div class="row-head">
+            <div class="row-icon"><span class="material-symbols-outlined">sentiment_satisfied</span></div>
             <h2>Mood</h2>
+            @if (moodLabel()) {
+              <span class="selected-badge mood-badge">{{ moodLabel() }}</span>
+            }
           </div>
-          <div class="bucket-list">
+          <div class="chip-row">
             @for (opt of moodBuckets; track opt.score) {
-              <button
-                class="bucket-option"
-                [class.selected]="moodScore() === opt.score"
-                [class.guide]="moodScore() === null && opt.bucket === 3"
-                type="button"
-                (click)="onBucketSelect('mood', opt.score)"
-              >
-                <span class="bucket-label">{{ opt.label }}</span>
-                <span class="bucket-copy">{{ opt.microcopy }}</span>
+              <button class="chip-opt" [class.selected]="moodScore() === opt.score" type="button" (click)="onBucketSelect('mood', opt.score)">
+                <div class="chip-dot"></div>
+                <span class="chip-label">{{ opt.label }}</span>
               </button>
             }
           </div>
-          @if (!seededFromExisting() && !isDirty()) {
-            <p class="default-hint">If you're unsure, the middle option means a typical day. Adjust if something stood out.</p>
-          }
         </section>
 
-        <section class="metric-card focus">
-          <div class="metric-header">
-            <div class="metric-icon">
-              <span class="material-symbols-outlined">target</span>
-            </div>
+        <section class="metric-row focus">
+          <div class="row-head">
+            <div class="row-icon"><span class="material-symbols-outlined">center_focus_strong</span></div>
             <h2>Focus</h2>
+            @if (focusLabel()) {
+              <span class="selected-badge focus-badge">{{ focusLabel() }}</span>
+            }
           </div>
-          <div class="bucket-list">
+          <div class="chip-row">
             @for (opt of focusBuckets; track opt.score) {
-              <button
-                class="bucket-option"
-                [class.selected]="focusScore() === opt.score"
-                [class.guide]="focusScore() === null && opt.bucket === 3"
-                type="button"
-                (click)="onBucketSelect('focus', opt.score)"
-              >
-                <span class="bucket-label">{{ opt.label }}</span>
-                <span class="bucket-copy">{{ opt.microcopy }}</span>
+              <button class="chip-opt" [class.selected]="focusScore() === opt.score" type="button" (click)="onBucketSelect('focus', opt.score)">
+                <div class="chip-dot"></div>
+                <span class="chip-label">{{ opt.label }}</span>
               </button>
             }
           </div>
-          @if (!seededFromExisting() && !isDirty()) {
-            <p class="default-hint">If you're unsure, the middle option means a typical day. Adjust if something stood out.</p>
-          }
         </section>
 
-        <section class="metric-card energy">
-          <div class="metric-header">
-            <div class="metric-icon">
-              <span class="material-symbols-outlined">bolt</span>
-            </div>
+        <section class="metric-row energy">
+          <div class="row-head">
+            <div class="row-icon"><span class="material-symbols-outlined">bolt</span></div>
             <h2>Energy</h2>
+            @if (energyLabel()) {
+              <span class="selected-badge energy-badge">{{ energyLabel() }}</span>
+            }
           </div>
-          <div class="bucket-list">
+          <div class="chip-row">
             @for (opt of energyBuckets; track opt.score) {
-              <button
-                class="bucket-option"
-                [class.selected]="energyScore() === opt.score"
-                [class.guide]="energyScore() === null && opt.bucket === 3"
-                type="button"
-                (click)="onBucketSelect('energy', opt.score)"
-              >
-                <span class="bucket-label">{{ opt.label }}</span>
-                <span class="bucket-copy">{{ opt.microcopy }}</span>
+              <button class="chip-opt" [class.selected]="energyScore() === opt.score" type="button" (click)="onBucketSelect('energy', opt.score)">
+                <div class="chip-dot"></div>
+                <span class="chip-label">{{ opt.label }}</span>
               </button>
             }
           </div>
-          @if (!seededFromExisting() && !isDirty()) {
-            <p class="default-hint">If you're unsure, the middle option means a typical day. Adjust if something stood out.</p>
-          }
         </section>
 
-        <section class="metric-card sleep">
-          <div class="metric-header">
-            <div class="metric-icon">
-              <span class="material-symbols-outlined">bedtime</span>
-            </div>
+        <section class="metric-row sleep">
+          <div class="row-head">
+            <div class="row-icon"><span class="material-symbols-outlined">bedtime</span></div>
             <h2>Sleep</h2>
+            @if (sleepLabel()) {
+              <span class="selected-badge sleep-badge">{{ sleepLabel() }}</span>
+            }
           </div>
-          <div class="bucket-list">
+          <div class="chip-row">
             @for (opt of sleepBuckets; track opt.score) {
-              <button
-                class="bucket-option"
-                [class.selected]="sleepScore() === opt.score"
-                [class.guide]="sleepScore() === null && opt.bucket === 3"
-                type="button"
-                (click)="onBucketSelect('sleep', opt.score)"
-              >
-                <span class="bucket-label">{{ opt.label }}</span>
-                <span class="bucket-copy">{{ opt.microcopy }}</span>
+              <button class="chip-opt" [class.selected]="sleepScore() === opt.score" type="button" (click)="onBucketSelect('sleep', opt.score)">
+                <div class="chip-dot"></div>
+                <span class="chip-label">{{ opt.label }}</span>
               </button>
             }
           </div>
-          @if (!seededFromExisting() && !isDirty()) {
-            <p class="default-hint">If you're unsure, the middle option means a typical day. Adjust if something stood out.</p>
-          }
         </section>
 
-        <section class="metric-card note">
-          <div class="metric-header notes-head">
-            <div class="metric-icon neutral">
-              <span class="material-symbols-outlined">notes</span>
-            </div>
+        <section class="metric-row note">
+          <div class="row-head">
+            <div class="row-icon neutral"><span class="material-symbols-outlined">notes</span></div>
             <h2>Journal Notes</h2>
+            <span class="optional-label">Optional</span>
           </div>
           <textarea
             [value]="journalNote()"
@@ -205,6 +173,7 @@ const SLEEP_BUCKETS: BucketOption[] = [
           ></textarea>
           <p class="char-count">{{ journalNote().length }}/2000</p>
         </section>
+
       </div>
 
       @if (existingReflectionResource.isLoading()) {
@@ -244,7 +213,7 @@ const SLEEP_BUCKETS: BucketOption[] = [
       padding: 1rem 1rem 0;
       box-sizing: border-box;
       overflow-x: hidden;
-      background: #fcfcfd;
+      background: var(--color-ghost-white-canvas, #fcfcfd);
       height: 100%;
       display: flex;
       flex-direction: column;
@@ -253,29 +222,30 @@ const SLEEP_BUCKETS: BucketOption[] = [
     .page-head {
       display: grid;
       gap: 0.2rem;
-      margin-bottom: 1rem;
+      margin-bottom: 0.875rem;
     }
 
     h1 {
       margin: 0;
-      color: #1e293b;
+      color: var(--color-midnight-slate, #1e293b);
       font-size: 1.5rem;
+      font-weight: 800;
       line-height: 1.2;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
     }
 
     .page-head p {
       margin: 0;
-      color: #64748b;
-      font-size: 0.875rem;
+      color: var(--color-text-muted, #64748b);
+      font-size: 0.8125rem;
     }
 
     .date-context-banner {
       margin: 0 0 0.75rem;
-      padding: 0.6rem 0.85rem;
+      padding: 0.55rem 0.85rem;
       border-radius: 0.5rem;
-      background: #ecfdf5;
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      background: var(--color-soft-emerald, #ecfdf5);
+      border: 1px solid color-mix(in srgb, var(--color-vital-emerald) 25%, transparent);
       color: #059669;
       font-size: 0.8125rem;
       font-weight: 600;
@@ -283,195 +253,188 @@ const SLEEP_BUCKETS: BucketOption[] = [
 
     .cards {
       display: grid;
-      gap: 0.75rem;
+      gap: 0.625rem;
       flex: 1;
       min-height: 0;
       overflow-y: auto;
       padding-bottom: 0.5rem;
     }
 
-    .metric-card {
-      border-radius: 0.5rem;
-      border: 1px solid #e2e8f0;
+    .metric-row {
       background: #fff;
-      padding: 0.9rem;
+      border-radius: 0.875rem;
+      border: 1px solid var(--color-border, #e2e8f0);
+      padding: 0.75rem 0.875rem 0.875rem;
       display: grid;
       gap: 0.75rem;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
     }
 
-    .metric-header {
-      display: grid;
-      grid-template-columns: auto 1fr;
+    .row-head {
+      display: flex;
       align-items: center;
-      gap: 0.65rem;
-      min-width: 0;
-    }
-
-    .metric-icon {
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      background: rgba(139, 92, 246, 0.1);
-      color: #8b5cf6;
-    }
-
-    .metric-icon.neutral {
-      background: #f1f5f9;
-      color: #64748b;
-    }
-
-    .focus .metric-icon {
-      background: rgba(245, 158, 11, 0.1);
-      color: #f59e0b;
-    }
-
-    .energy .metric-icon {
-      background: rgba(14, 165, 233, 0.1);
-      color: #0ea5e9;
-    }
-
-    .sleep .metric-icon {
-      background: rgba(16, 185, 129, 0.1);
-      color: #10b981;
-    }
-
-    h2 {
-      margin: 0;
-      color: #1e293b;
-      font-size: 1.125rem;
-      line-height: 1.2;
-    }
-
-    .bucket-list {
-      display: grid;
       gap: 0.5rem;
     }
 
-    .bucket-option {
-      width: 100%;
-      text-align: left;
-      padding: 0.75rem 1rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 0.5rem;
-      background: #fff;
-      cursor: pointer;
-      display: grid;
-      gap: 0.2rem;
-      min-height: 44px;
-      transition: background 120ms ease, border-color 120ms ease;
+    .row-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .bucket-label {
-      font-weight: 600;
-      font-size: 0.875rem;
-      color: #1e293b;
-    }
+    .row-icon .material-symbols-outlined { font-size: 15px; }
 
-    .bucket-copy {
-      font-size: 0.75rem;
-      color: #64748b;
-      line-height: 1.4;
-    }
+    .row-icon.neutral { background: #f1f5f9; color: var(--color-text-muted, #64748b); }
+    .mood .row-icon   { background: color-mix(in srgb, var(--color-electric-violet) 10%, transparent); color: var(--color-electric-violet, #8b5cf6); }
+    .focus .row-icon  { background: color-mix(in srgb, var(--color-vital-emerald) 10%, transparent); color: var(--color-vital-emerald, #10b981); }
+    .energy .row-icon { background: color-mix(in srgb, var(--color-energetic-amber) 10%, transparent); color: var(--color-energetic-amber, #f59e0b); }
+    .sleep .row-icon  { background: color-mix(in srgb, var(--color-sky-azure) 10%, transparent); color: var(--color-sky-azure, #0ea5e9); }
 
-    .mood .bucket-option.selected {
-      background: rgba(139, 92, 246, 0.08);
-      border-color: #8b5cf6;
-    }
-
-    .focus .bucket-option.selected {
-      background: rgba(245, 158, 11, 0.08);
-      border-color: #f59e0b;
-    }
-
-    .energy .bucket-option.selected {
-      background: rgba(14, 165, 233, 0.08);
-      border-color: #0ea5e9;
-    }
-
-    .sleep .bucket-option.selected {
-      background: rgba(16, 185, 129, 0.08);
-      border-color: #10b981;
-    }
-
-    .bucket-option.guide {
-      border-style: dashed;
-      border-color: #94a3b8;
-      background: #f8fafc;
-    }
-
-    .default-hint {
+    h2 {
       margin: 0;
-      color: #94a3b8;
-      font-size: 0.75rem;
-      line-height: 1.4;
+      color: var(--color-midnight-slate, #1e293b);
+      font-size: 0.875rem;
+      font-weight: 700;
+      line-height: 1.2;
     }
+
+    .selected-badge {
+      margin-left: auto;
+      border-radius: 999px;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .mood-badge   { background: color-mix(in srgb, var(--color-electric-violet) 10%, transparent); color: var(--color-electric-violet, #8b5cf6); border-color: color-mix(in srgb, var(--color-electric-violet) 20%, transparent); }
+    .focus-badge  { background: color-mix(in srgb, var(--color-vital-emerald) 10%, transparent); color: var(--color-vital-emerald, #10b981); border-color: color-mix(in srgb, var(--color-vital-emerald) 20%, transparent); }
+    .energy-badge { background: color-mix(in srgb, var(--color-energetic-amber) 10%, transparent); color: var(--color-energetic-amber, #f59e0b); border-color: color-mix(in srgb, var(--color-energetic-amber) 20%, transparent); }
+    .sleep-badge  { background: color-mix(in srgb, var(--color-sky-azure) 10%, transparent); color: var(--color-sky-azure, #0ea5e9); border-color: color-mix(in srgb, var(--color-sky-azure) 20%, transparent); }
+
+    .optional-label {
+      margin-left: auto;
+      font-size: 0.6875rem;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 0.375rem;
+    }
+
+    .chip-opt {
+      flex: 1;
+      padding: 7px 2px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1.5px solid var(--color-border, #e2e8f0);
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      min-height: 44px;
+      transition: border-color 120ms ease, background 120ms ease;
+    }
+
+    .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--color-border, #e2e8f0);
+      transition: background 120ms ease;
+    }
+
+    .chip-label {
+      font-size: 0.53rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-align: center;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+
+    .mood   .chip-opt.selected { border-color: var(--color-electric-violet, #8b5cf6); background: color-mix(in srgb, var(--color-electric-violet) 6%, transparent); }
+    .focus  .chip-opt.selected { border-color: var(--color-vital-emerald, #10b981); background: color-mix(in srgb, var(--color-vital-emerald) 6%, transparent); }
+    .energy .chip-opt.selected { border-color: var(--color-energetic-amber, #f59e0b); background: color-mix(in srgb, var(--color-energetic-amber) 6%, transparent); }
+    .sleep  .chip-opt.selected { border-color: var(--color-sky-azure, #0ea5e9); background: color-mix(in srgb, var(--color-sky-azure) 6%, transparent); }
+
+    .mood   .chip-opt.selected .chip-dot { background: var(--color-electric-violet, #8b5cf6); }
+    .focus  .chip-opt.selected .chip-dot { background: var(--color-vital-emerald, #10b981); }
+    .energy .chip-opt.selected .chip-dot { background: var(--color-energetic-amber, #f59e0b); }
+    .sleep  .chip-opt.selected .chip-dot { background: var(--color-sky-azure, #0ea5e9); }
+
+    .mood   .chip-opt.selected .chip-label { color: var(--color-electric-violet, #8b5cf6); }
+    .focus  .chip-opt.selected .chip-label { color: var(--color-vital-emerald, #10b981); }
+    .energy .chip-opt.selected .chip-label { color: var(--color-energetic-amber, #f59e0b); }
+    .sleep  .chip-opt.selected .chip-label { color: var(--color-sky-azure, #0ea5e9); }
 
     .note textarea {
       width: 100%;
-      min-height: 7.5rem;
+      min-height: 5.5rem;
       max-width: 100%;
       resize: vertical;
       border-radius: 0.5rem;
       border: 1px solid #cbd5e1;
-      padding: 0.75rem;
+      padding: 0.625rem 0.75rem;
       box-sizing: border-box;
       font-size: 0.875rem;
       font-family: inherit;
-      color: #1e293b;
-      background: #fff;
+      color: var(--color-midnight-slate, #1e293b);
+      background: #fafafa;
     }
 
     .note textarea:focus {
-      outline: 2px solid rgba(16, 185, 129, 0.2);
-      border-color: #10b981;
+      outline: 2px solid color-mix(in srgb, var(--color-vital-emerald) 20%, transparent);
+      border-color: var(--color-vital-emerald, #10b981);
     }
 
     .char-count {
       margin: 0;
-      color: #64748b;
+      color: var(--color-text-muted, #64748b);
       font-size: 0.75rem;
       text-align: right;
     }
 
-    .status,
-    .error {
-      margin: 0.75rem 0 0;
+    .status {
+      margin: 0.5rem 0;
+      color: var(--color-text-muted, #64748b);
       font-size: 0.8125rem;
       line-height: 1.4;
     }
 
-    .status {
-      color: #64748b;
-    }
-
     .error {
+      margin: 0.5rem 0 0;
       color: #b91c1c;
+      font-size: 0.8125rem;
       font-weight: 600;
     }
 
     .action-bar {
-      margin-top: 1rem;
+      margin-top: 0.875rem;
       display: grid;
-      gap: 0.65rem;
+      gap: 0.5rem;
       padding-bottom: 1.5rem;
       flex-shrink: 0;
     }
 
     .save-button {
-      min-height: 56px;
+      min-height: 52px;
       width: 100%;
       border: none;
       border-radius: 999px;
-      background: #10b981;
+      background: var(--color-vital-emerald, #10b981);
       color: #fff;
       font-size: 0.9375rem;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 10px 24px -10px rgba(16, 185, 129, 0.5);
+      box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--color-vital-emerald) 50%, transparent);
     }
 
     .cancel-button {
@@ -479,7 +442,7 @@ const SLEEP_BUCKETS: BucketOption[] = [
       width: 100%;
       border: none;
       background: transparent;
-      color: #64748b;
+      color: var(--color-text-muted, #64748b);
       font-size: 0.9375rem;
       font-weight: 500;
       cursor: pointer;
@@ -511,6 +474,11 @@ export class DailyReflectionComponent {
   readonly errorMessage = signal<string | null>(null);
   readonly isDirty = signal(false);
   readonly seededFromExisting = signal(false);
+
+  readonly moodLabel   = computed(() => MOOD_BUCKETS.find(b => b.score === this.moodScore())?.label ?? null);
+  readonly focusLabel  = computed(() => FOCUS_BUCKETS.find(b => b.score === this.focusScore())?.label ?? null);
+  readonly energyLabel = computed(() => ENERGY_BUCKETS.find(b => b.score === this.energyScore())?.label ?? null);
+  readonly sleepLabel  = computed(() => SLEEP_BUCKETS.find(b => b.score === this.sleepScore())?.label ?? null);
 
   readonly moodBuckets = MOOD_BUCKETS;
   readonly focusBuckets = FOCUS_BUCKETS;

@@ -48,8 +48,15 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
   template: `
     <section class="timeline-page">
       <header class="page-head">
-        <h1>Timeline</h1>
-        <p>All Activity in one place</p>
+        <div>
+          <h1>Timeline</h1>
+          <p>All Activity in one place</p>
+        </div>
+        <div class="type-filters">
+          <div class="type-filter-icon incident-f"><span class="material-symbols-outlined">priority_high</span></div>
+          <div class="type-filter-icon reflection-f"><span class="material-symbols-outlined">edit_note</span></div>
+          <div class="type-filter-icon medication-f"><span class="material-symbols-outlined">medical_services</span></div>
+        </div>
       </header>
 
       @if (!activeParticipantId()) {
@@ -62,7 +69,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
         <div class="timeline-feed" role="feed" aria-label="Timeline feed">
           @for (section of sections(); track section.logLocalDate) {
             <div class="day-label">
-              <span class="day-label-text">{{ section.label }}</span>
+              <div class="day-label-inner"><div class="day-dot"></div><span class="day-label-text">{{ section.label }}</span></div>
               <div class="day-add-wrap">
                 <button
                   class="day-add-btn"
@@ -70,7 +77,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
                   type="button"
                   (click)="toggleMenu(section.logLocalDate, $event)"
                   [attr.aria-label]="'Add entry for ' + section.label"
-                >+</button>
+                ><span class="material-symbols-outlined" style="font-size:13px;line-height:1">add</span> Add</button>
                 @if (openMenuDate() === section.logLocalDate) {
                   <div class="day-menu" (click)="$event.stopPropagation()">
                     <button class="day-menu-item" type="button" (click)="addReflection(section.logLocalDate)">
@@ -168,7 +175,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       display: block;
       width: 100%;
       max-width: 100%;
-      background: var(--color-ghost-white-canvas, #fcfcfd);
+      background: var(--color-ghost-white-canvas, var(--color-ghost-white-canvas, #fcfcfd));
     }
 
     .timeline-page {
@@ -177,18 +184,19 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       padding: 1.5rem 1.5rem 1rem;
       box-sizing: border-box;
       overflow-x: hidden;
-      background: var(--color-ghost-white-canvas, #fcfcfd);
+      background: var(--color-ghost-white-canvas, var(--color-ghost-white-canvas, #fcfcfd));
     }
 
     .page-head {
-      display: grid;
-      gap: 0.25rem;
-      padding-bottom: 0.5rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding-bottom: 0.75rem;
     }
 
     h1 {
       margin: 0;
-      color: var(--color-midnight-slate, #1e293b);
+      color: var(--color-midnight-slate, var(--color-midnight-slate, #1e293b));
       font-size: 1.55rem;
       line-height: 1.2;
       font-weight: 700;
@@ -197,7 +205,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
 
     .page-head p {
       margin: 0;
-      color: var(--color-text-muted, #64748b);
+      color: var(--color-text-muted, var(--color-text-muted, #64748b));
       font-size: var(--font-size-sm, 0.8125rem);
       font-weight: 500;
     }
@@ -215,7 +223,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
 
     .status.loading,
     .status.muted {
-      color: var(--color-text-muted, #64748b);
+      color: var(--color-text-muted, var(--color-text-muted, #64748b));
     }
 
     .timeline-feed {
@@ -230,19 +238,32 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       z-index: 10;
       margin: 0;
       padding: 0.85rem 0 0.3rem;
-      background: rgba(252, 252, 253, 0.9);
+      background: color-mix(in srgb, var(--color-ghost-white-canvas) 90%, transparent);
       backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
+    .day-label-inner {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .day-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--color-vital-emerald, var(--color-vital-emerald, #10b981));
+      flex-shrink: 0;
+    }
+
     .day-label-text {
-      color: var(--color-vital-emerald, #10b981);
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
+      color: var(--color-midnight-slate, var(--color-midnight-slate, #1e293b));
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
     }
 
     .day-add-wrap {
@@ -250,27 +271,50 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
     }
 
     .day-add-btn {
-      width: 28px;
       height: 28px;
-      border-radius: 999px;
-      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      border: 1px solid var(--color-border, #e2e8f0);
       background: #fff;
-      color: #94a3b8;
-      font-size: 1rem;
-      font-weight: 700;
-      line-height: 1;
+      color: var(--color-text-muted, #64748b);
+      font-size: 0.6875rem;
+      font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 0;
+      padding: 0 8px;
+      gap: 3px;
+      font-family: inherit;
     }
 
     .day-add-btn-empty {
-      background: #ecfdf5;
-      border-color: #10b981;
-      color: #10b981;
+      background: var(--color-soft-emerald, #ecfdf5);
+      border-color: var(--color-vital-emerald, #10b981);
+      color: var(--color-vital-emerald, #10b981);
     }
+
+    .type-filters {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .type-filter-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .type-filter-icon .material-symbols-outlined {
+      font-size: 14px;
+    }
+
+    .incident-f  { background: color-mix(in srgb, var(--color-electric-violet) 12%, transparent); color: var(--color-electric-violet, #8b5cf6); }
+    .reflection-f { background: color-mix(in srgb, var(--color-sky-azure) 12%, transparent); color: var(--color-sky-azure, #0ea5e9); }
+    .medication-f { background: color-mix(in srgb, var(--color-vital-emerald) 12%, transparent); color: var(--color-vital-emerald, #10b981); }
 
     .day-menu {
       position: absolute;
@@ -278,7 +322,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       right: 0;
       z-index: 20;
       background: #fff;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--color-border, #e2e8f0);
       border-radius: 0.5rem;
       box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.12);
       min-width: 160px;
@@ -295,7 +339,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       background: transparent;
       font-size: 0.8125rem;
       font-weight: 500;
-      color: #1e293b;
+      color: var(--color-midnight-slate, #1e293b);
       cursor: pointer;
       text-align: left;
     }
@@ -306,7 +350,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
 
     .day-menu-item .material-symbols-outlined {
       font-size: 1rem;
-      color: #64748b;
+      color: var(--color-text-muted, #64748b);
     }
 
     .day-group {
@@ -322,7 +366,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       top: 0;
       bottom: 0;
       width: 2px;
-      background: var(--color-border, #e2e8f0);
+      background: var(--color-border, var(--color-border, #e2e8f0));
     }
 
     .entry {
@@ -335,8 +379,8 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       top: 0.6rem;
       width: 1.5rem;
       height: 1.5rem;
-      border-radius: 999px;
-      border: 4px solid var(--color-ghost-white-canvas, #fcfcfd);
+      border-radius: 0.375rem;
+      border: 3px solid var(--color-ghost-white-canvas, var(--color-ghost-white-canvas, #fcfcfd));
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -349,28 +393,28 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
     }
 
     .entry-node-incident {
-      background: rgba(139, 92, 246, 0.16);
-      color: var(--color-electric-violet, #8b5cf6);
+      background: color-mix(in srgb, var(--color-electric-violet) 16%, transparent);
+      color: var(--color-electric-violet, var(--color-electric-violet, #8b5cf6));
     }
 
     .entry-node-medication-log {
-      background: rgba(16, 185, 129, 0.14);
-      color: var(--color-vital-emerald, #10b981);
+      background: color-mix(in srgb, var(--color-vital-emerald) 14%, transparent);
+      color: var(--color-vital-emerald, var(--color-vital-emerald, #10b981));
     }
 
     .entry-node-medication {
-      background: rgba(245, 158, 11, 0.14);
-      color: var(--color-energetic-amber, #f59e0b);
+      background: color-mix(in srgb, var(--color-energetic-amber) 14%, transparent);
+      color: var(--color-energetic-amber, var(--color-energetic-amber, #f59e0b));
     }
 
     .entry-node-daily-reflection {
-      background: rgba(14, 165, 233, 0.14);
-      color: var(--color-sky-azure, #0ea5e9);
+      background: color-mix(in srgb, var(--color-sky-azure) 14%, transparent);
+      color: var(--color-sky-azure, var(--color-sky-azure, #0ea5e9));
     }
 
     .entry-card {
       background: #fff;
-      border: 1px solid var(--color-border, #e2e8f0);
+      border: 1px solid var(--color-border, var(--color-border, #e2e8f0));
       border-radius: 0.75rem;
       padding: 0.85rem;
       box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
@@ -384,7 +428,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
     }
 
     .entry-card-ghost {
-      border: 1px dashed #e2e8f0;
+      border: 1px dashed var(--color-border, #e2e8f0);
       background: #fff;
       border-radius: 0.75rem;
       padding: 0.85rem;
@@ -427,11 +471,11 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       font-size: 0.88rem;
       line-height: 1.25;
       font-weight: 700;
-      color: var(--color-midnight-slate, #1e293b);
+      color: var(--color-midnight-slate, var(--color-midnight-slate, #1e293b));
     }
 
     .entry-time {
-      color: var(--color-text-muted, #64748b);
+      color: var(--color-text-muted, var(--color-text-muted, #64748b));
       font-size: 0.62rem;
       font-weight: 600;
       text-transform: uppercase;
@@ -455,16 +499,16 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
     }
 
     .chip {
-      border-radius: 0.3rem;
-      padding: 0.1rem 0.42rem;
-      font-size: 0.62rem;
+      border-radius: 0.375rem;
+      padding: 0.15rem 0.5rem;
+      font-size: 0.6875rem;
       font-weight: 700;
-      letter-spacing: 0.01em;
+      letter-spacing: -0.01em;
     }
 
     .chip-violet {
-      background: rgba(139, 92, 246, 0.14);
-      color: var(--color-electric-violet, #8b5cf6);
+      background: color-mix(in srgb, var(--color-electric-violet) 14%, transparent);
+      color: var(--color-electric-violet, var(--color-electric-violet, #8b5cf6));
     }
 
     .chip-incident {
@@ -472,18 +516,18 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
     }
 
     .chip-sky {
-      background: rgba(14, 165, 233, 0.14);
-      color: var(--color-sky-azure, #0ea5e9);
+      background: color-mix(in srgb, var(--color-sky-azure) 14%, transparent);
+      color: var(--color-sky-azure, var(--color-sky-azure, #0ea5e9));
     }
 
     .chip-emerald {
-      background: rgba(16, 185, 129, 0.14);
-      color: var(--color-vital-emerald, #10b981);
+      background: color-mix(in srgb, var(--color-vital-emerald) 14%, transparent);
+      color: var(--color-vital-emerald, var(--color-vital-emerald, #10b981));
     }
 
     .chip-amber {
-      background: rgba(245, 158, 11, 0.14);
-      color: var(--color-energetic-amber, #f59e0b);
+      background: color-mix(in srgb, var(--color-energetic-amber) 14%, transparent);
+      color: var(--color-energetic-amber, var(--color-energetic-amber, #f59e0b));
     }
 
     .load-more-sentinel {
@@ -502,7 +546,7 @@ const FEED_SOURCE_TYPES: TimelineSourceType[] = [
       width: 1.5rem;
       height: 1.5rem;
       border-radius: 999px;
-      border: 2px solid var(--color-vital-emerald, #10b981);
+      border: 2px solid var(--color-vital-emerald, var(--color-vital-emerald, #10b981));
       border-top-color: transparent;
       animation: spin 900ms linear infinite;
     }

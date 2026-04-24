@@ -51,8 +51,9 @@ type WeeklyMetricCard = {
   template: `
     <div class="page">
       <section class="hero">
+        <p class="hero-context">Hi {{ caregiverName() }}</p>
         <h1>
-          Hi {{ caregiverName() }}, <span class="violet">{{ participantName() }}</span> {{ heroPhrase().suffix }}
+          <span class="violet">{{ participantName() }}</span> {{ heroPhrase().suffix }}
         </h1>
         <p>{{ heroPhrase().subtext }}</p>
       </section>
@@ -74,7 +75,7 @@ type WeeklyMetricCard = {
               <span class="title">How is {{ participantName() }} doing today?</span>
               <span class="subtitle">Log today's reflection</span>
             </span>
-            <span class="material-symbols-outlined chevron">arrow_forward_ios</span>
+            <span class="reflection-cta"><span class="material-symbols-outlined">arrow_forward</span></span>
           </a>
         }
       </section>
@@ -253,35 +254,44 @@ type WeeklyMetricCard = {
       padding: 0 1.5rem 12rem;
       box-sizing: border-box;
       overflow-x: hidden;
-      background: var(--color-ghost-white-canvas, #fcfcfd);
+      background: var(--color-ghost-white-canvas, var(--color-ghost-white-canvas, #fcfcfd));
     }
 
     .hero {
       padding: 1.75rem 0 0.75rem;
     }
 
+    .hero-context {
+      margin: 0 0 5px;
+      color: var(--color-text-muted, #64748b);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
     .hero h1 {
       margin: 0;
       color: #0f172a;
-      font-size: 1.95rem;
-      font-weight: 700;
-      line-height: 1.2;
-      letter-spacing: -0.02em;
+      font-size: 2.1rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
     }
 
     .hero p {
       margin: 0.5rem 0 0;
-      color: #64748b;
+      color: var(--color-text-muted, #64748b);
       font-size: 0.875rem;
       font-weight: 500;
     }
 
     .violet {
-      color: var(--color-electric-violet, #8b5cf6);
+      color: var(--color-electric-violet, var(--color-electric-violet, #8b5cf6));
     }
 
     .emerald {
-      color: var(--color-vital-emerald, #10b981);
+      color: var(--color-vital-emerald, var(--color-vital-emerald, #10b981));
     }
 
     .reflection-entry {
@@ -309,14 +319,14 @@ type WeeklyMetricCard = {
     }
 
     .reflection-button .title {
-      color: var(--color-midnight-slate, #1e293b);
+      color: var(--color-midnight-slate, var(--color-midnight-slate, #1e293b));
       font-size: 1rem;
       font-weight: 700;
       line-height: 1.2;
     }
 
     .reflection-button .subtitle {
-      color: #64748b;
+      color: var(--color-text-muted, #64748b);
       font-size: 0.75rem;
       font-weight: 500;
       line-height: 1.4;
@@ -328,6 +338,23 @@ type WeeklyMetricCard = {
       flex-shrink: 0;
     }
 
+    .reflection-cta {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-vital-emerald) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-vital-emerald) 28%, transparent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .reflection-cta .material-symbols-outlined {
+      color: var(--color-vital-emerald, #10b981);
+      font-size: 1rem;
+    }
+
     .reflection-button-skeleton {
       height: 64px;
       border-radius: 0.625rem;
@@ -335,8 +362,8 @@ type WeeklyMetricCard = {
     }
 
     .reflection-button.reflection-logged {
-      background: #ecfdf5;
-      border-color: rgba(16, 185, 129, 0.32);
+      background: var(--color-soft-emerald, #ecfdf5);
+      border-color: color-mix(in srgb, var(--color-vital-emerald) 32%, transparent);
     }
 
     .reflection-button.reflection-logged .title {
@@ -348,7 +375,7 @@ type WeeklyMetricCard = {
     }
 
     .logged-chevron {
-      color: #10b981;
+      color: var(--color-vital-emerald, #10b981);
     }
 
     .section {
@@ -391,7 +418,7 @@ type WeeklyMetricCard = {
     }
 
     .violet-link {
-      color: var(--color-electric-violet, #8b5cf6);
+      color: var(--color-electric-violet, var(--color-electric-violet, #8b5cf6));
       text-transform: uppercase;
       letter-spacing: 0.12em;
     }
@@ -417,7 +444,7 @@ type WeeklyMetricCard = {
       padding: 0.95rem 0.9rem;
       display: grid;
       gap: 0.5rem;
-      min-height: 132px;
+      min-height: 148px;
     }
 
     .metric-card svg {
@@ -480,38 +507,39 @@ type WeeklyMetricCard = {
     .metric-value {
       margin: 0;
       color: #0f172a;
-      font-size: 1.125rem;
-      font-weight: 700;
-      line-height: 1.1;
+      font-size: 1.65rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.03em;
     }
 
     .metric-card.mood {
-      background: #f5f3ff;
-      border-color: rgba(139, 92, 246, 0.32);
-      color: #8b5cf6;
+      background: var(--color-soft-violet, #f5f3ff);
+      border-color: color-mix(in srgb, var(--color-electric-violet) 32%, transparent);
+      color: var(--color-electric-violet, #8b5cf6);
     }
 
     .metric-card.focus {
-      background: #ecfdf5;
-      border-color: rgba(16, 185, 129, 0.32);
-      color: #10b981;
+      background: var(--color-soft-emerald, #ecfdf5);
+      border-color: color-mix(in srgb, var(--color-vital-emerald) 32%, transparent);
+      color: var(--color-vital-emerald, #10b981);
     }
 
     .metric-card.sleep {
-      background: #f0f9ff;
-      border-color: rgba(14, 165, 233, 0.32);
-      color: #0ea5e9;
+      background: var(--color-soft-azure, #f0f9ff);
+      border-color: color-mix(in srgb, var(--color-sky-azure) 32%, transparent);
+      color: var(--color-sky-azure, #0ea5e9);
     }
 
     .metric-card.energy {
-      background: #fffbeb;
-      border-color: rgba(245, 158, 11, 0.32);
-      color: #f59e0b;
+      background: var(--color-soft-amber, #fffbeb);
+      border-color: color-mix(in srgb, var(--color-energetic-amber) 32%, transparent);
+      color: var(--color-energetic-amber, #f59e0b);
     }
 
     .metric-card.skeleton {
       background: #fff;
-      border-color: #e2e8f0;
+      border-color: var(--color-border, #e2e8f0);
       min-height: 132px;
       animation: pulse 1.4s ease-in-out infinite;
     }
@@ -560,15 +588,15 @@ type WeeklyMetricCard = {
     }
 
     .ring-bg {
-      stroke: #e2e8f0;
+      stroke: var(--color-border, #e2e8f0);
     }
 
     .ring-amber {
-      stroke: #f59e0b;
+      stroke: var(--color-energetic-amber, #f59e0b);
     }
 
     .ring-emerald {
-      stroke: #10b981;
+      stroke: var(--color-vital-emerald, #10b981);
     }
 
     .ring-icon {
@@ -577,7 +605,7 @@ type WeeklyMetricCard = {
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: 1rem;
-      color: #64748b;
+      color: var(--color-text-muted, #64748b);
       line-height: 1;
     }
 
@@ -597,7 +625,7 @@ type WeeklyMetricCard = {
 
     .med-summary-fraction {
       margin: 0;
-      color: #64748b;
+      color: var(--color-text-muted, #64748b);
       font-size: 0.8125rem;
       font-weight: 500;
       line-height: 1.3;
@@ -630,21 +658,21 @@ type WeeklyMetricCard = {
     }
 
     .med-chip.complete {
-      color: #10b981;
-      background: #ecfdf5;
-      border-color: rgba(16, 185, 129, 0.3);
+      color: var(--color-vital-emerald, #10b981);
+      background: var(--color-soft-emerald, #ecfdf5);
+      border-color: color-mix(in srgb, var(--color-vital-emerald) 30%, transparent);
     }
 
     .med-chip.pending {
-      color: #f59e0b;
-      background: #fffbeb;
-      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--color-energetic-amber, #f59e0b);
+      background: var(--color-soft-amber, #fffbeb);
+      border-color: color-mix(in srgb, var(--color-energetic-amber) 30%, transparent);
     }
 
     .med-chip.none {
       color: #94a3b8;
       background: #f8fafc;
-      border-color: #e2e8f0;
+      border-color: var(--color-border, #e2e8f0);
     }
 
     .med-chevron {
@@ -678,9 +706,9 @@ type WeeklyMetricCard = {
       display: inline-flex;
       align-items: center;
       border-radius: 999px;
-      border: 1px solid rgba(139, 92, 246, 0.32);
-      background: #f5f3ff;
-      color: #8b5cf6;
+      border: 1px solid color-mix(in srgb, var(--color-electric-violet) 32%, transparent);
+      background: var(--color-soft-violet, #f5f3ff);
+      color: var(--color-electric-violet, #8b5cf6);
       font-size: 0.56rem;
       font-weight: 700;
       text-transform: uppercase;
@@ -719,18 +747,18 @@ type WeeklyMetricCard = {
     }
 
     .abc-badge.a {
-      background: #f5f3ff;
-      color: #8b5cf6;
+      background: var(--color-soft-violet, #f5f3ff);
+      color: var(--color-electric-violet, #8b5cf6);
     }
 
     .abc-badge.b {
-      background: #ecfdf5;
-      color: #10b981;
+      background: var(--color-soft-emerald, #ecfdf5);
+      color: var(--color-vital-emerald, #10b981);
     }
 
     .abc-badge.c {
-      background: #fffbeb;
-      color: #f59e0b;
+      background: var(--color-soft-amber, #fffbeb);
+      color: var(--color-energetic-amber, #f59e0b);
     }
 
     .abc-label {
@@ -761,7 +789,7 @@ type WeeklyMetricCard = {
       border-radius: 1rem;
       border: 1px dashed #cbd5e1;
       padding: 1rem;
-      color: #64748b;
+      color: var(--color-text-muted, #64748b);
       font-size: 0.8125rem;
       background: #fff;
     }

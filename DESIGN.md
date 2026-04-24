@@ -55,10 +55,10 @@ Each daily reflection dimension has a dedicated semantic color used for chips, c
 
 | Facet | Color Name | Hex | Chip Background (14% opacity) |
 |-------|-----------|-----|-------------------------------|
-| Mood | Electric Violet | `#8b5cf6` | `rgba(139, 92, 246, 0.14)` |
-| Focus | Vital Emerald | `#10b981` | `rgba(16, 185, 129, 0.14)` |
-| Sleep | Sky Azure | `#0ea5e9` | `rgba(14, 165, 233, 0.14)` |
-| Energy | Energetic Amber | `#f59e0b` | `rgba(245, 158, 11, 0.14)` |
+| Mood | Electric Violet | `#8b5cf6` | `color-mix(in srgb, var(--color-electric-violet) 14%, transparent)` |
+| Focus | Vital Emerald | `#10b981` | `color-mix(in srgb, var(--color-vital-emerald) 14%, transparent)` |
+| Sleep | Sky Azure | `#0ea5e9` | `color-mix(in srgb, var(--color-sky-azure) 14%, transparent)` |
+| Energy | Energetic Amber | `#f59e0b` | `color-mix(in srgb, var(--color-energetic-amber) 14%, transparent)` |
 
 ---
 
@@ -153,3 +153,24 @@ Use this before accepting a Stitch screen update:
 1. Top app bar matches canonical class tokens, icon names, and SVG path geometry.
 2. Bottom nav matches canonical container tokens, item order, icons, and active/inactive states.
 3. Screen remains mobile-first at 390px width, with no horizontal overflow.
+
+---
+
+## 7. Implementation Decisions
+
+### Color Tints: `color-mix()` over bare `rgba()`
+
+**Decision:** All opacity tints of semantic colors use `color-mix(in srgb, var(--token) N%, transparent)` rather than hardcoded `rgba(R, G, B, N)`.
+
+**Rationale:** Bare `rgba()` values duplicate the RGB components of the token, breaking the single source of truth. If a token value changes, every tint must be manually updated. `color-mix()` derives the tint directly from the CSS variable, so a token change propagates automatically.
+
+**Pattern:**
+```css
+/* ✗ Don't */
+background: rgba(16, 185, 129, 0.12);
+
+/* ✓ Do */
+background: color-mix(in srgb, var(--color-vital-emerald) 12%, transparent);
+```
+
+**Scope:** Applied to all component stylesheets. Shadows (`rgba(0,0,0,...)`) are exempt — they are not semantic colors and have no token.
